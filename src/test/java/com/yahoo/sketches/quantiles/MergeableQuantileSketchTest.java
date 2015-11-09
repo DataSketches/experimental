@@ -1,8 +1,13 @@
 package com.yahoo.sketches.quantiles;
 
+import static org.testng.Assert.*;
+
+import org.testng.annotations.Test;
+
 import java.util.Arrays;
 
-class RegressionTests { 
+
+public class MergeableQuantileSketchTest { 
 
   /* the cost of testing for k is k^2, */
   static void regressionTestMergeableQuantileSketchStructureAfterUpdates () {   // package private
@@ -262,6 +267,12 @@ class RegressionTests {
     endToEndTest ();
   }
 
+  @Test
+  public void runRegressions() {
+    runRegressionTests();
+    System.out.println("Regression Tests Complete.");
+  }
+  
   public static void main (String [] args) {
     runRegressionTests ();
     //    System.out.printf ("Checking assert false\n"); assert false;

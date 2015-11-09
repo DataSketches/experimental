@@ -467,6 +467,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    * sum of the values in positions 0 through j of the PDF.
    */
 
+  @SuppressWarnings("cast")
   public double [] getCDF (double [] splitPoints) {
     long [] counters = internalBuildHistogram (splitPoints);
     int numCounters = counters.length;

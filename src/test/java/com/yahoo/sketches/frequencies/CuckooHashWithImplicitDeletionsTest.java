@@ -8,7 +8,6 @@ import org.testng.annotations.Test;
 
 public class CuckooHashWithImplicitDeletionsTest {
 
-  
   @Test
   public void oneUpdateWorks() {  
     CuckooHashWithImplicitDeletions cuckooHash = new CuckooHashWithImplicitDeletions(100);
@@ -50,8 +49,8 @@ public class CuckooHashWithImplicitDeletionsTest {
     int error = 0;
     long key = 0;
     final long startTime = System.currentTimeMillis();
-    for (int i=0; i<n; i++){
-      key = (i < n/2) ? i%(maxSize/2) : i; 
+    for (int i=n; i-->0; ){
+      key = (i < n/2) ? i%(maxSize/1000) : i; 
       if (!cuckooHash.increment(key)) {
         cuckooHash.decrement();
         error++;

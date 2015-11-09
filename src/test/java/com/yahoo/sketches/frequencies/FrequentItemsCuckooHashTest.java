@@ -122,8 +122,28 @@ public class FrequentItemsCuckooHashTest {
     }
     final long endTime = System.currentTimeMillis();
     double timePerUpdate = (double)(endTime-startTime)/(double)n;
-    System.out.println("Amortized time per update: " + timePerUpdate);
+    //System.out.println("Amortized time per update: " + timePerUpdate);
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
 
+  @Test
+  public void stressAndErrorTest() {
+    int n = 100000000;
+    int maxSize = 100000;  
+    FrequentItemsCuckooHash frequentItems = new FrequentItemsCuckooHash(maxSize);
+    long[] keys = new long[n];
+    for (int i=0; i<n; i++){
+      keys[i] = (i < n/2) ? i%1000 : i;
+    }
+    final long startTime = System.currentTimeMillis();
+    for (int i=0; i<n; i++){
+      frequentItems.update(keys[i]);
+    }
+    final long endTime = System.currentTimeMillis();
+    double timePerUpdate = (double)(endTime-startTime)/(double)n;
+    System.out.println("Expected " + (int) (1000/timePerUpdate) + " updates per second.");
+    System.out.println("Maximal error is " + frequentItems.getMaxError());
+    Assert.assertTrue(timePerUpdate < 10E-3);
+  }
+  
 }

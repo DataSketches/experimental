@@ -20,8 +20,8 @@ public class CuckooHashWithImplicitDeletions {
   }
   
   private int getArrayIndex(long key, int index){
-    int hash = (((int) key+index)*bigPrime) % keyValueArrayLength;
-    return (hash >=0)?hash:-hash;
+    int hash = ((((int) key+index)*bigPrime) >>> 1) % keyValueArrayLength;
+    return hash;
   }
   
   public long get(long key) {

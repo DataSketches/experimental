@@ -1,1 +1,3 @@
-#experimental
+Experimental Code [![Build Status](https://travis-ci.org/DataSketches/experimental.svg?branch=master)](https://travis-ci.org/DataSketches/experimental) [![Coverage Status](https://coveralls.io/repos/DataSketches/experimental/badge.svg?branch=master)](https://coveralls.io/r/DataSketches/experimental?branch=master)
+
+This is a staging area for projects prior to being moved to a more permanent repository.  There are no assurances of the quality of this code or if it even works.  This repository may disappear.

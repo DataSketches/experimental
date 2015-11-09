@@ -65,6 +65,13 @@
       <version>0.2.0</version>
     </dependency>
 
+    <!-- Trove For Java -->
+    <dependency>
+        <groupId>net.sf.trove4j</groupId>
+        <artifactId>trove4j</artifactId>
+        <version>3.0.3</version>
+    </dependency>
+
     <!-- Test Scope -->
     <dependency>
       <groupId>org.testng</groupId>

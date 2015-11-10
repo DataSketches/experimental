@@ -22,20 +22,20 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
   }
 
   // package private
-  void show () {
-    int auLen = auItems.length;
-    System.out.printf ("AU: k=%d n=%d len=%d\n", auK, auN, auLen);
-    for (int i = 0; i < auLen; i++) {
-      System.out.printf ("%d\t%.15f\t%d\n", i, auItems[i], auAccum[i]);
-    }
-    System.out.printf ("%d\t%s\t%d\n", auLen, "nothing", auAccum[auLen]);
-  }
+  //  void show () {
+  //    int auLen = auItems.length;
+  //    System.out.printf ("AU: k=%d n=%d len=%d\n", auK, auN, auLen);
+  //    for (int i = 0; i < auLen; i++) {
+  //      System.out.printf ("%d\t%.15f\t%d\n", i, auItems[i], auAccum[i]);
+  //    }
+  //    System.out.printf ("%d\t%s\t%d\n", auLen, "nothing", auAccum[auLen]);
+  //  }
 
   // package private
-  void showHeader () {
-    int auLen = auItems.length;
-    System.out.printf ("AU: k=%d n=%d len=%d\n", auK, auN, auLen);
-  }
+  //  void showHeader () {
+  //    int auLen = auItems.length;
+  //    System.out.printf ("AU: k=%d n=%d len=%d\n", auK, auN, auLen);
+  //  }
 
   /**************************************************************************/
   /**************************************************************************/

@@ -52,9 +52,9 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
 
   int mqKGetter() { return mqK; }
   long mqNGetter() { return mqN; }
-  double[][] mqLevelsGetter() { return mqLevels; }
-  double[] mqBaseBufferGetter() { return mqBaseBuffer; }
-  int mqBaseBufferCountGetter() {return mqBaseBufferCount; }
+  //  double[][] mqLevelsGetter() { return mqLevels; }
+  //  double[] mqBaseBufferGetter() { return mqBaseBuffer; }
+  //  int mqBaseBufferCountGetter() {return mqBaseBufferCount; }
 
   /********************************/
 
@@ -80,27 +80,27 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   /********************************/
   // package private
 
-  void show () {
-    System.out.printf ("showing: K=%d N=%d levels=%d baseBufferLength=%d baseBufferCount=%d\n",
-                       mqK, mqN, mqLevels.length, mqBaseBuffer.length, mqBaseBufferCount);
-    for (int i = 0; i < mqBaseBufferCount; i++) {
-      System.out.printf (" %.3f", mqBaseBuffer[i]);
-    }
-    System.out.printf ("\n");
-    System.out.printf ("%d levels\n", mqLevels.length);
-    for (int j = 0; j < mqLevels.length; j++) {
-      System.out.printf (" level %d\n", j);
-      if (mqLevels[j] == null) {
-        System.out.printf ("   empty\n");
-      }
-      else {
-        for (int i = 0; i < mqK; i++) {
-          System.out.printf ("    %.3f", mqLevels[j][i]);
-        }
-        System.out.printf ("\n");
-      }
-    }
-  }
+  //  void show () {
+  //    System.out.printf ("showing: K=%d N=%d levels=%d baseBufferLength=%d baseBufferCount=%d\n",
+  //                       mqK, mqN, mqLevels.length, mqBaseBuffer.length, mqBaseBufferCount);
+  //    for (int i = 0; i < mqBaseBufferCount; i++) {
+  //      System.out.printf (" %.3f", mqBaseBuffer[i]);
+  //    }
+  //    System.out.printf ("\n");
+  //    System.out.printf ("%d levels\n", mqLevels.length);
+  //    for (int j = 0; j < mqLevels.length; j++) {
+  //      System.out.printf (" level %d\n", j);
+  //      if (mqLevels[j] == null) {
+  //        System.out.printf ("   empty\n");
+  //      }
+  //      else {
+  //        for (int i = 0; i < mqK; i++) {
+  //          System.out.printf ("    %.3f", mqLevels[j][i]);
+  //        }
+  //        System.out.printf ("\n");
+  //      }
+  //    }
+  //  }
 
   /********************************/
   // package private

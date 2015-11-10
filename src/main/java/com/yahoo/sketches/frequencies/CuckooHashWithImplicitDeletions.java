@@ -1,34 +1,35 @@
 package com.yahoo.sketches.frequencies;
 
+import java.util.Random;
+
 public class CuckooHashWithImplicitDeletions {  
-  private long offset;
   final private double LOAD_FACTOR = 0.5;
   final private int LOCATIONS_PER_KEY = 10;
-  
+  private long offset;
   private int keyValueArrayLength;
   private long[] keys;
   private long[] values;
-  public int successes = 0;
-  final private int bigPrime = 2147483647;
+  int[] keyLocationInArray;
+  private Random random;
   
-  public CuckooHashWithImplicitDeletions(int maxSize) {  
+  long[] keyArr = new long[1];
+  
+  public CuckooHashWithImplicitDeletions(int maxSize) {
     if (maxSize <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
     keyValueArrayLength = (int) (maxSize/LOAD_FACTOR);
     keys = new long[keyValueArrayLength];
     values = new long[keyValueArrayLength];
+    keyLocationInArray = new int[LOCATIONS_PER_KEY];
+    random = new Random();
     offset = 0;  
   }
-  
-  private int getArrayIndex(long key, int index){
-    int hash = ((((int) key+index)*bigPrime) >>> 1) % keyValueArrayLength;
-    return hash;
-  }
-  
+
   public long get(long key) {
-    for (int i=LOCATIONS_PER_KEY; i-- >0;){
-      int hash = getArrayIndex(key,i);
-      if (keys[hash] == key) {
-        long value = values[hash];
+    random.setSeed(key);
+    for (int i=LOCATIONS_PER_KEY; i-->0;){
+      int index = random.nextInt(keyValueArrayLength);
+      if (keys[index] == key) {
+        long value = values[index];
         return (value > offset) ? value-offset : 0;
       }
     }
@@ -38,15 +39,16 @@ public class CuckooHashWithImplicitDeletions {
   public boolean increment(long key) {
     // In case the key is in the map already
     int availableIndex = -1;
-    for (int i=LOCATIONS_PER_KEY; i-- >0;){
-      int hash = getArrayIndex(key,i);
-      if (keys[hash] == key) {
-        long value = values[hash];
-        values[hash] = (value > offset) ? value+1: offset+1;
+    random.setSeed(key);
+    for (int i=LOCATIONS_PER_KEY; i-->0;) {
+      int index = random.nextInt(keyValueArrayLength);
+      if (keys[index] == key) {
+        long value = values[index];
+        values[index] = (value > offset) ? value+1: offset+1;
         return true;
       }
-      if (availableIndex < 0 && values[hash] <= offset) {
-        availableIndex = hash;
+      if (availableIndex < 0 && values[index] <= offset) {
+        availableIndex = index;
       }
     }
     // The key is not in the map but there is a spot for it

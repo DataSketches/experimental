@@ -49,8 +49,8 @@ public class CuckooHashWithImplicitDeletionsTest {
     int error = 0;
     long key = 0;
     final long startTime = System.currentTimeMillis();
-    for (int i=n; i-->0; ){
-      key = (i < n/2) ? i%(maxSize/1000) : i; 
+    for (int i=0; i<n; i++){
+      key = (i < n/2) ? i%100 : i; 
       if (!cuckooHash.increment(key)) {
         cuckooHash.decrement();
         error++;
@@ -58,8 +58,8 @@ public class CuckooHashWithImplicitDeletionsTest {
     }
     final long endTime = System.currentTimeMillis();
     double timePerUpdate = (double)(endTime-startTime)/(double)n;
-    System.out.println("Amortized time per update: " + timePerUpdate);
-    System.out.println("Error: " + error);
+    System.out.format("Performes %.2f million updates per second.\n", .001/timePerUpdate );
+    System.out.format("The error is: %d and the theoretical limit is %d\n.", error, n/maxSize);
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
   

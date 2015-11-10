@@ -332,26 +332,26 @@ class Util {
 
   // we are retaining this stand-alone test for now because it is more exhaustive
 
-  private static void exhaustiveMain (String[] args) {
-    assert (args.length == 1);
-    int  numTries = Integer.parseInt (args[0]);
-    System.out.printf ("Testing blockyTandemMergeSort\n");
-    for (int arrLen = 0; true ; arrLen++) { 
-      for (int blkSize = 1; blkSize <= arrLen + 100; blkSize++) {
-        System.out.printf ("Testing %d times with arrLen = %d and blkSize = %d\n", numTries, arrLen, blkSize);
-        for (int tryno = 1; tryno <= numTries; tryno++) {  
-          double [] arr = makeMergeTestInput (arrLen, blkSize);
-          long [] brr = makeTheTandemArray (arr);
-          assertMergeTestPrecondition (arr, brr, arrLen, blkSize);
-          blockyTandemMergeSort (arr, brr, arrLen, blkSize);
-          assertMergeTestPostcondition (arr, brr, arrLen);
-        }
-      }
-    }
-  } 
-
-  public static void main (String[] args) {  
-    exhaustiveMain (args);
-  }
+  //  private static void exhaustiveMain (String[] args) {
+  //    assert (args.length == 1);
+  //    int  numTries = Integer.parseInt (args[0]);
+  //    System.out.printf ("Testing blockyTandemMergeSort\n");
+  //    for (int arrLen = 0; true ; arrLen++) { 
+  //      for (int blkSize = 1; blkSize <= arrLen + 100; blkSize++) {
+  //        System.out.printf ("Testing %d times with arrLen = %d and blkSize = %d\n", numTries, arrLen, blkSize);
+  //        for (int tryno = 1; tryno <= numTries; tryno++) {  
+  //          double [] arr = makeMergeTestInput (arrLen, blkSize);
+  //          long [] brr = makeTheTandemArray (arr);
+  //          assertMergeTestPrecondition (arr, brr, arrLen, blkSize);
+  //          blockyTandemMergeSort (arr, brr, arrLen, blkSize);
+  //          assertMergeTestPostcondition (arr, brr, arrLen);
+  //        }
+  //      }
+  //    }
+  //  } 
+  //
+  //  public static void main (String[] args) {  
+  //    exhaustiveMain (args);
+  //  }
 
 }

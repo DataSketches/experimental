@@ -170,23 +170,23 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
 
   // this one is definitely slightly slower
   // will remove after gaining more confidence in the faster one.
-  private static double [] slowerAllocatingMergeTwoSizeKBuffers (double [] bufA, double [] bufB, int k) {
-    assert bufA.length == k;
-    assert bufB.length == k;
-    int tmpLen = 2 * k;
-    double [] tmpBuf = new double [tmpLen];
-    int a = 0;
-    int b = 0;
-    for (int j = 0; j < tmpLen; j++) {
-      if      (b == k)            {tmpBuf[j] = bufA[a++];}
-      else if (a == k)            {tmpBuf[j] = bufB[b++];}
-      else if (bufA[a] < bufB[b]) {tmpBuf[j] = bufA[a++];}
-      else                        {tmpBuf[j] = bufB[b++];}
-    }
-    assert a == k;
-    assert b == k;
-    return (allocatingCarryOfOneSize2KBuffer(tmpBuf,k));
-  }
+  //  private static double [] slowerAllocatingMergeTwoSizeKBuffers (double [] bufA, double [] bufB, int k) {
+  //    assert bufA.length == k;
+  //    assert bufB.length == k;
+  //    int tmpLen = 2 * k;
+  //    double [] tmpBuf = new double [tmpLen];
+  //    int a = 0;
+  //    int b = 0;
+  //    for (int j = 0; j < tmpLen; j++) {
+  //      if      (b == k)            {tmpBuf[j] = bufA[a++];}
+  //      else if (a == k)            {tmpBuf[j] = bufB[b++];}
+  //      else if (bufA[a] < bufB[b]) {tmpBuf[j] = bufA[a++];}
+  //      else                        {tmpBuf[j] = bufB[b++];}
+  //    }
+  //    assert a == k;
+  //    assert b == k;
+  //    return (allocatingCarryOfOneSize2KBuffer(tmpBuf,k));
+  //  }
 
   /********************************/
 
@@ -236,7 +236,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     else {
       double [] oldBuf = mqLevels[curLvl];
       mqLevels[curLvl] = null;
-      double [] carryOut = slowerAllocatingMergeTwoSizeKBuffers (carryIn, oldBuf, mqK);
+      double [] carryOut = allocatingMergeTwoSizeKBuffers (carryIn, oldBuf, mqK);
       propagateCarry(carryOut, curLvl+1);
     }
   }

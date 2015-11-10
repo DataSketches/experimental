@@ -1,10 +1,8 @@
 package com.yahoo.sketches.frequencies;
 
 import java.util.Random;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class CuckooHashWithImplicitDeletionsTest {
 
@@ -40,17 +38,16 @@ public class CuckooHashWithImplicitDeletionsTest {
       Assert.assertEquals(cuckooHash.get(key), realCounts[key]);
     }
   }
-  
+    
   @Test
   public void stressTestUpdateTime() {
     int n = 100000000;
     int maxSize = 1000000;  
     CuckooHashWithImplicitDeletions cuckooHash = new CuckooHashWithImplicitDeletions(maxSize);
     int error = 0;
-    long key = 0;
     final long startTime = System.currentTimeMillis();
     for (int i=0; i<n; i++){
-      key = (i < n/2) ? i%100 : i; 
+      long key = (i < n/2) ? i%10000 : i; 
       if (!cuckooHash.increment(key)) {
         cuckooHash.decrement();
         error++;
@@ -59,7 +56,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     final long endTime = System.currentTimeMillis();
     double timePerUpdate = (double)(endTime-startTime)/(double)n;
     System.out.format("Performes %.2f million updates per second.\n", .001/timePerUpdate );
-    System.out.format("The error is: %d and the theoretical limit is %d\n.", error, n/maxSize);
+    System.out.format("The error is: %d and the theoretical limit is %d\n.", error, n/maxSize); 
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
   

@@ -1,6 +1,6 @@
 package com.yahoo.sketches.frequencies;
 
-import java.util.Random;
+import com.yahoo.sketches.hash.MurmurHash3;
 
 public class CuckooHashWithImplicitDeletions {  
   final private double LOAD_FACTOR = 0.5;
@@ -10,8 +10,6 @@ public class CuckooHashWithImplicitDeletions {
   private long[] keys;
   private long[] values;
   int[] keyLocationInArray;
-  private Random random;
-  
   long[] keyArr = new long[1];
   
   public CuckooHashWithImplicitDeletions(int maxSize) {
@@ -19,15 +17,12 @@ public class CuckooHashWithImplicitDeletions {
     keyValueArrayLength = (int) (maxSize/LOAD_FACTOR);
     keys = new long[keyValueArrayLength];
     values = new long[keyValueArrayLength];
-    keyLocationInArray = new int[LOCATIONS_PER_KEY];
-    random = new Random();
-    offset = 0;  
+    offset = 0; 
   }
 
   public long get(long key) {
-    random.setSeed(key);
     for (int i=LOCATIONS_PER_KEY; i-->0;){
-      int index = random.nextInt(keyValueArrayLength);
+      int index = indexForKey(key,i);
       if (keys[index] == key) {
         long value = values[index];
         return (value > offset) ? value-offset : 0;
@@ -36,12 +31,16 @@ public class CuckooHashWithImplicitDeletions {
     return 0;
   }
       
+  private int indexForKey(long key, int i){
+    keyArr[0] = key;
+    return (((int)(MurmurHash3.hash(keyArr,i)[0]))>>>1) % keyValueArrayLength;
+  }
+  
   public boolean increment(long key) {
     // In case the key is in the map already
     int availableIndex = -1;
-    random.setSeed(key);
     for (int i=LOCATIONS_PER_KEY; i-->0;) {
-      int index = random.nextInt(keyValueArrayLength);
+      int index = indexForKey(key,i);
       if (keys[index] == key) {
         long value = values[index];
         values[index] = (value > offset) ? value+1: offset+1;
@@ -60,7 +59,7 @@ public class CuckooHashWithImplicitDeletions {
     // Need to add bump(key)
     return false;
   }
-  
+
   public void decrement(){
     offset++;
   }

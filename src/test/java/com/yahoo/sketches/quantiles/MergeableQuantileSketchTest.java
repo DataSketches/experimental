@@ -266,20 +266,22 @@ public class MergeableQuantileSketchTest {
     mqst.regressionTestMergeableQuantileSketchStructureAfterMerges ();
     mqst.testQuadraticTimeIncrementHistogramCounters ();
     mqst.testLinearTimeIncrementHistogramCounters ();
-    Util.testBlockyTandemMergeSort (10, 50);
     mqst.testConstructAuxiliary ();
     mqst.endToEndTest ();
+    UtilTest utest = new UtilTest();
+    utest.testBlockyTandemMergeSort (10, 50);
+    
+    System.out.println("Regression Tests Complete.");
   }
 
   @Test
   public void runRegressions() {
     runRegressionTests();
-    System.out.println("Regression Tests Complete.");
+    
   }
   
   public static void main (String [] args) {
     runRegressionTests ();
-    //    System.out.printf ("Checking assert false\n"); assert false;
   }
 
 }

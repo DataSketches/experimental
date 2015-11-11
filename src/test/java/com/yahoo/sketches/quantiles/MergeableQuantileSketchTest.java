@@ -22,7 +22,7 @@ public class MergeableQuantileSketchTest {
       }
       //      if (k % 10 == 0) { System.out.printf ("Tested updates with k = %d\n", k); }
     }
-    System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterUpdates ()\n");
+    //System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterUpdates ()\n");
   }
 
   /* the cost of testing for k is k^4, */
@@ -52,7 +52,7 @@ public class MergeableQuantileSketchTest {
       } // end of loop over n
       //      System.out.printf ("Tested merges with k = %d\n", k);
     } // end of loop over k
-    System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterMerges ()\n");
+    //System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterMerges ()\n");
   }
 
   @Test
@@ -95,7 +95,7 @@ public class MergeableQuantileSketchTest {
 
     } // end of loop over values of k
 
-    System.out.printf ("Passed: testConstructAuxiliary()\n");
+    //System.out.printf ("Passed: testConstructAuxiliary()\n");
   }
 
 
@@ -156,7 +156,7 @@ public class MergeableQuantileSketchTest {
     }
     // should probably assert that the final cdf value is 1.0
 
-    System.out.printf ("Passed: endToEndTest()\n");
+    //System.out.printf ("Passed: endToEndTest()\n");
   }
 
 
@@ -205,7 +205,7 @@ public class MergeableQuantileSketchTest {
       // System.out.printf ("\n");
     } 
 
-   System.out.printf ("Passed: quadraticTimeIncrementHistogramCounters\n");
+   //System.out.printf ("Passed: quadraticTimeIncrementHistogramCounters\n");
 
   }
 
@@ -250,7 +250,7 @@ public class MergeableQuantileSketchTest {
       // System.out.printf ("\n");
     } 
 
-   System.out.printf ("Passed: linearTimeIncrementHistogramCounters\n");
+   //System.out.printf ("Passed: linearTimeIncrementHistogramCounters\n");
 
   }
   /* need to write tests where there are zero or one splitpoints, and zero samples */

@@ -103,7 +103,7 @@ public class UtilTest {
        }
      }
    }
-   System.out.printf ("Passed: testBlockyTandemMergeSort\n");
+   //System.out.printf ("Passed: testBlockyTandemMergeSort\n");
  } 
 
   

@@ -40,6 +40,7 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
   /**************************************************************************/
   /**************************************************************************/
 
+  @SuppressWarnings("unused")
   private static int countSamplesInSketch (int mqK, long mqN, double [][] mqLevels, 
                                    double [] mqBaseBuffer, int mqBaseBufferCount) {
     int count = mqBaseBufferCount;
@@ -51,6 +52,7 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
 
   /**************************************************************************/
 
+  @SuppressWarnings("unused")
   private static void populateAuxiliaryArrays (int mqK, long mqN, double [][] mqLevels, 
                                        double [] mqBaseBuffer, int mqBaseBufferCount, 
                                        double [] items, long [] accum, int numSamples) {
@@ -107,7 +109,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
 
   static Auxiliary constructAuxiliary (int mqK, long mqN, double [][] mqLevels, 
                                 double [] mqBaseBuffer, int mqBaseBufferCount) {
-    int k = mqK;
 
     int numSamples = countSamplesInSketch (mqK, mqN, mqLevels, mqBaseBuffer, mqBaseBufferCount);
 
@@ -211,7 +212,8 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
   /*************************************/
 
   // package private
-   static long posOfPhi (double phi, long n) {    // don't tinker with this definition
+   @SuppressWarnings("cast")
+  static long posOfPhi (double phi, long n) {    // don't tinker with this definition
     long pos = (long) Math.floor (phi * ((double) (n)));
     if (pos == n) { 
       pos = n - 1; /* special rule */

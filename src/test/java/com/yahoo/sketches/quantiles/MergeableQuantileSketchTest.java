@@ -1,16 +1,18 @@
 package com.yahoo.sketches.quantiles;
 
-import static org.testng.Assert.*;
+//import static org.testng.Assert.*;
 
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
+//import java.util.Arrays;
 
-
+@SuppressWarnings("cast")
 public class MergeableQuantileSketchTest { 
 
   /* the cost of testing for k is k^2, */
-  static void regressionTestMergeableQuantileSketchStructureAfterUpdates () {   // package private
+ 
+  @Test
+  public void regressionTestMergeableQuantileSketchStructureAfterUpdates () {
     for (int k = 1; k <= 100; k++) { // was 300
       long longK = (long) k;
       MergeableQuantileSketch mq = new MergeableQuantileSketch (k);
@@ -24,7 +26,8 @@ public class MergeableQuantileSketchTest {
   }
 
   /* the cost of testing for k is k^4, */
-  static void regressionTestMergeableQuantileSketchStructureAfterMerges () {  // package private
+  @Test
+  public void regressionTestMergeableQuantileSketchStructureAfterMerges () {
     for (int k = 1; k <= 9; k++) { // was 20
       long longK = (long) k;
       for (long n = 0; n < (longK * longK + 100); n++) {
@@ -53,8 +56,8 @@ public class MergeableQuantileSketchTest {
   }
 
   /*******************************************************/
-
-  static void testConstructAuxiliary () {
+  @Test
+  public void testConstructAuxiliary () {
     for (int k = 1; k <= 32; k+= 31) {
       MergeableQuantileSketch mq = new MergeableQuantileSketch (k);
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
@@ -100,8 +103,8 @@ public class MergeableQuantileSketchTest {
 
   // Please note that this is a randomized test that CAN fail.
   // The probability of failure could be reduced by increasing k.
-
-  static void endToEndTest () {
+  @Test
+  public void endToEndTest () {
     MergeableQuantileSketch mq  = new MergeableQuantileSketch (256);
     MergeableQuantileSketch mq2 = new MergeableQuantileSketch (256);
 
@@ -164,8 +167,8 @@ public class MergeableQuantileSketchTest {
 
   /**********************************************************************/
   // a couple of basic unit tests for the histogram construction helper functions.
-
-  static void testQuadraticTimeIncrementHistogramCounters () {
+  @Test
+  public void testQuadraticTimeIncrementHistogramCounters () {
 
     double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
 
@@ -209,8 +212,8 @@ public class MergeableQuantileSketchTest {
 
   }
 
-
-  static void testLinearTimeIncrementHistogramCounters () {
+  @Test
+  public void testLinearTimeIncrementHistogramCounters () {
 
     double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
 
@@ -258,13 +261,14 @@ public class MergeableQuantileSketchTest {
   /*******************************************************/
 
   static void runRegressionTests () {
-    regressionTestMergeableQuantileSketchStructureAfterUpdates ();
-    regressionTestMergeableQuantileSketchStructureAfterMerges ();
-    testQuadraticTimeIncrementHistogramCounters ();
-    testLinearTimeIncrementHistogramCounters ();
+    MergeableQuantileSketchTest mqst = new MergeableQuantileSketchTest();
+    mqst.regressionTestMergeableQuantileSketchStructureAfterUpdates ();
+    mqst.regressionTestMergeableQuantileSketchStructureAfterMerges ();
+    mqst.testQuadraticTimeIncrementHistogramCounters ();
+    mqst.testLinearTimeIncrementHistogramCounters ();
     Util.testBlockyTandemMergeSort (10, 50);
-    testConstructAuxiliary ();
-    endToEndTest ();
+    mqst.testConstructAuxiliary ();
+    mqst.endToEndTest ();
   }
 
   @Test

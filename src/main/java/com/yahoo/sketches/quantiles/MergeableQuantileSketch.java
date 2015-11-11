@@ -58,6 +58,10 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
 
   /********************************/
 
+  /**
+   * 
+   * @param k Parameter that controls space usage of sketch and accuracy of estimates
+   */
   public MergeableQuantileSketch (int k) {
     assert k >= 1;
     mqK = k;
@@ -70,7 +74,8 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   /********************************/
 
   /**
-   * Returns the length of the input stream so far. 
+   * Returns the length of the input stream so far.
+   * @return the length of the input stream so far
    */
 
   public long getStreamLength () {
@@ -112,6 +117,8 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   /********************************/
 
   /* there exist faster implementations of this */
+  
+  @SuppressWarnings("cast")
   private static int hiBitPos (long num) {
     assert (num > 0);
     return ((int) ((Math.log (0.5 + ((double) num))) / (Math.log (2.0))));
@@ -263,8 +270,8 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
 
   /** 
    * Tells the MergeableQuantileSketch that the input stream contains dataItem
+   * @param dataItem item from stream
    */
-
   public void update (double dataItem) {
 
     if (Double.isNaN(dataItem)) return;
@@ -297,10 +304,11 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   // work is at least a factor of K smaller than the total amount of 
   // merging work, which is identical in the two approaches.
 
-/**
- * Modified the target sketch by merging the source sketch into it.
- */
-
+ /**
+  * Modified the target sketch by merging the source sketch into it.
+  * @param mqTarget The target sketch
+  * @param mqSource The source sketch
+  */
   public static void mergeInto (MergeableQuantileSketch mqTarget, MergeableQuantileSketch mqSource) {  
 
     assert mqTarget.mqK == mqSource.mqK; // this should actually raise an exception
@@ -356,8 +364,10 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    * We note that this method has a fairly large overhead (microseconds instead of nanoseconds)
    * so it should not be called multiple times to get different quantiles from the same
    * sketch. Instead use getQuantiles() which only pays the overhead one time.
+   * 
+   * @param fraction the specified fractional position in the hypothetical sorted stream.
+   * @return the approximation to the value at the above fraction
    */
-
   public double getQuantile (double fraction) {
     Auxiliary au = this.constructAuxiliary ();
     return (au.getQuantile (fraction));
@@ -371,8 +381,10 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    * However, the computational overhead of getQuantile() is shared
    * amongst the multiple queries. Therefore we strongly recommend the
    * use of getQuantiles() instead of multiple calls to getQuantile()
+   * @param fractions given array of fractional positions in the hypothetical sorted stream. 
+   * It is recommended that these be in increasing order.
+   * @return array of approximations to the given fractions in the same order as given fractions array. 
    */
-
   public double [] getQuantiles (double [] fractions) {
     Auxiliary au = this.constructAuxiliary ();
     double [] answers = new double [fractions.length];
@@ -433,7 +445,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   // actually it's more of a PMF
 
   /**
-   * Given a set of splitPoints, returns an approximation to the PDF of the input stream.
+   * Given a set of splitPoints (values), returns an approximation to the PDF of the input stream.
    * <p>
    * splitPoints is an array of (say) m monotonically increasing doubles
    * that divide the real number line into m+1 consecutive disjoint intervals.
@@ -441,8 +453,11 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    * to the fraction of the input stream values that fell into one of those intervals.
    * <p>
    * Actually the name PMF might be more accurate, but is less well known.
+   * 
+   * @param splitPoints an ordered array of values
+   * @return an approximation to the PDF of the input stream given the splitPoints.
    */
-
+  @SuppressWarnings("cast")
   public double [] getPDF (double [] splitPoints) {
     long [] counters = internalBuildHistogram (splitPoints);
     int numCounters = counters.length;
@@ -465,8 +480,9 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    * <p>
    * More specifically, the value at array position j of the CDF is the
    * sum of the values in positions 0 through j of the PDF.
+   * @param splitPoints an ordered array of unique values
+   * @return an approximation to the CDF of the input stream given the splitPoints.
    */
-
   @SuppressWarnings("cast")
   public double [] getCDF (double [] splitPoints) {
     long [] counters = internalBuildHistogram (splitPoints);

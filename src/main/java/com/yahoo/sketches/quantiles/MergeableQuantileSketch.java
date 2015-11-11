@@ -238,8 +238,8 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   }
 
   /** 
-   * Tells the MergeableQuantileSketch that the input stream contains dataItem
-   * @param dataItem item from stream
+   * Updates this sketch with the given data item
+   * @param dataItem item from stream of items
    */
   public void update (double dataItem) {
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
 package com.yahoo.sketches.quantiles;
 
 import java.util.Arrays;
@@ -6,6 +10,8 @@ import java.util.Arrays;
  * This is an implementation of the low-discrepancy mergeable quantile sketches described
  * in section 3.2 of the journal version of the paper "Mergeable Summaries"
  * by Agarwal, Cormode, Huang, Phillips, Wei, and Yi
+ * 
+ * @author Kevin Lang
  */
 public class MergeableQuantileSketch { /* mergeable quantiles */
 
@@ -494,7 +500,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
         assert false;
       }
     }
- }
+  }
 } // end of class MergeableQuantileSketch
 
 

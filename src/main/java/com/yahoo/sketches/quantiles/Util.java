@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
 package com.yahoo.sketches.quantiles;
 
 import java.util.Arrays;
@@ -5,12 +9,9 @@ import java.util.Arrays;
 /**
  * This class contains a highly specialized sort called blockyTandemMergeSort ().
  *
- * It also contains a couple of subroutines that are used while building histograms.
- *
- * Plus a few other minor things.
+ * It also contains a couple of subroutines that are used while building histograms and a 
+ * few other minor things.
  */
-
-
 class Util { 
 
   // Performs two merges in tandem. One of them provides the sort keys

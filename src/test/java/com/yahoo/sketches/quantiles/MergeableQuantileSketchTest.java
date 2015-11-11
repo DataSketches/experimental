@@ -55,7 +55,6 @@ public class MergeableQuantileSketchTest {
     System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterMerges ()\n");
   }
 
-  /*******************************************************/
   @Test
   public void testConstructAuxiliary () {
     for (int k = 1; k <= 32; k+= 31) {
@@ -99,7 +98,6 @@ public class MergeableQuantileSketchTest {
     System.out.printf ("Passed: testConstructAuxiliary()\n");
   }
 
-  /*******************************************************/
 
   // Please note that this is a randomized test that CAN fail.
   // The probability of failure could be reduced by increasing k.
@@ -165,7 +163,6 @@ public class MergeableQuantileSketchTest {
       //      System.out.printf ("%d\t%.6f\t%.6f\n", q, phi, subtotal);
 
 
-  /**********************************************************************/
   // a couple of basic unit tests for the histogram construction helper functions.
   @Test
   public void testQuadraticTimeIncrementHistogramCounters () {
@@ -258,8 +255,6 @@ public class MergeableQuantileSketchTest {
   }
   /* need to write tests where there are zero or one splitpoints, and zero samples */
 
-  /*******************************************************/
-
   static void runRegressionTests () {
     MergeableQuantileSketchTest mqst = new MergeableQuantileSketchTest();
     mqst.regressionTestMergeableQuantileSketchStructureAfterUpdates ();
@@ -269,16 +264,11 @@ public class MergeableQuantileSketchTest {
     mqst.testConstructAuxiliary ();
     mqst.endToEndTest ();
     UtilTest utest = new UtilTest();
-    utest.testBlockyTandemMergeSort (10, 50);
+    utest.checkBlockyTandemMergeSort();
     
     System.out.println("Regression Tests Complete.");
   }
 
-  @Test
-  public void runRegressions() {
-    runRegressionTests();
-    
-  }
   
   public static void main (String [] args) {
     runRegressionTests ();

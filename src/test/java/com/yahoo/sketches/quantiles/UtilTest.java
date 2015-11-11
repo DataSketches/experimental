@@ -40,7 +40,6 @@ public class UtilTest {
    assert violationsCount == 0;
  }
 
- /*****************************************************************/
 
  private static double [] makeMergeTestInput (int arrLen, int blkSize) {
    double [] arr = new double [arrLen]; 
@@ -73,8 +72,6 @@ public class UtilTest {
    return arr;
  }
 
- /*****************************************************************/
-
  private static long [] makeTheTandemArray (double [] arr) {
    long [] brr = new long [arr.length + 1];  /* make it one longer, just like in the sketches */
    for (int i = 0; i < arr.length; i++) {
@@ -84,13 +81,16 @@ public class UtilTest {
    return brr;
  }
 
- /*****************************************************************/
+ @Test
+ public void checkBlockyTandemMergeSort() {
+   testBlockyTandemMergeSort(10, 50);
+ }
+ 
  /**
   * 
   * @param numTries number of tries
   * @param maxArrLen maximum length of array size
   */
- @Test
  public void testBlockyTandemMergeSort (int numTries, int maxArrLen) {
    for (int arrLen = 0; arrLen <= maxArrLen; arrLen++) {
      for (int blkSize = 1; blkSize <= arrLen + 100; blkSize++) {

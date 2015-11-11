@@ -2,10 +2,6 @@ package com.yahoo.sketches.quantiles;
 
 import java.util.Arrays;
 
-/*************************************************************************************/
-/*************************************************************************************/
-/*************************************************************************************/
-
 /**
  * This class contains a highly specialized sort called blockyTandemMergeSort ().
  *
@@ -16,10 +12,6 @@ import java.util.Arrays;
 
 
 class Util { 
-
-  /****************************************************************/
-  /****************************************************************/
-  /****************************************************************/
 
   // Performs two merges in tandem. One of them provides the sort keys
   // while the other one passively undergoes the same data motion.
@@ -63,8 +55,6 @@ class Util {
     }
 
   }
-
-  /********************************/
 
   // blockyTandemMergeSortRecursion() is called by blockyTandemMergeSort()
   // In addition to performing the algorithm's top down recursion,
@@ -115,7 +105,6 @@ class Util {
 
   }
 
-  /********************************/
 
   // blockyTandemMergeSort() is an implementation of top-down merge sort specialized
   // for the case where the input contains successive equal-length blocks
@@ -146,9 +135,6 @@ class Util {
     }
   }
 
-  /*****************************************************************/
-  /*****************************************************************/
-  /*****************************************************************/
   // Now a couple of helper functions for histogram construction.
 
   // Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, not quadratic.
@@ -176,7 +162,6 @@ class Util {
     }
   }
 
-  /**********************************************************************/
   /** this one does a linear time simultaneous walk of the samples and splitPoints
    * It DOES require the samples to be sorted
    */

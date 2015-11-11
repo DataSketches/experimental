@@ -2,8 +2,6 @@ package com.yahoo.sketches.quantiles;
 
 import java.util.Arrays;
 
-/*************************************************************************************/
-
 class Auxiliary { /* auxiliary data structure for answering quantile queries */
 
   // instance variables are package private
@@ -37,9 +35,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
   //    System.out.printf ("AU: k=%d n=%d len=%d\n", auK, auN, auLen);
   //  }
 
-  /**************************************************************************/
-  /**************************************************************************/
-
   @SuppressWarnings("unused")
   private static int countSamplesInSketch (int mqK, long mqN, double [][] mqLevels, 
                                    double [] mqBaseBuffer, int mqBaseBufferCount) {
@@ -49,8 +44,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
     }
     return count;
   }
-
-  /**************************************************************************/
 
   @SuppressWarnings("unused")
   private static void populateAuxiliaryArrays (int mqK, long mqN, double [][] mqLevels, 
@@ -99,8 +92,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
     
   }
 
-  /**************************************************************************/
-
 
   // This basically merges all of an MergeableQuantileSketch's weighted samples into a single auxiliary 
   // data structure that can be used to efficiently answer quantile queries.
@@ -137,9 +128,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
     return au;
   }
 
-  /**************************************************************************/
-  /**************************************************************************/
-  /**************************************************************************/
 
   /* let m_i denote the minimum position of the length=n 
      "full" sorted sequence that is represented in 
@@ -157,9 +145,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
      Observe that they are satisfied by the initial conditions
      l = 0 and r = len.
   */
-
-  /*************************************/
-
   private static int searchForChunkContainingPos (long [] arr, long q, int l, int r) {
     /* the following three asserts can probably go away eventually, since it is fairly clear
        that if these invariants hold at the beginning of the search, they will be maintained */
@@ -191,8 +176,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
     return (searchForChunkContainingPos(arr,q,l,r));
   }
 
-  /*************************************/
-
   /* Assuming that there are n items in the true stream, this asks what
      item would appear in position 0 <= pos < n of a hypothetical sorted
      version of that stream.  
@@ -209,7 +192,6 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
     return (this.auItems[index]);
   }
 
-  /*************************************/
 
   // package private
    @SuppressWarnings("cast")
@@ -228,8 +210,5 @@ class Auxiliary { /* auxiliary data structure for answering quantile queries */
     long pos = posOfPhi (phi, this.auN);
     return (approximatelyAnswerPositionalQuery (pos));
   }
-
-
-  /*************************************/
 
 } /* end of class Auxiliary */

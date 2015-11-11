@@ -2,23 +2,11 @@ package com.yahoo.sketches.quantiles;
 
 import java.util.Arrays;
 
-
-/*
-MergeableQuantiles
-getQuantile
-getQuantiles
-getPDF
-getCDF
-*/
-
-
-
 /**
  * This is an implementation of the low-discrepancy mergeable quantile sketches described
  * in section 3.2 of the journal version of the paper "Mergeable Summaries"
  * by Agarwal, Cormode, Huang, Phillips, Wei, and Yi
  */
-
 public class MergeableQuantileSketch { /* mergeable quantiles */
 
   /**
@@ -47,7 +35,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    */
   private int mqBaseBufferCount; 
 
-  /********************************/
   // package private; should only be used in testing
 
   int mqKGetter() { return mqK; }
@@ -77,12 +64,10 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    * Returns the length of the input stream so far.
    * @return the length of the input stream so far
    */
-
   public long getStreamLength () {
     return (mqN);
   }
 
-  /********************************/
   // package private
 
   //  void show () {
@@ -107,14 +92,10 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   //    }
   //  }
 
-  /********************************/
-  // package private
   Auxiliary constructAuxiliary () {
     Auxiliary au = Auxiliary.constructAuxiliary (this.mqK, this.mqN, this.mqLevels, this.mqBaseBuffer, this.mqBaseBufferCount);
     return au;
   }
-
-  /********************************/
 
   /* there exist faster implementations of this */
   
@@ -124,16 +105,12 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     return ((int) ((Math.log (0.5 + ((double) num))) / (Math.log (2.0))));
   }
 
-  /********************************/
-
   private static int computeNumLevelsNeeded (int k, long n) {
     long long2k = ((long) 2 * k);
     long quo = n / long2k;
     if (quo == 0) return 0;
     else return (1 + (hiBitPos (quo)));
   }
-
-  /********************************/
 
   private void growBaseBuffer () {
     int oldSize = mqBaseBuffer.length;
@@ -144,8 +121,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
     mqBaseBuffer = newBuf;
   }
-
-  /********************************/
 
   private void growLevels (int newSize) {
     int oldSize = mqLevels.length;
@@ -160,8 +135,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     mqLevels = newLevels;
   }
 
-  /********************************/
-
   /* it is the caller's responsibility to ensure that inbuf is already sorted */
   private static double [] allocatingCarryOfOneSize2KBuffer (double [] inbuf, int k) {
     int randomOffset = (int) (2.0 * Math.random());
@@ -172,8 +145,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
     return (outbuf);
   }
-
-  /********************************/
 
   // this one is definitely slightly slower
   // will remove after gaining more confidence in the faster one.
@@ -194,8 +165,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   //    assert b == k;
   //    return (allocatingCarryOfOneSize2KBuffer(tmpBuf,k));
   //  }
-
-  /********************************/
 
   // this one is definitely slightly faster
   private static double [] allocatingMergeTwoSizeKBuffers (double [] bufA, double [] bufB, int k) {
@@ -227,8 +196,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     return (allocatingCarryOfOneSize2KBuffer(tmpBuf,k));
   }
 
-  /********************************/
-
   /* It is the caller's responsibility to ensure that the levels
      array is big enough so that this provably cannot fail.  Also,
      while this tail-recursive procedure might cause logarithmic
@@ -248,8 +215,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
   }
 
-  /********************************/
-
   private void processFullBaseBuffer() {
     assert mqBaseBufferCount == 2 * mqK;
 
@@ -265,8 +230,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     mqBaseBufferCount = 0;
     propagateCarry (carry, 0);
   }
-
-  /********************************/
 
   /** 
    * Tells the MergeableQuantileSketch that the input stream contains dataItem
@@ -287,10 +250,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
       this.processFullBaseBuffer();
     }
   }
-
-  /****************************************************************/
-  /****************************************************************/
-  /****************************************************************/
 
   // It is easy to prove that the following simplified code which launches 
   // multiple waves of carry propagation does exactly the same amount of merging work
@@ -339,20 +298,11 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     mqTarget.mqN = nFinal;
   }
 
-  /*****************************************************************/
-  /*****************************************************************/
-  /*****************************************************************/
-
   /*
-
     Note: a two-way merge that doesn't modify either of its
     two inputs could be implemented by making a deep copy of
     the larger sketch and then merging the smaller one into it 
   */
-
-  /*****************************************************************/
-  /*****************************************************************/
-  /*****************************************************************/
 
   /**
    * Returns an approximation to the value at the specified fractional position in the hypothetical sorted stream.
@@ -394,9 +344,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     return (answers);
   }
 
-  /*****************************************************************/
-  /*****************************************************************/
-  /*****************************************************************/
   // Note: there is a comment in the increment histogram counters
   // code that says that the splitpoints must be unique. However,
   // the end to end test could generate duplicate splitpoints.
@@ -409,8 +356,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
       }
     }
   }
-
-  /********************************/
 
   private long [] internalBuildHistogram (double [] splitPoints) {
     MergeableQuantileSketch mq = this;
@@ -439,8 +384,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
     return counters;
   }
-
-  /********************************/
 
   // actually it's more of a PMF
 
@@ -473,8 +416,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     return result;
   }
 
-  /********************************/
-
   /**
    * getCDF() is the cumulative analog of getPDF()
    * <p>
@@ -501,9 +442,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
 
 
   /* end of MergeableQuantileSketch implementation */
-  /*****************************************************************/
-  /*****************************************************************/
-  /*****************************************************************/
+
   /* start of testing code */
 
   // package private
@@ -525,8 +464,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
     return total;
   }
-
-  /*****************************************************************/
 
   // package private
 
@@ -558,15 +495,8 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
       }
     }
  }
-
-  /************************************************************************************/
-
 } // end of class MergeableQuantileSketch
 
-
-
-
-/*************************************************************************************/
 
 //  Discussion of structure sharing and modification of buffer contents.
 

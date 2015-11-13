@@ -2,7 +2,8 @@ package com.yahoo.sketches.frequencies;
 
 import gnu.trove.iterator.TLongLongIterator;
 import gnu.trove.map.hash.TLongLongHashMap;
-import gnu.trove.procedure.TLongLongProcedure;
+
+import com.yahoo.sketches.QuickSelect;
 
 /**
  * The frequent-items sketch is useful for keeping approximate counters for keys (map from key (long) to value (long)).  
@@ -25,133 +26,139 @@ import gnu.trove.procedure.TLongLongProcedure;
  * 
  * @author edo
  */
-public class FrequentItemsNaiveTrove {
+public class FrequentItemsNaiveTrove extends FrequencyEstimator {
 
-  private TLongLongHashMap counters;
+  private double EXPANSION_FACTOR = 1.9;
   private int maxSize;
-  private long offset;
-  private boolean inplaceModeOn = false; 
-  private TLongLongProcedure valueGreaterThanOffset;
+  private int minSize;
+  private long offset; 
+  private TLongLongHashMap counters;
   
   /**
-   * @param maxSize (must be positive)
-   * Gives the maximal number of positive counters the sketch is allowed to keep.
-   * This should be thought of as the limit on its space usage. The size is dynamic.
-   * If fewer than maxSize different keys are inserted the size will be smaller 
-   * that maxSize and the counts will be exact.  
+   * @param errorTolerance the acceptable relative error in the estimates of 
+   * the sketch. The maximal error in the frequency estimate should not 
+   * by more than the error tolerance times the number of updates.
+   * Warning: the memory footprint of this class is inversely proportional
+   * to the error tolerance!
    */
-  public FrequentItemsNaiveTrove(int maxSize) {
-    if (maxSize <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
-    this.maxSize = maxSize;
+  public FrequentItemsNaiveTrove(double errorTolerance) {
+    super(errorTolerance);
+    minSize = (int)(1.0/errorTolerance)+1;
+    maxSize = (int) (minSize*EXPANSION_FACTOR)+1;
     offset = 0;
     counters = new TLongLongHashMap();
-    if (inplaceModeOn) {
-      valueGreaterThanOffset = new ValueGreaterThanOffset();
-    }
-  }
-
-  /**
-   * @param maxSize (must be positive)
-   * Gives the maximal number of positive counters the sketch is allowed to keep.
-   * This should be thought of as the limit on its space usage. The size is dynamic.
-   * If fewer than maxSize different keys are inserted the size will be smaller 
-   * that maxSize and the counts will be exact.
-   * @param inplaceModeOn boolean false by default. Turning on inplaceModeOn
-   * makes the data structure more space efficient but roughly 50% times slower.  
-   */
-  public FrequentItemsNaiveTrove(int maxSize, boolean inplaceModeOn) {
-    if (maxSize <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
-    this.maxSize = maxSize;
-    offset = 0;
-    counters = new TLongLongHashMap();
-    this.inplaceModeOn = inplaceModeOn;
-    if (inplaceModeOn) {
-      valueGreaterThanOffset = new ValueGreaterThanOffset();
-    }
-  }
-  /**
-   * @return the number of positive counters in the sketch.
-   */
-  public long nnz() {
-    return counters.size();
   }
   
-  /**
-   * @param key whose count estimate is returned.
-   * @return the approximate count for the key.
-   * It is guaranteed that
-   * 1) get(key) <= real count
-   * 2) get(key) >= real count - getMaxError() 
-   */
-  public long get(long key) {
-    return counters.containsKey(key) ? counters.get(key)-offset : 0L; 
+  public FrequentItemsNaiveTrove() {
+    this(0.01);
   }
-
-  /**
-   * @return the maximal error of the estimate one gets from get(key).
-   * Note that the error is one sided. if the real count is realCount(key) then
-   * get(key) <= realCount(key) <= get(key) + getMaxError() 
-   */
-  public long getMaxError() {
-    return offset;
-  }
-  
-  /**
-   * @author edo
-   * This class is needed for in-place filtering of the Trove hashmap.
-   * Removing in place is slower but more space efficient.
-   */
-  private final class ValueGreaterThanOffset implements TLongLongProcedure {
-    @Override
-    public final boolean execute(long key, long value) {
-        return value > offset;
-    }
-  }
-  
-  private void flush(){
-    if (inplaceModeOn) {
-      counters.retainEntries(valueGreaterThanOffset);
-    } else {
-      TLongLongHashMap tempCounters = new TLongLongHashMap(maxSize);
-      TLongLongIterator countersIterator = counters.iterator();
-      for ( int i = counters.size(); i-- > 0; ) {
-        countersIterator.advance();
-        long value = countersIterator.value();
-        if (value > offset){
-          tempCounters.put(countersIterator.key(), countersIterator.value() );
-        }
-      }
-      counters.clear();
-      counters = tempCounters;
-    }
-  }
-  
+    
   /**
    * @param key a key (as long) to be added to the sketch. 
    * The key cannot be null.
    */
+  @Override
   public void update(long key) {
-    counters.adjustOrPutValue(key,1,1+offset); 
-    if (counters.size() > maxSize){
-      offset+=1;
+    update(key,1);
+  }
+
+  @Override
+  public void update(long key, long value) {
+    counters.adjustOrPutValue(key,value,value+offset); 
+    if (counters.size() >= maxSize){
       flush();
-    }
+    }  
   }
 
   /**
-   * @param other a different FrequentItemsNaiveTrove to union with.
-   * The result of this union updates the sketch whose union function is applied.
-   * @return this the reference to the updated sketch. 
+   * @param key whose count estimate is returned.
+   * @return the approximate count for the key.
+   * It is guaranteed that
+   * 1) getEstimate <= real count
+   * 2) getEstimate >= real count - error tolerance 
    */
-  public FrequentItemsNaiveTrove union(FrequentItemsNaiveTrove other) {
-    other.flush();
-    for(long key : other.counters.keys()){
-      long delta = other.counters.get(key);
-      counters.adjustOrPutValue(key, delta, delta+offset);
+  @Override
+  public long getEstimate(long key) {
+    if (counters.containsKey(key)){
+      long value = counters.get(key);
+      return (value>offset)? value-offset : 0;
     }
-    offset += other.offset;
+    return 0;
+  }
+
+  /**
+   * @param key whose count lower bound estimate is returned.
+   * @return a value that is no greater than the real count. 
+   */
+  @Override
+  public long getEstimateLowerBound(long key) {
+    return getEstimate(key);
+  }
+
+  /**
+   * @param key whose count upper bound estimate is returned.
+   * @return a value that is no smaller than the real count. 
+   */
+  @Override
+  public long getEstimateUpperBound(long key) {
+    return getEstimate(key) + offset;
+  }
+
+  /**
+   * @return an array of keys containing all keys whose frequencies are
+   * are least the error tolerance.   
+   */
+  @Override
+  public long[] getFrequentKeys() {
+    return counters.keys();
+  }
+
+  /**
+   * @param other FrequentItemsNaiveTrove to merge with  
+   * @return a pointer to a FrequentItemsNaiveTrove whose estimates 
+   * are within the guarantees of the larger error tolerance of
+   * the two merged sketches.  
+   */
+  @Override
+  public FrequencyEstimator merge(FrequencyEstimator other) {
+    if (!(other instanceof FrequentItemsNaiveTrove)) throw new IllegalArgumentException("FrequentItemsNaiveTrove can only merge with other FrequentItemsNaiveTrove");
+    FrequentItemsNaiveTrove otherCasted = (FrequentItemsNaiveTrove)other;
+    if (getErrorTolerance() < otherCasted.getErrorTolerance()) throw new IllegalArgumentException("Can only merge with sketch of equal or lower error tolerance.");
+    otherCasted.flush();
+    for(long key : otherCasted.counters.keys()){
+      long delta = otherCasted.counters.get(key);
+      counters.adjustOrPutValue(key, delta, delta);
+    }
+    offset += otherCasted.offset;
     flush();
     return this;
   }
+
+  public int size(){
+    return counters.size();
+  }  
   
+  private void flush(){
+    // Reseting the offset
+    long[] values = counters.values();
+    int currSize = values.length;
+    if (currSize > minSize) {
+      long median = QuickSelect.select(values, 0, currSize-1, currSize-minSize);
+      offset = (median > offset) ? median : offset;
+    }
+    
+    // Creating a new counter hash map 
+    TLongLongHashMap tempCounters = new TLongLongHashMap(minSize);
+    TLongLongIterator countersIterator = counters.iterator();
+    for ( int i = counters.size(); i-- > 0; ) {
+      countersIterator.advance();
+      long value = countersIterator.value();
+      if (value > offset){
+        tempCounters.put(countersIterator.key(), countersIterator.value());
+      }
+    }
+    counters.clear();
+    counters = tempCounters;
+  }
+ 
 }

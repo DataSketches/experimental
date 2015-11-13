@@ -1,45 +1,37 @@
 package com.yahoo.sketches.frequencies;
 
 import org.testng.annotations.Test;
+
+import gnu.trove.map.hash.TLongLongHashMap;
+
 import org.testng.Assert;
 import java.lang.Math;
-import gnu.trove.map.hash.TLongLongHashMap;
 
 
 /**
- * Tests FrequentItemsNaiveTrove class
+ * Tests FrequentItemsNaiveNative class
  * 
  * @author edo
  * 
  */
-public class FrequentItemsNaiveTroveTest {
-
+public class FrequentItemsNaiveNativeTest {
   
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     double errorTolerance = 0.1;
-    FrequentItemsNaiveTrove frequentItems1 = new FrequentItemsNaiveTrove(errorTolerance);
+    FrequentItemsNaiveNative frequentItems1 = new FrequentItemsNaiveNative(errorTolerance);
     Assert.assertNotNull(frequentItems1);
-    FrequentItemsNaiveTrove frequentItems2 = new FrequentItemsNaiveTrove();
+    FrequentItemsNaiveNative frequentItems2 = new FrequentItemsNaiveNative();
     Assert.assertNotNull(frequentItems2);
     // Should throw exception
     @SuppressWarnings("unused")
-    FrequentItemsNaiveTrove frequentItems3 = new FrequentItemsNaiveTrove(0.0);
-  }
-    
-  @Test
-  public void updateOneTime() {
-    int maxSize = 100;
-    double errorTolerance = 1.0/maxSize;
-    FrequentItemsNaiveTrove frequentItems = new FrequentItemsNaiveTrove(errorTolerance);
-    frequentItems.update(13L);
-    Assert.assertEquals(frequentItems.size(), 1);
+    FrequentItemsNaiveNative frequentItems3 = new FrequentItemsNaiveNative(0.0);
   }
     
   @Test
   public void estimatesAreCorectBeofreDeletePhase() {
     double errorTolerance = 0.01;
-    FrequentItemsNaiveTrove frequentItems = new FrequentItemsNaiveTrove(errorTolerance);
+    FrequentItemsNaiveNative frequentItems = new FrequentItemsNaiveNative(errorTolerance);
     for (long key=0L; key<95L; key++){
       frequentItems.update(key);
       Assert.assertTrue(frequentItems.getEstimate(key) == 1);
@@ -47,13 +39,12 @@ public class FrequentItemsNaiveTroveTest {
     }
   }
   
-   
   @Test
   public void realCountsInBounds() {
     int n = 4213;
     double errorTolerance = 0.01;
     double prob = .04; 
-    FrequentItemsNaiveTrove frequentItems = new FrequentItemsNaiveTrove(errorTolerance);
+    FrequentItemsNaiveNative frequentItems = new FrequentItemsNaiveNative(errorTolerance);
     PositiveCountersMap realCounts = new PositiveCountersMap();
     for (int i=0; i<n; i++){   
       long key = randomGeometricDist(prob);
@@ -71,7 +62,7 @@ public class FrequentItemsNaiveTroveTest {
     double errorTolerance = 1.0/maxSize;
     long key;
     double prob = .1;
-    FrequentItemsNaiveTrove frequentItems = new FrequentItemsNaiveTrove(errorTolerance);
+    FrequentItemsNaiveNative frequentItems = new FrequentItemsNaiveNative(errorTolerance);
     for (int i=0; i<n; i++){
       key = randomGeometricDist(prob);
       frequentItems.update(key);
@@ -85,7 +76,7 @@ public class FrequentItemsNaiveTroveTest {
     double errorTolerance = 0.00001;
     double prob = 0.00001;
     long sumOfValues = 0;
-    FrequentItemsNaiveTrove frequentItems = new FrequentItemsNaiveTrove(errorTolerance);
+    FrequentItemsNaiveNative frequentItems = new FrequentItemsNaiveNative(errorTolerance);
     for (int i=0; i<n; i++){
       long key = randomGeometricDist(prob);
       long value = randomGeometricDist(prob);
@@ -99,7 +90,7 @@ public class FrequentItemsNaiveTroveTest {
   public void stressTestUpdateTime() {
     int n = 100000;
     double errorTolerance = 0.001;
-    FrequentItemsNaiveTrove frequentItems = new FrequentItemsNaiveTrove(errorTolerance);
+    FrequentItemsNaiveNative frequentItems = new FrequentItemsNaiveNative(errorTolerance);
     double prob = 0.1*errorTolerance;
     long[] keys = new long[n];
     for (int i=0; i<n; i++){
@@ -124,8 +115,8 @@ public class FrequentItemsNaiveTroveTest {
     double prob2 = .005;
    
     TLongLongHashMap realCounts = new TLongLongHashMap();
-    FrequentItemsNaiveTrove frequentItems1 = new FrequentItemsNaiveTrove(errorTolerance1);
-    FrequentItemsNaiveTrove frequentItems2 = new FrequentItemsNaiveTrove(errorTolerance2);
+    FrequentItemsNaiveNative frequentItems1 = new FrequentItemsNaiveNative(errorTolerance1);
+    FrequentItemsNaiveNative frequentItems2 = new FrequentItemsNaiveNative(errorTolerance2);
     long sumOfValues = 0;
     for (int i=0; i<n; i++){
       long key1 = randomGeometricDist(prob1);
@@ -139,7 +130,7 @@ public class FrequentItemsNaiveTroveTest {
       sumOfValues+=1;
     }
     frequentItems1.merge(frequentItems2);
-    FrequentItemsNaiveTrove frequentItems = frequentItems1;
+    FrequentItemsNaiveNative frequentItems = frequentItems1;
     for ( long key : realCounts.keys()){
       long realCount = realCounts.get(key);
       long lowerBound = frequentItems.getEstimateLowerBound(key);
@@ -155,12 +146,12 @@ public class FrequentItemsNaiveTroveTest {
     int n = 10000;
     double errorTolerance1 = 0.002;
     double errorTolerance2 = 0.001;
-    double prob1 = .01;
-    double prob2 = .005;
+    double prob1 = .001;
+    double prob2 = .0005;
    
     TLongLongHashMap realCounts = new TLongLongHashMap();
-    FrequentItemsNaiveTrove frequentItems1 = new FrequentItemsNaiveTrove(errorTolerance1);
-    FrequentItemsNaiveTrove frequentItems2 = new FrequentItemsNaiveTrove(errorTolerance2);
+    FrequentItemsNaiveNative frequentItems1 = new FrequentItemsNaiveNative(errorTolerance1);
+    FrequentItemsNaiveNative frequentItems2 = new FrequentItemsNaiveNative(errorTolerance2);
     long sumOfValues = 0;
     for (int i=0; i<n; i++){
       long key1 = randomGeometricDist(prob1);
@@ -175,7 +166,7 @@ public class FrequentItemsNaiveTroveTest {
       frequentItems1.update(key2,value2);
       realCounts.adjustOrPutValue(key2,value2,value2);
     }
-    FrequentItemsNaiveTrove frequentItems = (FrequentItemsNaiveTrove) frequentItems1.merge(frequentItems2);
+    FrequentItemsNaiveNative frequentItems = (FrequentItemsNaiveNative) frequentItems1.merge(frequentItems2);
     for ( long key : realCounts.keys()){
       long realCount = realCounts.get(key);
       long lowerBound = frequentItems.getEstimateLowerBound(key);
@@ -186,8 +177,7 @@ public class FrequentItemsNaiveTroveTest {
       Assert.assertTrue(upperBound - lowerBound < sumOfValues*frequentItems.getErrorTolerance());
     }
   }
-
-   
+  
   /**
    * @param prob the probability of success for the geometric distribution. 
    * @return a random number generated from the geometric distribution.

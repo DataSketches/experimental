@@ -1,6 +1,7 @@
 package com.yahoo.sketches.frequencies;
 
 import java.util.PriorityQueue;
+import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -40,7 +41,7 @@ import java.util.HashMap;
 
 
 //@SuppressWarnings("cast")
-public class SpaceSaving {
+public class SpaceSaving extends FrequencyEstimator{
   
   //queue will store counters and their associated keys 
   //for fast access to smallest counter. 
@@ -70,7 +71,8 @@ public class SpaceSaving {
   /**
    * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
-   */	
+   */
+   @Override	
   public void update(long key) {
   	update(key, 1);
   }
@@ -79,6 +81,7 @@ public class SpaceSaving {
    * @param key 
    * Process a key (specified as a long) and a non-negative increment.
    */	
+   @Override
   public void update(long key, long increment) {
 	if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
     
@@ -120,7 +123,8 @@ public class SpaceSaving {
    * 1) get(key) >= real count
    * 2) get(key) <= real count + getMaxError() 
    */
-  public long get(long key) { 
+   @Override
+  public long getEstimate(long key) { 
     //the logic below returns the count of associated counter if key is tracked.
 	//If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
 	//Otherwise, the minimum counter value is returned.
@@ -138,10 +142,22 @@ public class SpaceSaving {
 	}
   }
   
+   @Override
+   public long getEstimateUpperBound(long key)
+   {
+     return getEstimate(key);
+   }
+   
+   @Override
+   public long getEstimateLowerBound(long key)
+   {
+     return getEstimate(key)-getMaxError();
+   }
+  
   /**
    * @return the maximal error of the estimate one gets from get(key).
-   * Note that the error is one sided. if the real count is realCount(key) then
-   * get(key) <= realCount(key) <= get(key) + getMaxError() 
+   * Note that the error is one sided. If the real count is realCount(key) then
+   * get(key) >= realCount(key) >= get(key) - getMaxError() 
    */
   public long getMaxError() {
   	if(counts.size() < maxSize)
@@ -163,11 +179,27 @@ public class SpaceSaving {
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
    */
-  public SpaceSaving union(SpaceSaving that) {
-    for (HashMap.Entry<Long,Long> entry : that.counts.entrySet()) {
+  @Override
+  public FrequencyEstimator merge(FrequencyEstimator other) {
+	if (!(other instanceof SpaceSaving)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
+	  SpaceSaving otherCasted = (SpaceSaving)other;
+    for (HashMap.Entry<Long,Long> entry : otherCasted.counts.entrySet()) {
       this.update(entry.getKey(), entry.getValue());
     }
-    this.mergeError += that.getMaxError();
+    this.mergeError += otherCasted.getMaxError();
     return this;
+  }
+  
+  @Override
+  public long[] getFrequentKeys() {
+    Collection<Long> keysCollection = counts.keySet();
+    int n = keysCollection.size();
+    long[] keys = new long[n];
+    int i=0;
+    for (long key : keysCollection){
+      keys[i] = key;
+      i++;
+    }
+    return keys;
   }
 }

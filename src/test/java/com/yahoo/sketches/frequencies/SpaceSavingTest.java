@@ -45,7 +45,7 @@ public class SpaceSavingTest {
     SpaceSaving spacesaving = new SpaceSaving(maxSize);
     for (long key=0L; key<99L; key++){
       spacesaving.update(key);
-      Assert.assertTrue(spacesaving.get(key) == 1);
+      Assert.assertTrue(spacesaving.getEstimate(key) == 1);
       Assert.assertTrue(spacesaving.getMaxError() == 0);
     }
   }
@@ -85,8 +85,8 @@ public class SpaceSavingTest {
       spacesaving.update(key);
       realCounts.increment(key);
       long realCount = realCounts.get(key);
-      long upperBound = spacesaving.get(key);
-      long lowerBound = spacesaving.get(key) - spacesaving.getMaxError();
+      long upperBound = spacesaving.getEstimate(key);
+      long lowerBound = spacesaving.getEstimate(key) - spacesaving.getMaxError();
       Assert.assertTrue(upperBound >=  realCount && realCount >= lowerBound);   
     }
   }
@@ -102,13 +102,13 @@ public class SpaceSavingTest {
     for (int i=0; i<n; i++){
       key = randomGeometricDist(prob);
       spacesaving.update(key);
-      long upperBound = spacesaving.get(key);
-      long lowerBound = spacesaving.get(key) - spacesaving.getMaxError();
+      long upperBound = spacesaving.getEstimate(key);
+      long lowerBound = spacesaving.getEstimate(key) - spacesaving.getMaxError();
       Assert.assertTrue(upperBound - lowerBound <= i/maxSize);  
       
       key = randomGeometricDist(prob);
-      upperBound = spacesaving.get(key);
-      lowerBound = spacesaving.get(key) - spacesaving.getMaxError();
+      upperBound = spacesaving.getEstimate(key);
+      lowerBound = spacesaving.getEstimate(key) - spacesaving.getMaxError();
       Assert.assertTrue(upperBound - lowerBound <= i/maxSize);  
       
     }
@@ -136,13 +136,13 @@ public class SpaceSavingTest {
       realCounts.increment(key1);
       realCounts.increment(key2);
     }
-    SpaceSaving spacesaving = spacesaving1.union(spacesaving2);
+    SpaceSaving spacesaving = spacesaving1.merge(spacesaving2);
 
     for ( long key : realCounts.keys()){
       
       long realCount = realCounts.get(key);
-      long upperBound = spacesaving.get(key);
-      long lowerBound = spacesaving.get(key) - spacesaving.getMaxError();
+      long upperBound = spacesaving.getEstimateUpperBound(key);
+      long lowerBound = spacesaving.getEstimateLowerBound(key);
 
       Assert.assertTrue(upperBound >=  realCount && realCount >= lowerBound);
     }

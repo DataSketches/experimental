@@ -1,0 +1,250 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+package com.yahoo.sketches.tuple;
+
+import org.testng.annotations.Test;
+import org.testng.Assert;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
+public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
+  @Test
+  public void isEmpty() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4, new DoubleSummaryFactory());
+    Assert.assertTrue(sketch.isEmpty());
+    Assert.assertFalse(sketch.isEstimationMode());
+    Assert.assertEquals(sketch.getEstimate(), 0.0);
+    Assert.assertEquals(sketch.getUpperBound(1), 0.0);
+    Assert.assertEquals(sketch.getLowerBound(1), 0.0);
+    Assert.assertEquals(sketch.getThetaLong(), Long.MAX_VALUE);
+    Assert.assertEquals(sketch.getTheta(), 1.0);
+  }
+
+  @Test
+  public void isEmptyWithSampling() {
+    float samplingProbability = 0.1f;
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4, samplingProbability, new DoubleSummaryFactory());
+    Assert.assertTrue(sketch.isEmpty());
+    Assert.assertFalse(sketch.isEstimationMode());
+    Assert.assertEquals(sketch.getEstimate(), 0.0);
+    Assert.assertEquals(sketch.getUpperBound(1), 0.0);
+    Assert.assertEquals(sketch.getLowerBound(1), 0.0);
+    Assert.assertEquals(sketch.getThetaLong() / (double) Long.MAX_VALUE, (double) samplingProbability);
+    Assert.assertEquals(sketch.getTheta(), (double) samplingProbability);
+  }
+
+  @Test
+  public void sampling() {
+    float samplingProbability = 0.001f;
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4, samplingProbability, new DoubleSummaryFactory());
+    sketch.update("a", 1.0);
+    Assert.assertFalse(sketch.isEmpty());
+    Assert.assertTrue(sketch.isEstimationMode());
+    Assert.assertEquals(sketch.getEstimate(), 0.0);
+    Assert.assertTrue(sketch.getUpperBound(1) > 0.0);
+    Assert.assertEquals(sketch.getLowerBound(1), 0.0, 0.0000001);
+    Assert.assertEquals(sketch.getThetaLong() / (double) Long.MAX_VALUE, (double) samplingProbability);
+    Assert.assertEquals(sketch.getTheta(), (double) samplingProbability);
+  }
+
+  @Test
+  public void exactMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    Assert.assertTrue(sketch.isEmpty());
+    Assert.assertEquals(sketch.getEstimate(), 0.0);
+    for (int i = 1; i <= 4096; i++) sketch.update(i, 1.0);
+    Assert.assertFalse(sketch.isEmpty());
+    Assert.assertFalse(sketch.isEstimationMode());
+    Assert.assertEquals(sketch.getEstimate(), 4096.0);
+    Assert.assertEquals(sketch.getUpperBound(1), 4096.0);
+    Assert.assertEquals(sketch.getLowerBound(1), 4096.0);
+    Assert.assertEquals(sketch.getThetaLong(), Long.MAX_VALUE);
+    Assert.assertEquals(sketch.getTheta(), 1.0);
+
+    DoubleSummary[] summaries = sketch.getSummaries();
+    Assert.assertEquals(summaries.length, 4096);
+    int count = 0;
+    for (int i = 0; i < summaries.length; i++) if (summaries[i] != null) count++;
+    Assert.assertEquals(count, 4096);
+    Assert.assertEquals(summaries[0].getValue(), 1.0);
+  }
+
+  @Test
+  // The moment of going into the estimation mode is, to some extent, an implementation detail
+  // Here we assume that presenting as many unique values as twice the nominal size of the sketch will result in estimation mode
+  public void estimationMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    Assert.assertEquals(sketch.getEstimate(), 0.0);
+    for (int i = 1; i <= 8192; i++) sketch.update(i, 1.0);
+    Assert.assertTrue(sketch.isEstimationMode());
+    Assert.assertEquals(sketch.getEstimate(), 8192, 8192 * 0.01);
+    Assert.assertEquals(sketch.getEstimate(), sketch.getLowerBound(0));
+    Assert.assertEquals(sketch.getEstimate(), sketch.getUpperBound(0));
+    Assert.assertTrue(sketch.getEstimate() >= sketch.getLowerBound(1));
+    Assert.assertTrue(sketch.getEstimate() <= sketch.getUpperBound(1));
+
+    DoubleSummary[] summaries = sketch.getSummaries();
+    Assert.assertTrue(summaries.length >= 4096);
+    int count = 0;
+    for (DoubleSummary summary: summaries) {
+      if (summary != null) {
+        count++;
+        Assert.assertEquals(summary.getValue(), 1.0);
+      }
+    }
+    Assert.assertEquals(count, summaries.length);
+  }
+
+  @Test
+  public void updatesOfAllKeyTypes() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    sketch.update(1L, 1.0);
+    sketch.update(2.0, 1.0);
+    byte[] bytes = { 3 };
+    sketch.update(bytes, 1.0);
+    int[] ints = { 4 };
+    sketch.update(ints, 1.0);
+    long[] longs = { 5L };
+    sketch.update(longs, 1.0);
+    sketch.update("a", 1.0);
+    Assert.assertEquals(sketch.getEstimate(), 6.0);
+  }
+
+  @Test
+  public void doubleSummaryDefaultSumMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketch.update(1, 1.0);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 1.0);
+    sketch.update(1, 0.7);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 1.7);
+    sketch.update(1, 0.8);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 2.5);
+  }
+
+  @Test
+  public void doubleSummaryMinMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory(DoubleSummary.Mode.Min));
+    sketch.update(1, 1.0);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 1.0);
+    sketch.update(1, 0.7);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 0.7);
+    sketch.update(1, 0.8);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 0.7);
+  }
+  @Test
+
+  public void doubleSummaryMaxMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory(DoubleSummary.Mode.Max));
+    sketch.update(1, 1.0);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 1.0);
+    sketch.update(1, 0.7);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 1.0);
+    sketch.update(1, 2.0);
+    Assert.assertEquals(sketch.getRetainedEntries(), 1);
+    Assert.assertEquals(sketch.getSummaries()[0].getValue(), 2.0);
+  }
+
+  @Test
+  public void serializeDeserializeExact() throws Exception {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(32, new DoubleSummaryFactory());
+    sketch1.update(1, 1.0);
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>((java.nio.ByteBuffer)sketch1.serializeToByteBuffer().rewind());
+
+    Assert.assertEquals(sketch2.getEstimate(), 1.0);
+    DoubleSummary[] summaries = sketch2.getSummaries();
+    Assert.assertEquals(summaries.length, 1);
+    Assert.assertEquals(summaries[0].getValue(), 1.0);
+
+    // the same key, so still one unique
+    sketch2.update(1, 1.0);
+    Assert.assertEquals(sketch2.getEstimate(), 1.0);
+
+    sketch2.update(2, 1.0);
+    Assert.assertEquals(sketch2.getEstimate(), 2.0);
+  }
+
+  @Test
+  public void serializeDeserializeEstimation() throws Exception {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    for (int j = 0; j < 10; j++) {
+      for (int i = 0; i < 8192; i++) sketch1.update(i, 1.0);
+    }
+    sketch1.trim();
+    ByteBuffer buffer = sketch1.serializeToByteBuffer();
+    Assert.assertTrue(buffer.order().equals(ByteOrder.nativeOrder()));
+    buffer.rewind();
+    TestUtil.writeBytesToFile(buffer.array(), "TupleSketchWithDoubleSummary4K.data");
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(buffer);
+    Assert.assertTrue(sketch2.isEstimationMode());
+    Assert.assertEquals(sketch2.getEstimate(), 8192, 8192 * 0.99);
+    Assert.assertEquals(sketch1.getTheta(), sketch2.getTheta());
+    DoubleSummary[] summaries = sketch2.getSummaries();
+    Assert.assertEquals(summaries.length, 4096);
+    for (DoubleSummary summary: summaries) Assert.assertEquals(summary.getValue(), 10.0);
+  }
+
+  @Test
+  public void serializeDeserializeSampling() throws Exception {
+    int sketchSize = 16384;
+    int numberOfUniques = sketchSize;
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(sketchSize, 0.5f, new DoubleSummaryFactory());
+    for (int i = 0; i < numberOfUniques; i++) sketch1.update(i, 1.0);
+    ByteBuffer buffer = sketch1.serializeToByteBuffer();
+    Assert.assertTrue(buffer.order().equals(ByteOrder.nativeOrder()));
+    buffer.rewind();
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(buffer);
+    Assert.assertTrue(sketch2.isEstimationMode());
+    Assert.assertEquals(sketch2.getEstimate() / (double) numberOfUniques, 1.0, 0.01);
+    Assert.assertEquals(sketch2.getRetainedEntries() / (double) numberOfUniques, 0.5, 0.01);
+    Assert.assertEquals(sketch1.getTheta(), sketch2.getTheta());
+  }
+
+  @Test
+  public void unionExactMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketch1.update(1, 1.0);
+    sketch1.update(1, 1.0);
+    sketch1.update(1, 1.0);
+    sketch1.update(2, 1.0);
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketch2.update(2, 1.0);
+    sketch2.update(2, 1.0);
+    sketch2.update(3, 1.0);
+    sketch2.update(3, 1.0);
+    sketch2.update(3, 1.0);
+
+    Union<DoubleSummary> union = new Union<DoubleSummary>(8, new DoubleSummaryFactory());
+    union.update(sketch1);
+    union.update(sketch2);
+    CompactSketch<DoubleSummary> result = union.getResult();
+    Assert.assertEquals(result.getEstimate(), 3.0);
+    DoubleSummary[] summaries = result.getSummaries();
+    Assert.assertEquals(summaries[0].getValue(), 3.0);
+    Assert.assertEquals(summaries[1].getValue(), 3.0);
+    Assert.assertEquals(summaries[2].getValue(), 3.0);
+  
+    union.reset();
+    result = union.getResult();
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertFalse(result.isEstimationMode());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getTheta(), 1.0);
+  }
+
+}

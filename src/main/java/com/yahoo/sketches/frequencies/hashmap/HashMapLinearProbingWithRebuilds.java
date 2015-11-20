@@ -1,6 +1,5 @@
 package com.yahoo.sketches.frequencies.hashmap;
 
-
 public class HashMapLinearProbingWithRebuilds extends HashMap {
     
   public HashMapLinearProbingWithRebuilds (int capacity) {

@@ -39,7 +39,7 @@ public class HashMapDoubleHashingWithRebuilds extends HashMap {
 
   @Override
   public void shift(long value) {
-    HashMapLinearProbingWithRebuilds rebuiltHashMap = new HashMapLinearProbingWithRebuilds(capacity);
+    HashMapDoubleHashingWithRebuilds rebuiltHashMap = new HashMapDoubleHashingWithRebuilds(capacity);
     for(int i=0;i<length;i++)
       if (states[i] > 0 && values[i] > value)
         rebuiltHashMap.adjust(keys[i], values[i]-value);

@@ -1,6 +1,6 @@
 package com.yahoo.sketches.frequencies.hashmap;
 
-import com.yahoo.sketches.QuickSelect;
+//import com.yahoo.sketches.QuickSelect;
 import com.yahoo.sketches.hash.MurmurHash3;
 
 /**
@@ -10,21 +10,19 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 public abstract class HashMap {
   
-  // The load factor is decided upon by the abstract class. 
+  // The load factor is decided upon by the abstract class.
+  // This cannot be modified by inheriting classes!
   final private double LOAD_FACTOR = 0.7; 
   
   protected int capacity;
   protected int length;
   protected int arrayMask;
   protected int size=0;
- 
   protected long[] keys;
   protected long[] values;
   protected byte[] states;
   
-  //private int arrayMask;
   private long[] keyArr = new long[1];
-  
   
   public HashMap (int capacity) {
     if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
@@ -81,11 +79,12 @@ public abstract class HashMap {
    * @return an array containing the active keys in the hash map.
    */
   public long[] getKeys() {
+    if (size==0) return null;
     long [] retrunedKeys = new long[size];
     int j = 0;
     for (int i=0; i<length; i++)
       if (isActive(i)){
-        retrunedKeys[j] = values[i];
+        retrunedKeys[j] = keys[i];
         j++;
       }
     assert(j == size);
@@ -97,6 +96,7 @@ public abstract class HashMap {
    * to the active keys in the hash
    */
   public long[] getValues() {
+    if (size==0) return null;
     long [] retrunedValues = new long[size];
     int j = 0;
     for (int i=0; i<length; i++)
@@ -107,43 +107,42 @@ public abstract class HashMap {
     assert(j == size);
     return retrunedValues;
   }
-  
-  /**
-   * @param lower index non-negative and smaller than the size-1. 
-   * @param upper index greater than lower and smaller than the size.
-   * @return value that is 
-   * 1) no smaller than at least lower items
-   * 2) no larger than at least upper items
-   * 
-   * Assumes all values in the array are positive.
-   */ 
-  public long median() {
-    long[] tempValues = new long[length];
-    System.arraycopy(values, 0, tempValues, 0, length);
-    long value = QuickSelect.select(values, 0, length-1, length-size/2);
-    return value;
-  }
 
   /**
    * @param probe int location in array
    * @return true if the cell in the array contains an active key
    */
   abstract protected boolean isActive(int probe);
+
   
-  public long smallValue() {
-    int n = 100;
-    if (n > size) n = size;
-    long [] tempValues = new long[n];
-    int j = 0;
-    for (int i=0; j<n; i++)
-      if (isActive(i)) 
-        tempValues[j++] = values[i];
-    assert(j == n);
-    long value = QuickSelect.select(tempValues, 0, n-1, (int) (n*0.4));
-    // TODO: add check for median
-    return value;
-  }
-  
+//  /**
+//   * @return value that is 
+//   * 1) no smaller than at least lower items
+//   * 2) no larger than at least upper items
+//   * 
+//   * Assumes all values in the array are positive.
+//   */ 
+//  public long median() {
+//    long[] tempValues = new long[length];
+//    System.arraycopy(values, 0, tempValues, 0, length);
+//    long value = QuickSelect.select(values, 0, length-1, length-size/2);
+//    return value;
+//  }
+//
+//  
+//  public long smallValue() {
+//    int n = 100;
+//    if (n > size) n = size;
+//    long [] tempValues = new long[n];
+//    int j = 0;
+//    for (int i=0; j<n; i++)
+//      if (isActive(i)) 
+//        tempValues[j++] = values[i];
+//    assert(j == n);
+//    long value = QuickSelect.select(tempValues, 0, n-1, (int) (n*0.4));
+//    // TODO: add check for median
+//    return value;
+//  }
   
   /**
    * @return length of hash table internal arrays 

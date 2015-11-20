@@ -12,9 +12,9 @@ public class HashMapRobinHood extends HashMap{
     return 0;
   }
 
-  public void adjustHash(long key, long value, long hash) {
-    int probe = hashProbe(key, hash);
-    values[probe] += value;
+  public void set(long key, long value) {
+    int probe = hashProbe(key, hash(key));
+    values[probe] = value;
   }
     
   @Override
@@ -23,26 +23,21 @@ public class HashMapRobinHood extends HashMap{
     values[probe] += value;
   }
   
-//  public void del(long key){
-//    int probe = hashProbe(key);
-//    if (states[probe]>0){
-//      assert(keys[probe] == key);
-//      hashDelete(probe);
-//      size--;
-//    }
-//  }
+  public void adjustAt(long key, long value, long hash) {
+    int probe = hashProbe(key, hash);
+    values[probe] += value;
+  }
   
   @Override
   public void shift(long value){
     shiftFancy(value);
   }
   
-  public void shiftFancy(long value){
+  public void shiftFancy(long value){    
     
     int firstProbe = 0;
-    
     // first probe is the last vacant cell before an occupied one
-    while(states[firstProbe]>0) firstProbe=(firstProbe-1)&arrayMask;
+    while(states[firstProbe]>0) firstProbe++;
     
     // loop around the array once
     int deletes = 0;
@@ -54,15 +49,16 @@ public class HashMapRobinHood extends HashMap{
         // It needs to be deleted
         if (values[probe] <= value){
           states[probe]=0;
-          deletes ++;
+          deletes++;
           size--;
         } else {
+          values[probe] -= value;
+          // deletes = min between deletes and state-1 
+          if (deletes >= states[probe]-1) deletes = states[probe]-1;
           if (deletes > 0){
-            if (deletes >= states[probe]) deletes = states[probe]-1; 
             newProbe = (probe - deletes)&arrayMask;
-          
             keys[newProbe] = keys[probe];
-            values[newProbe] = values[probe] - value;
+            values[newProbe] = values[probe];
             states[newProbe] = (byte) (states[probe] - deletes);
             states[probe] = 0;
           }

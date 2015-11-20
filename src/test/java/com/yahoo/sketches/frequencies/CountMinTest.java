@@ -99,6 +99,64 @@ public class CountMinTest {
     Assert.assertTrue(bad <= eps * n);
   }
   
+  
+
+  @Test
+  public void realCountsInBoundsCU() {
+    int n = 4213;
+    int size = 50;
+    long key;
+    double prob = .04;
+	double eps = 1.0/size;
+	double delta = .01;
+	int bad = 0;
+	 
+    CountMin countmin = new CountMin(eps, delta);
+    PositiveCountersMap realCounts = new PositiveCountersMap();
+    for (int i=0; i<n; i++){   
+      key = randomGeometricDist(prob);
+      countmin.conservative_update(key);
+      realCounts.increment(key);
+      long realCount = realCounts.get(key);
+      long upperBound = countmin.getEstimateUpperBound(key);
+      long lowerBound = countmin.getEstimateLowerBound(key);
+      if(upperBound >=  realCount && realCount >= lowerBound){
+      	continue;
+      }
+      else{
+        System.out.format("upperbound: %d, realCount: %d, lowerbound: %d \n", upperBound, realCount, lowerBound);
+      	bad +=1;
+      }
+    }
+    //System.out.format("bad is: %d and eps * n is: %f \n", bad, eps*n);
+    Assert.assertTrue(bad <= eps * n);
+  }
+  
+  
+  @Test
+  public void ConservativeBetterThanNon() {
+    int n = 4213;
+    int size = 50;
+    long key;
+    double prob = .04;
+	double eps = 1.0/size;
+	double delta = .01;
+	 
+    CountMin countmin1 = new CountMin(eps, delta);
+    CountMin countmin2 = new CountMin(eps, delta);
+    PositiveCountersMap realCounts = new PositiveCountersMap();
+    for (int i=0; i<n; i++){   
+      key = randomGeometricDist(prob);
+      countmin1.conservative_update(key);
+      countmin2.update(key);
+      realCounts.increment(key);
+
+      long upperBound = countmin1.getEstimateUpperBound(key);
+
+      Assert.assertTrue(upperBound <= countmin2.getEstimateUpperBound(key));
+    }
+  }
+
 
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void UnionErrorCheck() {
@@ -159,6 +217,49 @@ public class CountMinTest {
   }
   
   @Test
+  public void realCountsInBoundsAfterUnionCU() {
+    int n = 1000;
+    int size = 400;
+	double delta = .01;
+	double eps = 1.0/size;
+	
+    double prob1 = .01;
+    double prob2 = .005;
+   
+    PositiveCountersMap realCounts = new PositiveCountersMap();
+    CountMin countmin1 = new CountMin(eps, delta);
+    CountMin countmin2 = new CountMin(eps, delta);
+    for (int i=0; i<n; i++){
+      long key1 = randomGeometricDist(prob1);
+      long key2 = randomGeometricDist(prob2);
+      
+      countmin1.conservative_update(key1);
+      countmin2.conservative_update(key2);
+      
+      // Updating the real counters
+      realCounts.increment(key1);
+      realCounts.increment(key2);
+    }
+    CountMin countmin = countmin1.merge(countmin2);
+
+	int bad = 0;
+	int i = 0;
+    for ( long key : realCounts.keys()){
+      i = i + 1;
+      
+      long realCount = realCounts.get(key);
+      long upperBound = countmin.getEstimateUpperBound(key);
+      long lowerBound = countmin.getEstimateLowerBound(key);
+
+      if(upperBound <  realCount || realCount < lowerBound){
+      	bad = bad + 1;
+      	System.out.format("upperbound: %d, realCount: %d, lowerbound: %d \n", upperBound, realCount, lowerBound);
+      }
+    }
+    Assert.assertTrue(bad <= delta * i); 
+  }
+  
+  @Test
   public void stressTestUpdateTime() {
     int n = 1000000;
     int size = 1000; 
@@ -166,15 +267,38 @@ public class CountMinTest {
 	double delta = .01;
      
     CountMin countmin = new CountMin(eps, delta);
-    double prob = 1.0/n;
+    int key=0;
     final long startTime = System.currentTimeMillis();
     for (int i=0; i<n; i++){
-      long key = randomGeometricDist(prob);
-      countmin.update(key);
+      //long key = randomGeometricDist(prob);
+      countmin.update(key++);
     }
     final long endTime = System.currentTimeMillis();
     double timePerUpdate = (double)(endTime-startTime)/(double)n;
-    System.out.println("Amortized time per update: " + timePerUpdate);
+    double updatesPerSecond = 1000.0/timePerUpdate;
+    System.out.println("Amortized updates per second: " + updatesPerSecond);
+    Assert.assertTrue(timePerUpdate < 10E-3);
+  }
+
+
+  @Test
+  public void stressTestUpdateTimeCU() {
+    int n = 1000000;
+    int size = 1000; 
+    double eps = 1.0/size;
+	double delta = .01;
+     
+    CountMin countmin = new CountMin(eps, delta);
+    int key=0;
+    final long startTime = System.currentTimeMillis();
+    for (int i=0; i<n; i++){
+      //long key = randomGeometricDist(prob);
+      countmin.conservative_update(key++);
+    }
+    final long endTime = System.currentTimeMillis();
+    double timePerUpdate = (double)(endTime-startTime)/(double)n;
+    double updatesPerSecond = 1000.0/timePerUpdate;
+    System.out.println("Amortized updates per second: " + updatesPerSecond);
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
 

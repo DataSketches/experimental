@@ -63,11 +63,11 @@ public class SpaceSaving extends FrequencyEstimator{
    * If fewer than maxSize different keys are inserted the size will be smaller 
    * than maxSize and the counts will be exact.  
    */    
-  public SpaceSaving(int maxSize) {
-	if (maxSize <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
+  public SpaceSaving(double errorTolerance) {
+	super(errorTolerance);
+    this.maxSize = (int)(1.0/getErrorTolerance())+1;
     this.queue = new PriorityQueue<Pair>(maxSize);
     this.counts = new HashMap<Long,Long>(maxSize);
-    this.maxSize = maxSize;
     this.mergeError = 0;
     this.stream_length = 0;
   }

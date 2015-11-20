@@ -16,7 +16,8 @@ public class SpaceSavingTest {
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
-    SpaceSaving spacesaving = new SpaceSaving(size);
+    double error_tolerance = 1.0/size;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     Assert.assertNotNull(spacesaving);
     // Should throw exception
     spacesaving = new SpaceSaving(-134);
@@ -25,7 +26,8 @@ public class SpaceSavingTest {
   @Test
   public void updateOneTime() {
     int size = 100;
-    SpaceSaving spacesaving = new SpaceSaving(size);
+    double error_tolerance = 1.0/size;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     spacesaving.update(13L);
     Assert.assertEquals(spacesaving.nnz(), 1);
   }
@@ -33,32 +35,36 @@ public class SpaceSavingTest {
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void updateOneTimeException1() {
     int size = 100;
-    SpaceSaving spacesaving = new SpaceSaving(size);
+    double error_tolerance = 1.0/size;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     spacesaving.update(13L, 0);
   }
   
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void updateOneTimeException2() {
     int size = 100;
-    SpaceSaving spacesaving = new SpaceSaving(size);
+    double error_tolerance = 1.0/size;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     spacesaving.update(13L, -2);
   }
   
   
   @Test
   public void sizeDoesNotGrow() {
-    int maxSize = 100;
-    SpaceSaving spacesaving = new SpaceSaving(maxSize);
+    int size = 100;
+    double error_tolerance = 1.0/size;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     for (long key=0L; key<10000L; key++){
       spacesaving.update(key, 1);
-      Assert.assertTrue(spacesaving.nnz() <= maxSize);
+      Assert.assertTrue(spacesaving.nnz() <= size+1);
     }
   }
   
   @Test
   public void estimatesAreCorectBeofreDeletePhase() {
-    int maxSize = 100;
-    SpaceSaving spacesaving = new SpaceSaving(maxSize);
+    int size = 100;
+    double error_tolerance = 1.0/size;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     for (long key=0L; key<99L; key++){
       spacesaving.update(key);
       Assert.assertTrue(spacesaving.getEstimate(key) == 1);
@@ -94,7 +100,10 @@ public class SpaceSavingTest {
     int maxSize = 50;
     long key;
     double prob = .04; 
-    SpaceSaving spacesaving = new SpaceSaving(maxSize);
+    
+    double error_tolerance = 1.0/maxSize;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
+
     PositiveCountersMap realCounts = new PositiveCountersMap();
     for (int i=0; i<n; i++){   
       key = randomGeometricDist(prob);
@@ -114,7 +123,9 @@ public class SpaceSavingTest {
     int maxSize = 50;
     long key;
     double prob = .04; 
-    SpaceSaving spacesaving = new SpaceSaving(maxSize);
+    double error_tolerance = 1.0/maxSize;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
+
     PositiveCountersMap realCounts = new PositiveCountersMap();
     for (int i=0; i<n; i++){   
       key = randomGeometricDist(prob);
@@ -123,13 +134,13 @@ public class SpaceSavingTest {
     }
     long[] freq = spacesaving.getFrequentKeys();
     for(int i = 0; i < freq.length; i++){
-      Assert.assertTrue(spacesaving.getEstimate(freq[i]) >= n/maxSize); 
+      Assert.assertTrue(spacesaving.getEstimate(freq[i]) >= n/(maxSize+1)); 
     } 
     Collection<Long> keysCollection = realCounts.keys();
 
     int found;
     for (long the_key : keysCollection){
-      if(realCounts.get(the_key) > n/maxSize){
+      if(realCounts.get(the_key) > n/(maxSize+1)){
         found = 0;
       	for(int i = 0; i < freq.length; i++){
       		if(freq[i] == the_key){
@@ -148,8 +159,10 @@ public class SpaceSavingTest {
     int maxSize = 20;
     long key;
     double prob = .1;
+    
+    double error_tolerance = 1.0/maxSize;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
 
-    SpaceSaving spacesaving = new SpaceSaving(maxSize);
     for (int i=0; i<n; i++){
       key = randomGeometricDist(prob);
       spacesaving.update(key);
@@ -172,10 +185,15 @@ public class SpaceSavingTest {
     int maxSize2 = 400;
     double prob1 = .01;
     double prob2 = .005;
+    
+    double error_tolerance1 = 1.0/maxSize1;
+    SpaceSaving spacesaving1 = new SpaceSaving(error_tolerance1);
+    
+    double error_tolerance2 = 1.0/maxSize2;
+    SpaceSaving spacesaving2 = new SpaceSaving(error_tolerance2);
    
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    SpaceSaving spacesaving1 = new SpaceSaving(maxSize1);
-    SpaceSaving spacesaving2 = new SpaceSaving(maxSize2);
+
     for (int i=0; i<n; i++){
       long key1 = randomGeometricDist(prob1);
       long key2 = randomGeometricDist(prob2);
@@ -203,16 +221,18 @@ public class SpaceSavingTest {
   public void stressTestUpdateTime() {
     int n = 1000000;
     int maxSize = 1000;  
-    SpaceSaving spacesaving = new SpaceSaving(maxSize);
-    double prob = 1.0/n;
+    double error_tolerance = 1.0/maxSize;
+    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
+
+    int key=0;
     final long startTime = System.currentTimeMillis();
     for (int i=0; i<n; i++){
-      long key = randomGeometricDist(prob);
-      spacesaving.update(key);
+      spacesaving.update(key++);
     }
     final long endTime = System.currentTimeMillis();
     double timePerUpdate = (double)(endTime-startTime)/(double)n;
-    System.out.println("Amortized time per update: " + timePerUpdate);
+    double updatesPerSecond = 1000.0/timePerUpdate;
+    System.out.println("Amortized updates per second: " + updatesPerSecond);
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
   

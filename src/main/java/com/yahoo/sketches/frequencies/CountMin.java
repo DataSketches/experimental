@@ -56,16 +56,24 @@ public class CountMin{
    * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
    */	
-   
   public void update(long key) {
   	update(key, 1);
   }
+  
+  /**
+   * @param key 
+   * Process a key (specified as a long) update and treat the increment as 1
+   */	
+   
+  public void conservative_update(long key) {
+  	conservative_update(key, 1);
+  }
+  
 
   /**
    * @param key 
    * Process a key (specified as a long) and an increment (can be negative).
    */	
-   
   public void update(long key, long increment) {
     this.update_sum += increment;
 	for (int i=0; i < this.rows; i++) {

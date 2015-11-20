@@ -3,6 +3,7 @@ package com.yahoo.sketches.frequencies;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 import java.lang.Math;
+import java.util.Collection;
 
 /**
  * Tests SpaceSaving class
@@ -28,6 +29,21 @@ public class SpaceSavingTest {
     spacesaving.update(13L);
     Assert.assertEquals(spacesaving.nnz(), 1);
   }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void updateOneTimeException1() {
+    int size = 100;
+    SpaceSaving spacesaving = new SpaceSaving(size);
+    spacesaving.update(13L, 0);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void updateOneTimeException2() {
+    int size = 100;
+    SpaceSaving spacesaving = new SpaceSaving(size);
+    spacesaving.update(13L, -2);
+  }
+  
   
   @Test
   public void sizeDoesNotGrow() {
@@ -91,6 +107,41 @@ public class SpaceSavingTest {
     }
   }
   
+  
+  @Test
+  public void testFrequent() {
+    int n = 4213;
+    int maxSize = 50;
+    long key;
+    double prob = .04; 
+    SpaceSaving spacesaving = new SpaceSaving(maxSize);
+    PositiveCountersMap realCounts = new PositiveCountersMap();
+    for (int i=0; i<n; i++){   
+      key = randomGeometricDist(prob);
+      spacesaving.update(key); 
+      realCounts.increment(key);
+    }
+    long[] freq = spacesaving.getFrequentKeys();
+    for(int i = 0; i < freq.length; i++){
+      Assert.assertTrue(spacesaving.getEstimate(freq[i]) >= n/maxSize); 
+    } 
+    Collection<Long> keysCollection = realCounts.keys();
+
+    int found;
+    for (long the_key : keysCollection){
+      if(realCounts.get(the_key) > n/maxSize){
+        found = 0;
+      	for(int i = 0; i < freq.length; i++){
+      		if(freq[i] == the_key){
+      		  found = 1;
+      		}
+      	}
+      		  
+        Assert.assertTrue(found == 1);
+      }  
+    }
+  }
+  
   @Test
   public void errorWithinLimits() {
     int n = 100;
@@ -136,7 +187,7 @@ public class SpaceSavingTest {
       realCounts.increment(key1);
       realCounts.increment(key2);
     }
-    SpaceSaving spacesaving = spacesaving1.merge(spacesaving2);
+    SpaceSaving spacesaving = (SpaceSaving) spacesaving1.merge(spacesaving2);
 
     for ( long key : realCounts.keys()){
       
@@ -164,5 +215,7 @@ public class SpaceSavingTest {
     System.out.println("Amortized time per update: " + timePerUpdate);
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
+  
+
 
 }

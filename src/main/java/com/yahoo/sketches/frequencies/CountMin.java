@@ -107,7 +107,6 @@ public class CountMin{
    * 1) get(key) >= real count
    * 2) get(key) <= real count + getMaxError() 
    */
-   
   public long getEstimate(long key) { 
 	keyArr[0] = key;
 	long min_count = Long.MAX_VALUE;
@@ -137,7 +136,7 @@ public class CountMin{
    * with probability at least 1-delta, realCount(key) is also at most get(key) + getMaxError() 
    */
   public long getMaxError() {
-  	return (long) (Math.ceil(this.eps * this.update_sum));
+  	return (long) (Math.ceil(this.eps * this.update_sum)); 
   }
   
   /**
@@ -149,7 +148,6 @@ public class CountMin{
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
    */
-   
   public CountMin merge(CountMin other) {
   	if(this.rows != other.rows || this.columns != other.columns){
   	  throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");

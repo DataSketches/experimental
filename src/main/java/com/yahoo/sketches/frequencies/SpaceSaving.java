@@ -1,8 +1,10 @@
 package com.yahoo.sketches.frequencies;
 
 import java.util.PriorityQueue;
+
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The Space Saving algorithm is useful for keeping approximate counters for 
@@ -52,6 +54,7 @@ public class SpaceSaving extends FrequencyEstimator{
   private HashMap<Long,Long> counts;
   private int maxSize;
   private long mergeError;
+  private long stream_length;
   
   /**
    * @param maxSize (must be positive)
@@ -66,6 +69,7 @@ public class SpaceSaving extends FrequencyEstimator{
     this.counts = new HashMap<Long,Long>(maxSize);
     this.maxSize = maxSize;
     this.mergeError = 0;
+    this.stream_length = 0;
   }
   
   /**
@@ -84,6 +88,8 @@ public class SpaceSaving extends FrequencyEstimator{
    @Override
   public void update(long key, long increment) {
 	if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
+    
+    this.stream_length += increment;
     
     //if key is already assigned a counter
 	if(counts.containsKey(key)){
@@ -183,7 +189,9 @@ public class SpaceSaving extends FrequencyEstimator{
   public FrequencyEstimator merge(FrequencyEstimator other) {
 	if (!(other instanceof SpaceSaving)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
 	  SpaceSaving otherCasted = (SpaceSaving)other;
-    for (HashMap.Entry<Long,Long> entry : otherCasted.counts.entrySet()) {
+	  
+	this.stream_length += otherCasted.stream_length;
+    for (Map.Entry<Long, Long> entry : otherCasted.counts.entrySet()) { 
       this.update(entry.getKey(), entry.getValue());
     }
     this.mergeError += otherCasted.getMaxError();
@@ -193,12 +201,20 @@ public class SpaceSaving extends FrequencyEstimator{
   @Override
   public long[] getFrequentKeys() {
     Collection<Long> keysCollection = counts.keySet();
-    int n = keysCollection.size();
-    long[] keys = new long[n];
+    int count = 0;
+    for (long key : keysCollection){
+		if(getEstimate(key) >= this.stream_length / this.maxSize){
+		  count++;
+		}
+    }
+    
+    long[] keys = new long[count];
     int i=0;
     for (long key : keysCollection){
-      keys[i] = key;
-      i++;
+    	if(getEstimate(key) >= this.stream_length / this.maxSize){
+    	  keys[i] = key;
+          i++;
+    	}
     }
     return keys;
   }

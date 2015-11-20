@@ -219,8 +219,8 @@ public class SpaceSavingTest {
   
   @Test
   public void stressTestUpdateTime() {
-    int n = 1000000;
-    int maxSize = 1000;  
+    int n = 100000000;
+    int maxSize = 1000000;  
     double error_tolerance = 1.0/maxSize;
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
 

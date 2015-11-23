@@ -41,21 +41,20 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
    */
   private int mqBaseBufferCount; 
 
-  // package private; should only be used in testing
-
-  int mqKGetter() { return mqK; }
-  long mqNGetter() { return mqN; }
-  //  double[][] mqLevelsGetter() { return mqLevels; }
-  //  double[] mqBaseBufferGetter() { return mqBaseBuffer; }
-  //  int mqBaseBufferCountGetter() {return mqBaseBufferCount; }
-
-  /********************************/
+  // should only be used in testing
+  int mqKGetter() { 
+    return mqK; 
+  }
+  
+  long mqNGetter() { 
+    return mqN; 
+  }
 
   /**
    * 
    * @param k Parameter that controls space usage of sketch and accuracy of estimates
    */
-  public MergeableQuantileSketch (int k) {
+  public MergeableQuantileSketch(int k) {
     assert k >= 1;
     mqK = k;
     mqN = 0;
@@ -63,8 +62,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     mqBaseBuffer = new double[Math.min(4,2*k)];     // the 4 is somewhat arbitrary; the min is important
     mqBaseBufferCount = 0;
   }
-
-  /********************************/
 
   /**
    * Returns the length of the input stream so far.
@@ -74,32 +71,9 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     return (mqN);
   }
 
-  // package private
-
-  //  void show () {
-  //    System.out.printf ("showing: K=%d N=%d levels=%d baseBufferLength=%d baseBufferCount=%d\n",
-  //                       mqK, mqN, mqLevels.length, mqBaseBuffer.length, mqBaseBufferCount);
-  //    for (int i = 0; i < mqBaseBufferCount; i++) {
-  //      System.out.printf (" %.3f", mqBaseBuffer[i]);
-  //    }
-  //    System.out.printf ("\n");
-  //    System.out.printf ("%d levels\n", mqLevels.length);
-  //    for (int j = 0; j < mqLevels.length; j++) {
-  //      System.out.printf (" level %d\n", j);
-  //      if (mqLevels[j] == null) {
-  //        System.out.printf ("   empty\n");
-  //      }
-  //      else {
-  //        for (int i = 0; i < mqK; i++) {
-  //          System.out.printf ("    %.3f", mqLevels[j][i]);
-  //        }
-  //        System.out.printf ("\n");
-  //      }
-  //    }
-  //  }
-
   Auxiliary constructAuxiliary () {
-    Auxiliary au = Auxiliary.constructAuxiliary (this.mqK, this.mqN, this.mqLevels, this.mqBaseBuffer, this.mqBaseBufferCount);
+    Auxiliary au = Auxiliary.constructAuxiliary(
+        this.mqK, this.mqN, this.mqLevels, this.mqBaseBuffer, this.mqBaseBufferCount);
     return au;
   }
 
@@ -141,7 +115,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     mqLevels = newLevels;
   }
 
-  /* it is the caller's responsibility to ensure that inbuf is already sorted */
+  // it is the caller's responsibility to ensure that inbuf is already sorted
   private static double [] allocatingCarryOfOneSize2KBuffer (double [] inbuf, int k) {
     int randomOffset = (int) (2.0 * Math.random());
     assert randomOffset == 0 || randomOffset == 1;
@@ -151,26 +125,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
     return (outbuf);
   }
-
-  // this one is definitely slightly slower
-  // will remove after gaining more confidence in the faster one.
-  //  private static double [] slowerAllocatingMergeTwoSizeKBuffers (double [] bufA, double [] bufB, int k) {
-  //    assert bufA.length == k;
-  //    assert bufB.length == k;
-  //    int tmpLen = 2 * k;
-  //    double [] tmpBuf = new double [tmpLen];
-  //    int a = 0;
-  //    int b = 0;
-  //    for (int j = 0; j < tmpLen; j++) {
-  //      if      (b == k)            {tmpBuf[j] = bufA[a++];}
-  //      else if (a == k)            {tmpBuf[j] = bufB[b++];}
-  //      else if (bufA[a] < bufB[b]) {tmpBuf[j] = bufA[a++];}
-  //      else                        {tmpBuf[j] = bufB[b++];}
-  //    }
-  //    assert a == k;
-  //    assert b == k;
-  //    return (allocatingCarryOfOneSize2KBuffer(tmpBuf,k));
-  //  }
 
   // this one is definitely slightly faster
   private static double [] allocatingMergeTwoSizeKBuffers (double [] bufA, double [] bufB, int k) {
@@ -354,7 +308,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   // code that says that the splitpoints must be unique. However,
   // the end to end test could generate duplicate splitpoints.
   // Need to resolve this apparent conflict.
-
   private static void validateSplitPoints (double [] splitPoints) {
     for (int j = 0; j < splitPoints.length - 1; j++) {
       if (splitPoints[j] > splitPoints[j+1]) { // was >=
@@ -374,24 +327,23 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     if (numSplitPoints < 50) { // empirically determined crossover for K = 200
       // not worth it to sort when few split points
       Util.quadraticTimeIncrementHistogramCounters (mq.mqBaseBuffer, mq.mqBaseBufferCount, weight,
-                                                     splitPoints, counters);
+          splitPoints, counters);
     }
     else {
       Arrays.sort (mq.mqBaseBuffer, 0, mq.mqBaseBufferCount); // sort is worth it when many split points
       Util.linearTimeIncrementHistogramCounters (mq.mqBaseBuffer, mq.mqBaseBufferCount, weight,
-                                                  splitPoints, counters);
+          splitPoints, counters);
     }
     for (int lvl = 0; lvl < mq.mqLevels.length; lvl++) { 
       weight += weight; // *= 2
       if (mq.mqLevels[lvl] != null) { 
         // the levels are already sorted so we can use the fast version
-        Util.linearTimeIncrementHistogramCounters (mq.mqLevels[lvl], mq.mqK, weight, splitPoints, counters);
+        Util.linearTimeIncrementHistogramCounters (mq.mqLevels[lvl], mq.mqK, weight, 
+            splitPoints, counters);
       }
     }
     return counters;
   }
-
-  // actually it's more of a PMF
 
   /**
    * Given a set of splitPoints (values), returns an approximation to the PDF of the input stream.
@@ -423,7 +375,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
   }
 
   /**
-   * getCDF() is the cumulative analog of getPDF()
+   * This is the cumulative analog of getPDF()
    * <p>
    * More specifically, the value at array position j of the CDF is the
    * sum of the values in positions 0 through j of the PDF.
@@ -445,13 +397,9 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     assert (subtotal == this.mqN);
     return result;
   }
+  // End of MergeableQuantileSketch implementation
 
-
-  /* end of MergeableQuantileSketch implementation */
-
-  /* start of testing code */
-
-  // package private
+  // code leveraged by testing code 
   int numSamplesInSketch () { // mostly for testing
     int count = this.mqBaseBufferCount;
     for (int lvl = 0; lvl < this.mqLevels.length; lvl++) {
@@ -460,7 +408,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     return count;
   }
 
-  // package private
   double sumOfSamplesInSketch () { // only useful for testing
     double total = Util.sumOfDoublesInArrayPrefix (this.mqBaseBuffer, this.mqBaseBufferCount);
     for (int lvl = 0; lvl < this.mqLevels.length; lvl++) {
@@ -470,10 +417,6 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
     }
     return total;
   }
-
-  // package private
-
-  // this should probably be in the regression testing file
 
   static void validateMergeableQuantileSketchStructure (MergeableQuantileSketch mq, int k, long n) {
     long long2k = ((long) 2 * k);
@@ -501,7 +444,7 @@ public class MergeableQuantileSketch { /* mergeable quantiles */
       }
     }
   }
-} // end of class MergeableQuantileSketch
+} // End of class MergeableQuantileSketch
 
 
 //  Discussion of structure sharing and modification of buffer contents.

@@ -54,7 +54,7 @@ public class SpaceSavingTest {
     int size = 100;
     double error_tolerance = 1.0/size;
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
-    for (long key=0L; key<10000L; key++){
+    for (long key=0L; key<10000L; key++) {
       spacesaving.update(key, 1);
       Assert.assertTrue(spacesaving.nnz() <= size+1);
     }
@@ -65,7 +65,7 @@ public class SpaceSavingTest {
     int size = 100;
     double error_tolerance = 1.0/size;
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
-    for (long key=0L; key<99L; key++){
+    for (long key=0L; key<99L; key++) {
       spacesaving.update(key);
       Assert.assertTrue(spacesaving.getEstimate(key) == 1);
       Assert.assertTrue(spacesaving.getMaxError() == 0);
@@ -76,7 +76,7 @@ public class SpaceSavingTest {
    * @param prob the probability of success for the geometric distribution. 
    * @return a random number generated from the geometric distribution.
    */
-  static private long randomGeometricDist(double prob){
+  static private long randomGeometricDist(double prob) {
     assert(prob > 0.0 && prob < 1.0);
     return (long) (Math.log(Math.random()) / Math.log(1.0 - prob));
   }
@@ -85,7 +85,7 @@ public class SpaceSavingTest {
   public void testRandomGeometricDist() {
     long maxKey = 0L;
     double prob = .1;
-    for (int i=0; i<100; i++){
+    for (int i=0; i<100; i++) {
       long key = randomGeometricDist(prob) ;
       if (key > maxKey) maxKey = key;
       // If you succeed with probability p the probability 
@@ -105,7 +105,7 @@ public class SpaceSavingTest {
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
 
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    for (int i=0; i<n; i++){   
+    for (int i=0; i<n; i++) {   
       key = randomGeometricDist(prob);
       spacesaving.update(key);
       realCounts.increment(key);
@@ -127,27 +127,26 @@ public class SpaceSavingTest {
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
 
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    for (int i=0; i<n; i++){   
+    for (int i=0; i<n; i++) {   
       key = randomGeometricDist(prob);
       spacesaving.update(key); 
       realCounts.increment(key);
     }
     long[] freq = spacesaving.getFrequentKeys();
-    for(int i = 0; i < freq.length; i++){
+    for(int i = 0; i < freq.length; i++) {
       Assert.assertTrue(spacesaving.getEstimate(freq[i]) >= n/(maxSize+1)); 
     } 
     Collection<Long> keysCollection = realCounts.keys();
 
     int found;
-    for (long the_key : keysCollection){
-      if(realCounts.get(the_key) > n/(maxSize+1)){
+    for (long the_key : keysCollection) {
+      if(realCounts.get(the_key) > n/(maxSize+1)) {
         found = 0;
-      	for(int i = 0; i < freq.length; i++){
-      		if(freq[i] == the_key){
+      	for(int i = 0; i < freq.length; i++) {
+      		if(freq[i] == the_key) {
       		  found = 1;
       		}
-      	}
-      		  
+      	} 
         Assert.assertTrue(found == 1);
       }  
     }
@@ -163,7 +162,7 @@ public class SpaceSavingTest {
     double error_tolerance = 1.0/maxSize;
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
 
-    for (int i=0; i<n; i++){
+    for (int i=0; i<n; i++) {
       key = randomGeometricDist(prob);
       spacesaving.update(key);
       long upperBound = spacesaving.getEstimate(key);
@@ -194,7 +193,7 @@ public class SpaceSavingTest {
    
     PositiveCountersMap realCounts = new PositiveCountersMap();
 
-    for (int i=0; i<n; i++){
+    for (int i=0; i<n; i++) {
       long key1 = randomGeometricDist(prob1);
       long key2 = randomGeometricDist(prob2);
       
@@ -207,35 +206,36 @@ public class SpaceSavingTest {
     }
     SpaceSaving spacesaving = (SpaceSaving) spacesaving1.merge(spacesaving2);
 
-    for ( long key : realCounts.keys()){
-      
+    for ( long key : realCounts.keys()) {
       long realCount = realCounts.get(key);
       long upperBound = spacesaving.getEstimateUpperBound(key);
       long lowerBound = spacesaving.getEstimateLowerBound(key);
-
       Assert.assertTrue(upperBound >=  realCount && realCount >= lowerBound);
     }
   }
   
   @Test
   public void stressTestUpdateTime() {
-    int n = 100000000;
-    int maxSize = 1000000;  
-    double error_tolerance = 1.0/maxSize;
-    SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
-
-    int key=0;
-    final long startTime = System.currentTimeMillis();
-    for (int i=0; i<n; i++){
-      spacesaving.update(key++);
+    int n =   2000000;
+    int size = 100000; 
+    double eps = 1.0/size;
+    int trials = 100;
+    double total_updates_per_s = 0;
+    for(int trial = 0; trial < trials; trial++)
+    {
+      SpaceSaving spacesaving = new SpaceSaving(eps);
+      int key=0;
+      double startTime = System.nanoTime();
+      for (int i=0; i<n; i++) {
+        //long key = randomGeometricDist(prob);
+        spacesaving.update(key++);
+      }
+      double endTime = System.nanoTime();
+      double timePerUpdate = (endTime-startTime)/(1000000.0*n);
+      double updatesPerSecond = 1000.0/timePerUpdate;
+      total_updates_per_s +=updatesPerSecond;
     }
-    final long endTime = System.currentTimeMillis();
-    double timePerUpdate = (double)(endTime-startTime)/(double)n;
-    double updatesPerSecond = 1000.0/timePerUpdate;
-    System.out.println("Amortized updates per second: " + updatesPerSecond);
-    Assert.assertTrue(timePerUpdate < 10E-3);
+    System.out.format("Amortized updates per second for SpaceSaving: %f\n", (total_updates_per_s/trials));
+    Assert.assertTrue(total_updates_per_s/trials > 1000000);
   }
-  
-
-
 }

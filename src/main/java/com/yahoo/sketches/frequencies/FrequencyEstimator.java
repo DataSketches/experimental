@@ -18,11 +18,27 @@ public abstract class FrequencyEstimator {
    * @param errorTolerance the acceptable relative error in the estimates of 
    * the sketch. The maximal error in the frequency estimate should not 
    * by more than the error tolerance times the number of updates.
+   * @param failureprob the acceptable failure probability for any point query.
+   * For some instantiations of the abstract class, the algorithm will be deterministic
+   * and hence the failure probability will be 0.
+   * **Warning**: the memory footprint of this class is inversely proportional
+   * to the error tolerance and failure probability!
+   */
+  public FrequencyEstimator(double errorTolerance, double failureProb){
+    setErrorTolerance(errorTolerance, failureProb);
+  }
+  
+  
+  /**
+   * @param errorTolerance the acceptable relative error in the estimates of 
+   * the sketch. The maximal error in the frequency estimate should not 
+   * by more than the error tolerance times the number of updates.
+   * Sets failure probability to default value of .1.
    * **Warning**: the memory footprint of this class is inversely proportional
    * to the error tolerance!
    */
   public FrequencyEstimator(double errorTolerance){
-    setErrorTolerance(errorTolerance);
+    setErrorTolerance(errorTolerance, .1);
   }
   
   /**
@@ -93,10 +109,13 @@ public abstract class FrequencyEstimator {
   /**
    * @param errorTolerance sets the error tolerance if smaller than 1.0 and larger than the minimal allowed value.  
    */
-  protected void setErrorTolerance(double errorTolerance){
+  protected void setErrorTolerance(double errorTolerance, double failureProb){
     if (errorTolerance > 1.0) throw new IllegalArgumentException("Received error tolerance larger than 1.0");
+    if (failureProb > 1.0) throw new IllegalArgumentException("Received failure probability larger than 1.0");
     if (errorTolerance < SMALLEST_ERROR_TOLERANCE_ALLOWED) throw new 
        IllegalArgumentException("Received error tolerance smaller than minimla allowed value of " + SMALLEST_ERROR_TOLERANCE_ALLOWED);
+    if (failureProb < ACCEPTABLE_FAILURE_PROBABILITY) throw new 
+    IllegalArgumentException("Received failure probability smaller than minimla allowed value of " + ACCEPTABLE_FAILURE_PROBABILITY);
     if (errorToleranceAlreadyAssigned) throw new IllegalStateException("The error tolerance of a sketch can only be set once per sketch object.");
     this.errorToleranceAlreadyAssigned = true;
     this.errorTolerance = errorTolerance;

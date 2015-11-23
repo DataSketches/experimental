@@ -1,8 +1,6 @@
 package com.yahoo.sketches.frequencies;
 
-
 import com.yahoo.sketches.hash.MurmurHash3;
-
 import gnu.trove.set.hash.TLongHashSet;
 import gnu.trove.iterator.TLongIterator;
 
@@ -12,6 +10,15 @@ import gnu.trove.iterator.TLongIterator;
  * (range queries, inner product queries, heavy hitters, quantiles, etc.), though it incurs significant
  * overheads for some of these other queries.
  * 
+ * In general, the Count-Min algorithm can process deletion of items as well as insertions, since it is a linear sketch.
+ * However, using Count-Min to return frequent items in the presence of deletions requires significant overhead.
+ * This class uses CountMin to answer both point queries and track frequent items; however, its method
+ * of tracking frequent items only works in insertion-only streams. Thus, this class throws an exception
+ * if an update with a negative frequency is processed.
+ * 
+ * This implementation also supports the Conservative Update rule proposed by Estan and Varghese 
+ * ("New Directions in Traffic Measurement and Accounting: Focusing on the Elephants, Ignoring the Mice"),
+ * which can provide more accurate answers than the update rule in the basic Count-Min sketch.
  * 
  * @author Justin8712
  */
@@ -20,22 +27,32 @@ import gnu.trove.iterator.TLongIterator;
 //@SuppressWarnings("cast")
 public class CountMinFastFE extends FrequencyEstimator{
   
-  //queue will store counters and their associated keys 
-  //for fast access to smallest counter. 
-  //counts will also store counters and their associated 
-  //keys to quickly check if a key is currently assigned a counter.
-  
+  //hashes denotes the number of cells in the sketcheach key is hashed to
   private int hashes;
+  //length denotes the length (i.e., number of cells) of the data structure maintained by CountMin.
+  //this implementation will always set length to be a power of 2, to enable fast modulo arithmetic
   private int length;
-  private int arrayMask;
-  private long update_sum;
-  private long[] counts;
-  private long[] keyArr = new long[1];
-  private double eps;
+  //logLength denotes log_2(length)
   private int logLength;
+  //arrayMask is used for fast modulo arithmetic 
+  private int arrayMask;
+  //update_sum denotes the sum of all the increments the sketch has processed.
+  private long update_sum;
+  //counts is the array containing the actual Count-Min data structure
+  private long[] counts;
+  //keyArr is used for evaluating MurmurHash
+  private long[] keyArr = new long[1];
+  //eps is a parameter controlling the error guarantees and 
+  //"frequent threshold" of the answers returned by Count-Min
+  private double eps;
+  //freq_keys is a hash table that will store the set of all keys that potentially
+  //have frequency at least eps*update_sum
   private TLongHashSet freq_keys;
+  //freq_limit is a parameter that controls when the table freq_keys is pruned of spurious keys
   private int freq_limit;
-  
+  //STRIDE_HASH_BITS and STRIDE_MASK are used for hash function evaluations
+  //STRIDE_HASH_BITS is set to log(S), where S is an upper bound on the number
+  //of cells in the table.
   private static final int STRIDE_HASH_BITS = 30; 
   static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
   
@@ -44,50 +61,160 @@ public class CountMinFastFE extends FrequencyEstimator{
    * @param eps, delta
    * The guarantee of the sketch is that the answer returned to any individual
    * point query will, with probability at least 1-delta, 
-   * be accurate to error plus or minus eps*F, where 
-   * F is the sum of all the increments the sketch has processed.
+   * be accurate to error plus or minus eps*update_sum, where 
+   * update_sum is the sum of all the increments the sketch has processed.
    * 
    */    
   public CountMinFastFE(double eps, double delta) {
-	if (eps <= 0 || delta <= 0){
-	  throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
-	}
+    if (eps <= 0 || delta <= 0){
+      throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
+    }
     this.eps = eps;
+    
+    //set this.hashes to be the integer larger than log_2(1/delta)
     this.hashes = (int) (Math.ceil(Math.log(1/delta)/Math.log(2.0)) ); 
+    
+    //set this.length to be the smallest power of two larger than 2/eps,
+    //and set this.logLength and this.arrayMask accordingly
     int columns  = (int) (2*Math.ceil(1/eps));
     this.length = columns*this.hashes;
-    
     this.length = Integer.highestOneBit(2*(this.length-1));
     this.logLength = Integer.numberOfTrailingZeros(this.length);
     this.arrayMask = length-1; 
     
+    //if this.length is greater than STRIDE_MASK, this implementation will
+    //not be guaranteed to have a stride that is a random odd number between 1
+    //and length-1. Hence, raise an exception.
+    if (this.length > STRIDE_MASK){
+      throw new IllegalArgumentException("Sketch size is too large (greater than STRIDE_MASK)");
+    }
+    
+    //initialize counts to contain only zeros
     counts = new long[this.length];
     for(int i = 0; i < this.length; i++){
       counts[i] = 0;
     }
+    
+    //initalize update_sum to 0
     this.update_sum = 0;
     
+    //set freq_limit to floor(2/eps), and initialize freq_keys
     this.freq_limit = 2*(int)(1/eps);
-    this.freq_keys = new TLongHashSet(this.freq_limit);
-    
+    this.freq_keys = new TLongHashSet(this.freq_limit);  
   }
   
   /**
    * @param key 
-   * Process a key (specified as a long) update and treat the increment as 1
+   * Process a key (specified as a long) update and treat the increment as 1,
+   * using the update function specified by Cormode and Muthukrishnan
    */
-   @Override	
+   @Override  
   public void update(long key) {
-  	update(key, 1);
+    update(key, 1);
+  }
+    
+  /**
+   * @param key 
+   * Process a key (specified as a long) update and treat the increment as 1,
+   * using the conservative_update function that increments each counter to the smallest
+   * value still guaranteed to not underestimate any item's frequency.
+   */  
+  public void conservative_update(long key) {
+    conservative_update(key, 1);
   }
   
   /**
-   * @param key 
-   * Process a key (specified as a long) update and treat the increment as 1
-   */	
-   
-  public void conservative_update(long key) {
-  	conservative_update(key, 1);
+   * @param key
+   * @param increment
+   * Process a key (specified as a long) and an increment (also specified as a long).
+   * Increment CANNOT be negative, because of the way we are tracking frequent items.
+   */  
+   @Override
+  public void update(long key, long increment) {
+    if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
+    
+    //add increment update_sum
+    this.update_sum += increment;
+    
+    long hash = hash(key);
+    
+    //We will use double hashing to determine the cells that key hashes to.
+    //Determine probe (i.e., the first cell this key is hashed to) 
+    //and then make the stride odd and independent of the probe.
+    //The first logLength bits of hash are used to determine probe, 
+    //so the stride will be computed using the higher-order bits of hash.
+    int probe = (int) (hash & arrayMask);
+    int stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
+    
+    //is_freq will equal 0 unless key might be frequent after this update
+    int is_freq = 0;
+    for (int i=this.hashes; i-->0;) {
+      counts[probe] += increment;
+      if(counts[probe] >= this.eps * this.update_sum){
+        is_freq = 1;
+      }
+      probe = (probe + stride) & arrayMask;
+    }
+  
+    //if key is frequent after this update, according to the sketch, then add key to freq_keys,
+    //and check if freq_keys is now storing too many keys and needs to be purged
+    if(is_freq == 1){
+      this.freq_keys.add(key);
+      if(this.freq_keys.size() > this.freq_limit){
+        purge();
+      }
+    }
+  }
+  
+  /**
+   * @param key
+   * @param increment
+   * Process a key (specified as a long) and an increment (also specified as a long).
+   * Increment CANNOT be negative, because of the way we are tracking frequent items.
+   */  
+  public void conservative_update(long key, long increment) {
+    if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
+  
+    //add increment update_sum
+    this.update_sum +=increment;
+    long hash = hash(key);
+
+    //We will use double hashing to determine the cells that key hashes to.
+    //Determine probe (i.e., the first cell this key is hashed to) 
+    //and then make the stride odd and independent of the probe.
+    //The first logLength bits of hash are used to determine probe, 
+    //so the stride will be computed using the higher-order bits of hash.
+    int probe = (int) (hash & arrayMask);
+    int stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
+    
+    //min_count will store the smallest counter value encountered for this key
+    long min_count = Long.MAX_VALUE;
+    for (int i=this.hashes; i-->0;) {
+      if(counts[probe] < min_count){
+        min_count = counts[probe];
+      }
+      probe = (probe + stride) & arrayMask;
+    }
+  
+    //now that min_count has been computed, update all counts to the smallest
+    //possible value guaranteed not to underestimate the frequency of key.
+  
+    probe = (int) (hash & arrayMask);
+    for (int i=0; i < this.hashes; i++) {
+      if(counts[probe] < min_count + increment){
+        counts[probe] = min_count + increment;
+      }
+      probe = (probe + stride) & arrayMask;
+    }
+  
+    //if key is frequent after this update, according to the sketch, then add key to freq_keys,
+    //and check if freq_keys is now storing too many keys and needs to be purged
+    if(min_count + increment >= this.eps * this.update_sum){
+      this.freq_keys.add(key);
+      if(this.freq_keys.size() > this.freq_limit){
+        purge();
+      }
+    }
   }
   
   /**
@@ -98,81 +225,21 @@ public class CountMinFastFE extends FrequencyEstimator{
     keyArr[0] = key;
     return MurmurHash3.hash(keyArr,0)[0];
   }
-
-  /**
-   * @param key 
-   * Process a key (specified as a long) and an increment (CANNOT be negative, because of the way
-   * we are tracking frequent items).
-   */	
-   @Override
-  public void update(long key, long increment) {
-	if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
-    this.update_sum += increment;
-    int is_freq = 0;
-    
-    long hash = hash(key);
-    // make odd and independent of the probe:
-    int stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
-    int probe = (int) (hash & arrayMask);
-    
-	for (int i=this.hashes; i-->0;) {
-	  counts[probe] += increment;
-	  if(counts[probe] >= this.eps * this.update_sum){
-	    is_freq = 1;
-	  }
-	  probe = (probe + stride) & arrayMask;
-	}
-	if(is_freq == 1){
-	  this.freq_keys.add(key);
-	}
-	if(this.freq_keys.size() > this.freq_limit){
-	  purge();
-	}
-  }
+  
   
   /**
-   * @param key 
-   * Process a key (specified as a long) and an increment (can be negative).
-   */	
-  public void conservative_update(long key, long increment) {
-	this.update_sum +=increment;
-  	long min_count = Long.MAX_VALUE;
-  	
-  	long hash = hash(key);
-    // make odd and independent of the probe:
-    int stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
-    int probe = (int) (hash & arrayMask);
-    
-    for (int i=this.hashes; i-->0;) {
-	  if(counts[probe] < min_count){
-	    min_count = counts[probe];
-	  }
-	  probe = (probe + stride) & arrayMask;
-	}
-	
-    probe = (int) (hash & arrayMask);
-	for (int i=0; i < this.hashes; i++) {
-	  if(counts[probe] < min_count + increment){
-	    counts[probe] = min_count + increment;
-	  }
-	  probe = (probe + stride) & arrayMask;
-	}
-	if(min_count + increment >= this.eps * this.update_sum){
-	  this.freq_keys.add(key);
-	}
-	if(this.freq_keys.size() > this.freq_limit){
-	  purge();
-	}
-  }
-  
+   * Purge this.freq_keys of infrequent keys.
+   * This function does this by building a new table containing only the frequent keys,
+   * and throwing away the old table.
+   */
   public void purge(){
     TLongHashSet newset = new TLongHashSet(this.freq_limit);
     TLongIterator it = this.freq_keys.iterator();
     long threshold = (long) (eps*this.update_sum);
     for ( int i = this.freq_keys.size(); i-- > 0; ) {
-	  long key = it.next();
-	  if(getEstimate(key) >= threshold){
-	    newset.add(key);
+      long key = it.next();
+      if(getEstimate(key) >= threshold){
+        newset.add(key);
       }
     }
     this.freq_keys = newset;
@@ -188,31 +255,43 @@ public class CountMinFastFE extends FrequencyEstimator{
    */
    @Override
   public long getEstimate(long key) { 
-	keyArr[0] = key;
-	long min_count = Long.MAX_VALUE;
-	
-  	long hash = hash(key);
-    // make odd and independent of the probe:
-    long stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
+    keyArr[0] = key;
+    long min_count = Long.MAX_VALUE;
+  
+    long hash = hash(key);
+    //We will use double hashing to determine the cells that key hashes to.
+    //Determine probe (i.e., the first cell this key is hashed to) 
+    //and then make the stride odd and independent of the probe.
+    //The first logLength bits of hash are used to determine probe, 
+    //so the stride will be computed using the higher-order bits of hash.
     int probe = (int) (hash & arrayMask);
-	
-	for (int i=0; i < this.hashes; i++) {
-	  if(counts[probe] < min_count){
-	    min_count = counts[probe];
-	  }
-	  probe = (int) ((probe + stride) & arrayMask);
-	}
-	return min_count;
+    int stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
+    
+    for (int i=0; i < this.hashes; i++) {
+      if(counts[probe] < min_count){
+        min_count = counts[probe];
+      }
+      probe = ((probe + stride) & arrayMask);
+    }
+    return min_count;
   }
   
+   /**
+    * @param key whose count estimate is returned.
+    * @return an upper bound on the count for the key (upper bound holds deterministically)
+    */
   @Override
   public long getEstimateUpperBound(long key) { 
-	return getEstimate(key);
+    return getEstimate(key);
   }
   
+  /**
+   * @param key whose count estimate is returned.
+   * @return a lower bound on the count for the key (lower bound holds with probability at least 1-delta)
+   */
   @Override
   public long getEstimateLowerBound(long key) { 
-	return getEstimate(key) - getMaxError();
+    return getEstimate(key) - getMaxError();
   }
   
   /**
@@ -222,72 +301,79 @@ public class CountMinFastFE extends FrequencyEstimator{
    * with probability at least 1-delta, realCount(key) is also at most get(key) + getMaxError() 
    */
   public long getMaxError() {
-  	return (long) (Math.ceil(this.eps * this.update_sum)); 
+    return (long) (Math.ceil(this.eps * this.update_sum)); 
   }
   
-  /**
   
   /**
-   * @param that
-   * Another CountMin sketch. Must have been created using the same hash functions (i.e., same seed to MurmurHash)
+   * @param other
+   * Another CountMinFE sketch. Must have been created using the same hash functions
    * and have the same parameter values eps, delta. 
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
    */
   @Override
   public FrequencyEstimator merge(FrequencyEstimator other) {
-	if (!(other instanceof CountMinFastFE)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-	  CountMinFastFE otherCasted = (CountMinFastFE)other;
-  	if(this.hashes != otherCasted.hashes || this.length != otherCasted.length){
-  	  throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");
-  	}
+    if (!(other instanceof CountMinFastFE)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
+    CountMinFastFE otherCasted = (CountMinFastFE)other;
+    if(this.hashes != otherCasted.hashes || this.length != otherCasted.length){
+      throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");
+    }
+    
+    //add the counters from the two sketches
     for(int i = 0; i < this.length; i++){
       this.counts[i] +=otherCasted.counts[i];
     }
+    
     this.update_sum += otherCasted.update_sum;
     
+    //compute the set of items considered frequent in the new (merged) sketch
     TLongHashSet newset = new TLongHashSet(this.freq_limit);
     TLongIterator it = this.freq_keys.iterator();
     long threshold = (long) (eps*this.update_sum);
     for ( int i = this.freq_keys.size(); i-- > 0; ) {
-	  long key = it.next();
-	  if(getEstimate(key) >= threshold){
-	    newset.add(key);
+      long key = it.next();
+      if(getEstimate(key) >= threshold){
+        newset.add(key);
       }
     }
     it = otherCasted.freq_keys.iterator();
     for ( int i = this.freq_keys.size(); i-- > 0; ) {
-	  long key = it.next();
-	  if(getEstimate(key) >= threshold){
-	    newset.add(key);
+      long key = it.next();
+      if(getEstimate(key) >= threshold){
+        newset.add(key);
       }
     }
     
     this.freq_keys = newset;
-    
     return this;
   }
   
+  
+  /**
+   * @return an array of keys containing all keys whose estimated frequencies are
+   * are least the error tolerance.   
+   */
   @Override
   public long[] getFrequentKeys() {
-	TLongIterator it = this.freq_keys.iterator();
-	int count = 0;
-	long threshold = (long) (eps*this.update_sum);
-	for ( int i = this.freq_keys.size(); i-- > 0; ) {
-	  long key = it.next();
+    TLongIterator it = this.freq_keys.iterator();
+    int count = 0;
+    long threshold = (long) (eps*this.update_sum);
+    for ( int i = this.freq_keys.size(); i-- > 0; ) {
+      long key = it.next();
       if(getEstimate(key) >= threshold){
-		 count++;
+        count++;
       }
     }
     
     long[] keys = new long[count];
     int j=0;
     it = this.freq_keys.iterator();
-	for ( int i = this.freq_keys.size(); i-- > 0; ) {
-	  long key = it.next();
+    for ( int i = this.freq_keys.size(); i-- > 0; ) {
+      long key = it.next();
       if(getEstimate(key) >= threshold){
-    	  keys[j] = key;
-          j++;
+        keys[j] = key;
+        j++;
       }
     }
     return keys;

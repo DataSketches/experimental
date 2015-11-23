@@ -144,13 +144,12 @@ public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extend
     setIsEmpty(false);
     if (key >= getThetaLong()) return;
     int countBefore = getRetainedEntries();
-    Entry<S> node = findOrInsert(key);
-    if (getRetainedEntries() == countBefore) {
-      node.summary_.update(value);
-    } else if (!rebuildIfNeeded() || node.key_ < getThetaLong()) { // node is still there after rebuild
-      node.summary_ = getSummaryFactory().newSummary();
-      node.summary_.update(value);
+    int index = findOrInsert(key);
+    if (getRetainedEntries() > countBefore) {
+      summaries_[index] = getSummaryFactory().newSummary();
     }
+    summaries_[index].update(value);
+    rebuildIfNeeded();
   }
 
 }

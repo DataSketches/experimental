@@ -14,7 +14,7 @@ public class Union<S extends Summary> {
   public void update(Sketch<S> sketchIn) {
     if (sketchIn == null || sketchIn.isEmpty()) return;
     if (sketchIn.theta_ < sketch_.theta_) sketch_.theta_ = sketchIn.theta_;
-    for (Entry<S> entry: sketchIn.getEntries()) sketch_.merge(entry.key_, entry.summary_);;
+    sketch_.merge(sketchIn);
   }
 
   public CompactSketch<S> getResult() {

@@ -4,6 +4,7 @@
  */
 package com.yahoo.sketches.tuple;
 
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -25,9 +26,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   private final SummaryFactory<S> summaryFactory_;
   private float samplingProbability_;
   private boolean isEmpty_ = true;
-  private Entry<S>[] table_;
   private int rebuildThreshold_;
-
 
   /**
    * This is to create an instance of a QuickSelectSketch with default resize factor.
@@ -85,7 +84,8 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
       lgResizeRatio,
       Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
     );
-    this.table_ = (Entry<S>[]) java.lang.reflect.Array.newInstance((new Entry<S>(0, null)).getClass(), startingSize);
+    keys_ = new long[startingSize];
+    summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), startingSize);
     setRebuildThreshold();
   }
 
@@ -116,11 +116,12 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     if (isInSamplingMode) samplingProbability_ = buffer.getFloat();
     summaryFactory_ = (SummaryFactory<S>) SerializerDeserializer.deserializeFromByteBuffer(buffer);
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability_);
-    table_ = (Entry<S>[]) java.lang.reflect.Array.newInstance((new Entry<S>(0, null)).getClass(), currentCapacity);
+    keys_ = new long[currentCapacity];
+    summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), currentCapacity);
     for (int i = 0; i < count; i++) {
       long key = buffer.getLong();
       S summary = summaryFactory_.deserializeSummaryFromByteBuffer(buffer);
-      insert(new Entry<S>(key, summary));
+      insert(key, summary);
     }
     if (thetaLong != null) setThetaLong(thetaLong);
     setIsEmpty((flags & (1 << Flags.IS_EMPTY.ordinal())) > 0);
@@ -130,10 +131,10 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   @Override
   public S[] getSummaries() {
     @SuppressWarnings("unchecked")
-    S[] summaries = (S[]) java.lang.reflect.Array.newInstance(summaryFactory_.newSummary().getClass(), count_);
+    S[] summaries = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), count_);
     int i = 0;
-    for (int j = 0; j < table_.length; j++) {
-      if (table_[j] != null) summaries[i++] = table_[j].summary_.copy(); // TODO: should we copy summaries?
+    for (int j = 0; j < summaries_.length; j++) {
+      if (summaries_[j] != null) summaries[i++] = summaries_[j].copy();
     }
     return summaries;
   }
@@ -154,20 +155,32 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   public void trim() {
     if (count_ > nomEntries_) {
       updateTheta();
-      rebuild(table_.length);
+      rebuild(keys_.length);
     }
   }
 
   public CompactSketch<S> compact() {
     trim();
-    return new CompactSketch<S>(getEntries(), theta_); // TODO: should we copy summaries here?
+    long[] keys = new long[getRetainedEntries()];
+    @SuppressWarnings("unchecked")
+    S[] summaries = (S[]) Array.newInstance(summaries_.getClass().getComponentType(), getRetainedEntries());
+    int i = 0;
+    for (int j = 0; j < keys_.length; j++) {
+      if (summaries_[j] != null) {
+        keys[i] = keys_[j];
+        summaries[i] = summaries_[j].copy();
+        i++;
+      }
+    }
+    return new CompactSketch<S>(keys, summaries, theta_);
   }
 
   private enum Flags { IS_BIG_ENDIAN, IS_IN_SAMPLING_MODE, IS_EMPTY, HAS_ENTRIES }
 
   /**
-   *
+   * @return serialized representation of QuickSelectSketch
    */
+  @Override
   public ByteBuffer serializeToByteBuffer() {
     byte[] summaryFactoryBytes = SerializerDeserializer.serializeToByteBuffer(summaryFactory_).array();
     byte[][] summariesBytes = null;
@@ -175,9 +188,9 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     if (count_ > 0) {
       summariesBytes = new byte[count_][];
       int i = 0;
-      for (int j = 0; j < table_.length; j++) {
-        if (table_[j] != null) {
-          summariesBytes[i] = table_[j].summary_.serializeToByteBuffer().array();
+      for (int j = 0; j < summaries_.length; j++) {
+        if (summaries_[j] != null) {
+          summariesBytes[i] = summaries_[j].serializeToByteBuffer().array();
           summariesBytesLength += summariesBytes[i].length;
           i++;
         }
@@ -209,7 +222,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
       ((count_ > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
     ));
     buffer.put((byte)Integer.numberOfTrailingZeros(nomEntries_));
-    buffer.put((byte)Integer.numberOfTrailingZeros(table_.length));
+    buffer.put((byte)Integer.numberOfTrailingZeros(keys_.length));
     buffer.put((byte)lgResizeRatio_);
     if (count_ > 0) {
       buffer.putInt(count_);
@@ -219,9 +232,9 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     buffer.put(summaryFactoryBytes);
     if (count_ > 0) {
       int i = 0;
-      for (int j = 0; j < table_.length; j++) {
-        if (table_[j] != null) {
-          buffer.putLong(table_[j].key_);
+      for (int j = 0; j < keys_.length; j++) {
+        if (summaries_[j] != null) {
+          buffer.putLong(keys_[j]);
           buffer.put(summariesBytes[i]);
           i++;
         }
@@ -230,31 +243,27 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return buffer;
   }
 
-
   // non-public methods below
 
-  @Override
-  // keep in mind that entries returned by this method are not copies, but the same objects, which the sketch holds
-  Entry<S>[] getEntries() {
-    @SuppressWarnings({"unchecked"})
-    Entry<S>[] entries = (Entry<S>[]) java.lang.reflect.Array.newInstance(table_.getClass().getComponentType(), count_);
-    int i = 0;
-    for (int j = 0; j < table_.length; j++) {
-      if (table_[j] != null) entries[i++] = table_[j];
+  void merge(Sketch<S> that) {
+    for (int i = 0; i < that.keys_.length; i++) {
+      if (that.summaries_[i] != null) {
+        merge(that.keys_[i], that.summaries_[i]);
+      }
     }
-    return entries;
   }
 
   void merge(long key, S summary) {
     isEmpty_ = false;
     if (key < theta_) {
       int countBefore = count_;
-      Entry<S> thisNode = findOrInsert(key);
+      int index = findOrInsert(key);
       if (count_ == countBefore) {
-        thisNode.summary_ = summaryFactory_.getSummarySetOperations().union(thisNode.summary_, summary);
-      } else if (!rebuildIfNeeded() || thisNode.key_ < theta_) { // node is still there after rebuild
-        thisNode.summary_ = summary.copy();
+        summaries_[index] =  summaryFactory_.getSummarySetOperations().union(summaries_[index], summary);
+      } else {
+        summaries_[index] = summary.copy();
       }
+      rebuildIfNeeded();
     }
   }
 
@@ -276,7 +285,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
   // assumes that table.length is power of 2
   private int getIndex(long key) {
-    return (int) (key & (table_.length - 1));
+    return (int) (key & (keys_.length - 1));
   }
 
   // 7 bits, last zero to make even
@@ -286,62 +295,65 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return ((int) ((key >> 32) & STRIDE_MASK)) + 1;
   }
 
-  Entry<S> findOrInsert(long key) {
+  int findOrInsert(long key) {
     int index = getIndex(key);
-    while (table_[index] != null) {
-      if (table_[index].key_ == key) return table_[index];
-      index = (index + getStride(key)) & (table_.length - 1);
+    while (summaries_[index] != null) {
+      if (keys_[index] == key) return index;
+      index = (index + getStride(key)) & (keys_.length - 1);
     }
-    table_[index] = new Entry<S>(key);
+    keys_[index] = key;
     count_++;
-    return table_[index];
+    return index;
   }
 
   boolean rebuildIfNeeded() {
     if (count_ < rebuildThreshold_) return false;
-    if (table_.length > nomEntries_) {
+    if (keys_.length > nomEntries_) {
       updateTheta();
-      rebuild(table_.length);
+      rebuild(keys_.length);
     } else {
-      rebuild(table_.length * (1 << lgResizeRatio_));
+      rebuild(keys_.length * (1 << lgResizeRatio_));
     }
     return true;
   }
 
-  private void insert(Entry<S> node) {
-    int index = getIndex(node.key_);
-    while (table_[index] != null) {
-      index = (index + getStride(node.key_)) & (table_.length - 1);
+  private void insert(long key, S summary) {
+    int index = getIndex(key);
+    while (summaries_[index] != null) {
+      index = (index + getStride(key)) & (keys_.length - 1);
     }
-    table_[index] = node;
+    keys_[index] = key;
+    summaries_[index] = summary;
     count_++;
   }
 
   private void updateTheta() {
     long[] keys = new long[count_];
     int i = 0;
-    for (int j = 0; j < table_.length; j++) {
-      if (table_[j] != null) keys[i++] = table_[j].key_;
+    for (int j = 0; j < keys_.length; j++) {
+      if (summaries_[j] != null) keys[i++] = keys_[j];
     }
     theta_ = QuickSelect.select(keys, 0, count_ - 1, nomEntries_);
   }
 
   @SuppressWarnings({"unchecked"})
   private void rebuild(int newSize) {
-    Entry<S>[] oldTable = table_;
-    table_ = (Entry<S>[]) java.lang.reflect.Array.newInstance(oldTable.getClass().getComponentType(), newSize);
+    long[] oldKeys = keys_;
+    S[] oldSummaries = summaries_;
+    keys_ = new long[newSize];
+    summaries_ = (S[]) Array.newInstance(oldSummaries.getClass().getComponentType(), newSize);
     count_ = 0;
-    for (int i = 0; i < oldTable.length; i++) {
-      if (oldTable[i] != null && oldTable[i].key_ < theta_) insert(oldTable[i]);
+    for (int i = 0; i < oldKeys.length; i++) {
+      if (oldSummaries[i] != null && oldKeys[i] < theta_) insert(oldKeys[i], oldSummaries[i]);
     }
     setRebuildThreshold();
   }
 
   private void setRebuildThreshold() {
-    if (table_.length > nomEntries_) {
-      rebuildThreshold_ = (int) (table_.length * REBUILD_RATIO_AT_TARGET_SIZE);
+    if (keys_.length > nomEntries_) {
+      rebuildThreshold_ = (int) (keys_.length * REBUILD_RATIO_AT_TARGET_SIZE);
     } else {
-      rebuildThreshold_ = (int) (table_.length * REBUILD_RATIO_AT_RESIZE);
+      rebuildThreshold_ = (int) (keys_.length * REBUILD_RATIO_AT_RESIZE);
     }
   }
 

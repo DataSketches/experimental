@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 
 public abstract class Sketch<S extends Summary> {
 
+  protected long[] keys_;
+  protected S[] summaries_;
   protected long theta_;
 
   public double getEstimate() {
@@ -42,5 +44,4 @@ public abstract class Sketch<S extends Summary> {
     return theta_;
   }
 
-  abstract Entry<S>[] getEntries();
 }

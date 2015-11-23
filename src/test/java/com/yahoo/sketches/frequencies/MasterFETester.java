@@ -86,12 +86,12 @@ public class MasterFETester{
     for(int h=0; h<numEstimators; h++) {
       long[] freq = estimators[h].getFrequentKeys();
       for(int i = 0; i < freq.length; i++) {
-        if(estimators[h].getEstimate(freq[i]) < (long)(error_tolerance * n)) {
+        if(estimators[h].getEstimateUpperBound(freq[i]) < (long)(error_tolerance * n)) {
           System.out.format("length is: %d, i is %d, freq[i] is: %d, Estimate is %d, threshold is %f", freq.length, i, freq[i], estimators[h].getEstimate(freq[i]), error_tolerance*n);
         }
-        if(estimators[h].getEstimate(freq[i]) < (long)(error_tolerance * n))
+        if(estimators[h].getEstimateUpperBound(freq[i]) < (long)(error_tolerance * n))
         {
-          System.out.format("Error 1. h is: %d and estimate is: %d and threshold is: %d \n", h, estimators[h].getEstimate(freq[i]), (long)(error_tolerance * n));
+          System.out.format("Error 1. h is: %d and estimate is: %d and threshold is: %d \n", h, estimators[h].getEstimateUpperBound(freq[i]), (long)(error_tolerance * n));
         } 
       } 
       Collection<Long> keysCollection = realCounts.keys();

@@ -4,8 +4,6 @@
  */
 package com.yahoo.sketches.quantiles;
 
-//import static org.testng.Assert.*;
-
 import org.testng.annotations.Test;
 
 @SuppressWarnings("cast")
@@ -213,7 +211,6 @@ public class MergeableQuantileSketchTest {
 
   @Test
   public void testLinearTimeIncrementHistogramCounters () {
-
     double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
 
     {
@@ -253,8 +250,8 @@ public class MergeableQuantileSketchTest {
     } 
 
    //System.out.printf ("Passed: linearTimeIncrementHistogramCounters\n");
-
   }
+
   /* need to write tests where there are zero or one splitpoints, and zero samples */
 
   static void runRegressionTests () {

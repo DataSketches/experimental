@@ -43,7 +43,7 @@ public class MergeableQuantileSketch {
    * Number of samples currently in base buffer
    */
   private int mqBaseBufferCount; 
-
+  
   /**
    * Constructs a Mergeable Quantile Sketch of double elements.
    * @param k Parameter that controls space usage of sketch and accuracy of estimates
@@ -366,8 +366,8 @@ public class MergeableQuantileSketch {
    * @param k the k value of the sketch
    * @return a new sorted buffer of length k
    */
-  private static double[] allocatingCarryOfOneSize2KBuffer(double [] inbuf, int k) {
-    int randomOffset = (int) (2.0 * Math.random());
+  private static final double[] allocatingCarryOfOneSize2KBuffer(double [] inbuf, int k) {
+    int randomOffset = (rand.nextBoolean())? 1 : 0;
     assert randomOffset == 0 || randomOffset == 1;
     double[] outbuf = new double [k];
     for (int i = 0; i < k; i++) {
@@ -382,7 +382,7 @@ public class MergeableQuantileSketch {
    * @param k the k of the sketch
    * @return a new sorted buffer of length k
    */
-  private static double[] allocatingMergeTwoSizeKBuffers(double[] bufA, double[] bufB, int k) {
+  private static final double[] allocatingMergeTwoSizeKBuffers(double[] bufA, double[] bufB, int k) {
     assert bufA.length == k;
     assert bufB.length == k;
     int tmpLen = 2 * k;

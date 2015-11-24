@@ -7,6 +7,7 @@ package com.yahoo.sketches.quantiles;
 import static java.lang.System.*;
 
 import java.util.Arrays;
+import java.util.Random;
 
 
 /**
@@ -17,6 +18,9 @@ import java.util.Arrays;
  */
 final class Util { 
 
+  static Random rand = new Random();
+  
+  
   // Performs two merges in tandem. One of them provides the sort keys
   // while the other one passively undergoes the same data motion.
   private static void tandemMerge (double [] keySrc, long [] valSrc,
@@ -218,6 +222,8 @@ final class Util {
     }
     return total;
   }
+  
+  
   
   public static void main(String[] args) {
     long v = 1;

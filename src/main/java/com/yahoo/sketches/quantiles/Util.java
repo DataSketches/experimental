@@ -4,7 +4,10 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static java.lang.System.*;
+
 import java.util.Arrays;
+
 
 /**
  * This class contains a highly specialized sort called blockyTandemMergeSort ().
@@ -12,17 +15,15 @@ import java.util.Arrays;
  * It also contains a couple of subroutines that are used while building histograms and a 
  * few other minor things.
  */
-class Util { 
+final class Util { 
 
   // Performs two merges in tandem. One of them provides the sort keys
   // while the other one passively undergoes the same data motion.
-
   private static void tandemMerge (double [] keySrc, long [] valSrc,
                                     int arrStart1, int arrLen1,
                                     int arrStart2, int arrLen2,
                                     double [] keyDst, long [] valDst,
-                                    int arrStart3) 
-  {
+                                    int arrStart3) {
 
     int arrStop1 = arrStart1 + arrLen1;
     int arrStop2 = arrStart2 + arrLen2;
@@ -46,13 +47,13 @@ class Util {
     }
 
     if (i1 < arrStop1) {
-      System.arraycopy(keySrc, i1, keyDst, i3, arrStop1 - i1);
-      System.arraycopy(valSrc, i1, valDst, i3, arrStop1 - i1);
+      arraycopy(keySrc, i1, keyDst, i3, arrStop1 - i1);
+      arraycopy(valSrc, i1, valDst, i3, arrStop1 - i1);
     }
     else {
       assert i2 < arrStop2;
-      System.arraycopy(keySrc, i2, keyDst, i3, arrStop2 - i2);
-      System.arraycopy(valSrc, i2, valDst, i3, arrStop2 - i2);
+      arraycopy(keySrc, i2, keyDst, i3, arrStop2 - i2);
+      arraycopy(valSrc, i2, valDst, i3, arrStop2 - i2);
     }
 
   }
@@ -62,13 +63,12 @@ class Util {
   // it manages the buffer swapping that eliminates most copying.
   // It also maps the input's pre-sorted blocks into the subarrays 
   // that are processed by tandemMerge().
-
   private static void blockyTandemMergeSortRecursion (double [] keySrc, long [] valSrc,
                                                        double [] keyDst, long [] valDst,
                                                        int grpStart, int grpLen, /* indices of blocks */
                                                        int blkSize, int arrLim) {
 
-    // Important note: grpStart and grpLen do NOT refer positions in the underlying array. 
+    // Important note: grpStart and grpLen do NOT refer to positions in the underlying array.
     // Instead, they refer to the pre-sorted blocks, such as block 0, block 1, etc.
 
     assert (grpLen > 0);
@@ -81,11 +81,13 @@ class Util {
     int grpStart1 = grpStart;
     int grpStart2 = grpStart + grpLen1;
 
-    blockyTandemMergeSortRecursion (keyDst, valDst, /* swap roles of src and dst */
+    //swap roles of src and dst
+    blockyTandemMergeSortRecursion (keyDst, valDst,
                            keySrc, valSrc,
                            grpStart1, grpLen1, blkSize, arrLim);
 
-    blockyTandemMergeSortRecursion (keyDst, valDst, /* swap roles of src and dst */
+    //swap roles of src and dst
+    blockyTandemMergeSortRecursion (keyDst, valDst,
                            keySrc, valSrc,
                            grpStart2, grpLen2, blkSize, arrLim);
 
@@ -112,8 +114,6 @@ class Util {
   // that have already been sorted, so that only the top part of the
   // merge tree remains to be executed. Also, two arrays are sorted in tandem,
   // as discussed above.
-
-  // package private
   static void blockyTandemMergeSort (double [] keyArr, long [] valArr, int arrLen, int blkSize) {
     assert blkSize >= 1;
     if (arrLen <= blkSize) return;
@@ -140,7 +140,6 @@ class Util {
 
   // Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, not quadratic.
   // This subroutine does NOT require the samples to be sorted.
-
   static void quadraticTimeIncrementHistogramCounters (double [] samples, int numSamples, long weight, 
                                                               double [] splitPoints, long [] counters) {
     // samples must be sorted
@@ -173,7 +172,6 @@ class Util {
     // 3) numSplitPoints + 1 == counters.length
     // Because this internal procedure is called multiple times, 
     // we will require the caller to ensure these 3 properties.
-
     int numSplitPoints = splitPoints.length;
 
     int i = 0;
@@ -192,7 +190,6 @@ class Util {
     // now either i == numSamples (we are out of samples), or
     // j == numSplitPoints (out of buckets, but there are more samples remaining)
     // we only need to do something in the latter case.
- 
     if (j == numSplitPoints) {
       counters[numSplitPoints] += (weight * (numSamples - i));
     }
@@ -200,8 +197,20 @@ class Util {
   }
 
   // several miscellaneous utility functions
-
-  // package private
+  
+ static double lg(double x) {
+    return ( Math.log(x)) / (Math.log(2.0) );
+  }
+  
+ /**
+  * Zero based position of the highest one-bit of the given long
+  * @param num the given long
+  * @return Zero based position of the highest one-bit of the given long
+  */
+ static int hiBitPos(long num) {
+   return 63 - Long.numberOfLeadingZeros(num);
+ }
+ 
   static double sumOfDoublesInArrayPrefix (double [] arr, int prefixLength) {
     double total = 0.0;
     for (int i = 0; i < prefixLength; i++) {
@@ -209,5 +218,14 @@ class Util {
     }
     return total;
   }
-
+  
+  public static void main(String[] args) {
+    long v = 1;
+    for (int i=0; i<64; i++) {
+      long w = v << i;
+      long w2 = w -1;
+      System.out.println(i+"\t"+Long.toBinaryString(w2)+"\t"+hiBitPos(w2)+"\t"+w2);
+    }
+  }
+  
 }

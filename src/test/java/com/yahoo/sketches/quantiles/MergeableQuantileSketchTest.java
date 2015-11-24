@@ -65,8 +65,8 @@ public class MergeableQuantileSketchTest {
         double [] auxItems = au.auItems;
         long [] auxAccum = au.auAccum;
 
-        assert mq.mqKGetter() == au.auK;
-        assert mq.mqNGetter() == au.auN;
+        assert mq.getK() == au.auK;
+        assert mq.getN() == au.auN;
         assert numItemsSoFar == au.auN;
 
         assert auxItems.length == numSamples;

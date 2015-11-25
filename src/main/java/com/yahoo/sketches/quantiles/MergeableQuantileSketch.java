@@ -45,6 +45,16 @@ public class MergeableQuantileSketch {
   private int mqBaseBufferCount; 
   
   /**
+   * The smallest value ever seen in the stream.
+   */
+  private double mqMin;
+
+  /**
+   * The largest value ever seen in the stream.
+   */
+  private double mqMax;
+
+  /**
    * Constructs a Mergeable Quantile Sketch of double elements.
    * @param k Parameter that controls space usage of sketch and accuracy of estimates
    */
@@ -55,6 +65,8 @@ public class MergeableQuantileSketch {
     mqLevels = new double[0][];
     mqBaseBuffer = new double[Math.min(4,2*k)]; //The 4 is somewhat arbitrary; the min is important
     mqBaseBufferCount = 0;
+    mqMin = java.lang.Double.POSITIVE_INFINITY;
+    mqMax = java.lang.Double.NEGATIVE_INFINITY;
   }
 
   /** 
@@ -64,6 +76,9 @@ public class MergeableQuantileSketch {
   public void update(double dataItem) {
 
     if (Double.isNaN(dataItem)) return;
+
+    if (dataItem > mqMax) { mqMax = dataItem; }   // benchmarks faster than Math.max()
+    if (dataItem < mqMin) { mqMin = dataItem; }
 
     if (mqBaseBufferCount+1 > mqBaseBuffer.length) {
       this.growBaseBuffer();
@@ -123,6 +138,10 @@ public class MergeableQuantileSketch {
     }
 
     mqTarget.mqN = nFinal;
+
+    if (mqSource.mqMax > mqTarget.mqMax) { mqTarget.mqMax = mqSource.mqMax; }
+    if (mqSource.mqMin < mqTarget.mqMin) { mqTarget.mqMin = mqSource.mqMin; }
+
   }
 
   /*
@@ -147,8 +166,12 @@ public class MergeableQuantileSketch {
    * @return the approximation to the value at the above fraction
    */
   public double getQuantile(double fraction) {
-    Auxiliary au = this.constructAuxiliary ();
-    return (au.getQuantile (fraction));
+    if      (fraction == 0.0) { return mqMin; }
+    else if (fraction == 1.0) { return mqMax; }
+    else {
+      Auxiliary au = this.constructAuxiliary ();
+      return (au.getQuantile (fraction));
+    }
   }
 
   /**
@@ -166,10 +189,16 @@ public class MergeableQuantileSketch {
    * @return array of approximations to the given fractions in the same order as given fractions array. 
    */
   public double [] getQuantiles(double [] fractions) {
-    Auxiliary au = this.constructAuxiliary ();
+    Auxiliary au = null;
     double [] answers = new double [fractions.length];
     for (int i = 0; i < fractions.length; i++) {
-      answers[i] = au.getQuantile (fractions[i]);
+      double fraction = fractions[i];
+      if      (fraction == 0.0) { answers[i] = mqMin; }
+      else if (fraction == 1.0) { answers[i] = mqMax; }
+      else {
+        if (au == null) au = this.constructAuxiliary ();
+        answers[i] = au.getQuantile (fraction);
+      }
     }
     return (answers);
   }

@@ -101,8 +101,12 @@ public class MergeableQuantileSketchTest {
 
   // Please note that this is a randomized test that CAN fail.
   // The probability of failure could be reduced by increasing k.
+  // Actually, setting the seed made it deterministic.
   @Test
   public void endToEndTest () {
+
+    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic
+
     MergeableQuantileSketch mq  = new MergeableQuantileSketch (256);
     MergeableQuantileSketch mq2 = new MergeableQuantileSketch (256);
 
@@ -254,8 +258,95 @@ public class MergeableQuantileSketchTest {
 
   /* need to write tests where there are zero or one splitpoints, and zero samples */
 
-  static void runRegressionTests () {
+  @Test
+   static void bigTestMinMax () {
+    MergeableQuantileSketch mq1  = new MergeableQuantileSketch (32);
+    MergeableQuantileSketch mq2  = new MergeableQuantileSketch (32);
+    MergeableQuantileSketch mq3  = new MergeableQuantileSketch (32);
+    for (int i = 999; i >= 1; i--) {
+      mq1.update ((double) i);
+      mq2.update ((double) (1000+i));
+      mq3.update ((double) i);
+    }
+    assert (mq1.getQuantile (0.0) == 1.0);
+    assert (mq1.getQuantile (1.0) == 999.0);
+
+    assert (mq2.getQuantile (0.0) == 1001.0);
+    assert (mq2.getQuantile (1.0) == 1999.0);
+
+    assert (mq3.getQuantile (0.0) == 1.0);
+    assert (mq3.getQuantile (1.0) == 999.0);
+
+    double [] queries = {0.0, 1.0};
+
+    double [] resultsA = mq1.getQuantiles(queries);
+    assert (resultsA[0] == 1.0);
+    assert (resultsA[1] == 999.0);
+
+    MergeableQuantileSketch.mergeInto (mq1, mq2);
+    MergeableQuantileSketch.mergeInto (mq2, mq3);
+
+    double [] resultsB = mq1.getQuantiles(queries);
+    assert (resultsB[0] == 1.0);
+    assert (resultsB[1] == 1999.0);
+
+    double [] resultsC = mq2.getQuantiles(queries);
+    assert (resultsC[0] == 1.0);
+    assert (resultsC[1] == 1999.0);
+
+    //    System.out.printf ("Passed: bigTestMinMax\n");
+  }
+
+
+  @Test
+  static void smallTestMinMax () {
+    MergeableQuantileSketch mq1  = new MergeableQuantileSketch (32);
+    MergeableQuantileSketch mq2  = new MergeableQuantileSketch (32);
+    MergeableQuantileSketch mq3  = new MergeableQuantileSketch (32);
+    for (int i = 8; i >= 1; i--) {
+      mq1.update ((double) i);
+      mq2.update ((double) (10+i));
+      mq3.update ((double) i);
+    }
+    assert (mq1.getQuantile (0.0) == 1.0);
+    assert (mq1.getQuantile (0.5) == 5.0);
+    assert (mq1.getQuantile (1.0) == 8.0);
+
+    assert (mq2.getQuantile (0.0) == 11.0);
+    assert (mq2.getQuantile (0.5) == 15.0);
+    assert (mq2.getQuantile (1.0) == 18.0);
+
+    assert (mq3.getQuantile (0.0) == 1.0);
+    assert (mq3.getQuantile (0.5) == 5.0);
+    assert (mq3.getQuantile (1.0) == 8.0);
+
+    double [] queries = {0.0, 0.5, 1.0};
+
+    double [] resultsA = mq1.getQuantiles(queries);
+    assert (resultsA[0] == 1.0);
+    assert (resultsA[1] == 5.0);
+    assert (resultsA[2] == 8.0);
+
+    MergeableQuantileSketch.mergeInto (mq1, mq2);
+    MergeableQuantileSketch.mergeInto (mq2, mq3);
+
+    double [] resultsB = mq1.getQuantiles(queries);
+    assert (resultsB[0] == 1.0);
+    assert (resultsB[1] == 11.0);
+    assert (resultsB[2] == 18.0);
+
+    double [] resultsC = mq2.getQuantiles(queries);
+    assert (resultsC[0] == 1.0);
+    assert (resultsC[1] == 11.0);
+    assert (resultsC[2] == 18.0);
+
+    //    System.out.printf ("Passed: smallTestMinMax\n");
+  }
+
+ static void runRegressionTests () {
     MergeableQuantileSketchTest mqst = new MergeableQuantileSketchTest();
+    mqst.bigTestMinMax ();   
+    mqst.smallTestMinMax ();   
     mqst.regressionTestMergeableQuantileSketchStructureAfterUpdates ();
     mqst.regressionTestMergeableQuantileSketchStructureAfterMerges ();
     mqst.testQuadraticTimeIncrementHistogramCounters ();

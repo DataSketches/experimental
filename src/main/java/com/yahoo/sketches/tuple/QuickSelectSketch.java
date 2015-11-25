@@ -245,14 +245,8 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
   // non-public methods below
 
-  void merge(Sketch<S> that) {
-    for (int i = 0; i < that.keys_.length; i++) {
-      if (that.summaries_[i] != null) {
-        merge(that.keys_[i], that.summaries_[i]);
-      }
-    }
-  }
-
+  // this is a special back door insert for merging
+  // not sufficient by itself without keeping track of theta of another sketch
   void merge(long key, S summary) {
     isEmpty_ = false;
     if (key < theta_) {
@@ -310,11 +304,15 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     if (count_ < rebuildThreshold_) return false;
     if (keys_.length > nomEntries_) {
       updateTheta();
-      rebuild(keys_.length);
+      rebuild();
     } else {
       rebuild(keys_.length * (1 << lgResizeRatio_));
     }
     return true;
+  }
+
+  void rebuild() {
+    rebuild(keys_.length);
   }
 
   private void insert(long key, S summary) {

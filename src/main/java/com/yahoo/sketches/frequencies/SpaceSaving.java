@@ -100,7 +100,7 @@ public class SpaceSaving extends FrequencyEstimator{
 
       //update count of key in min-heap by 
       //removing it and adding it back in with new count
-      queue.remove(new Pair(key, 0));
+      queue.remove(new Pair(key, old_count));
       queue.add(new Pair(key, new_count));
     }
     else{
@@ -116,7 +116,12 @@ public class SpaceSaving extends FrequencyEstimator{
         long new_count = lowest.getvalue() + increment;
         counts.remove(lowest.getname());
         counts.put(key, new_count);
-        queue.remove(lowest);
+        boolean success = queue.remove(lowest);
+        if(!success)
+        {
+          throw new IllegalArgumentException("Failed to remove an element from priority queue "
+              + "in SpaceSaving algorithm!");
+        }
         queue.add(new Pair(key, new_count));
       }
     }
@@ -126,8 +131,10 @@ public class SpaceSaving extends FrequencyEstimator{
    * @param key whose count estimate is returned.
    * @return the approximate count for the key.
    * It is guaranteed that
-   * 1) get(key) >= real count
+   * 1) get(key) + mergeError >= real count
    * 2) get(key) <= real count + getMaxError() 
+   * Note that in the absence of merging (i.e., if mergeError == 0)
+   * then getEstimate returns an upper bound on real count.
    */
    @Override
   public long getEstimate(long key) { 
@@ -135,40 +142,49 @@ public class SpaceSaving extends FrequencyEstimator{
     //If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
     //Otherwise, the minimum counter value is returned.
 
-    if(counts.containsKey(key)) {
+    if(counts.containsKey(key)) 
       return counts.get(key);
-    }
-    else{
-      if(counts.size() < maxSize) {
-        return 0;
-      }
-      else{
-        return queue.peek().getvalue();
-      }
-    }
+    else
+      return 0;
   }
   
+   /**
+    * @param key whose count estimate is returned.
+    * @return an upper bound on the count for the key.
+    */
    @Override
    public long getEstimateUpperBound(long key)
    {
-     return getEstimate(key);
+     if(counts.size() > 0)
+       return (getEstimate(key) + mergeError + queue.peek().getvalue());
+     return 0;
    }
    
+   /**
+    * @param key whose count estimate is returned.
+    * @return a lower bound on the count for the key.
+    */
    @Override
    public long getEstimateLowerBound(long key)
    {
-     return getEstimate(key)-getMaxError();
+     if(getEstimate(key) == 0)
+       return 0;
+       
+     if((getEstimate(key)-queue.peek().getvalue()-mergeError) < 0)
+       return 0;
+       
+     return (getEstimate(key)-queue.peek().getvalue()-mergeError);
    }
   
   /**
-   * @return the maximal error of the estimate one gets from get(key).
-   * Note that the error is one sided. If the real count is realCount(key) then
-   * get(key) >= realCount(key) >= get(key) - getMaxError() 
+   * @return the maximal error of the estimate one gets from getEstimate(key).
+   * If the real count is realCount(key) then
+   * get(key) + getMaxError() >= realCount(key) >= get(key) - getMaxError().
    */
   public long getMaxError() {
     if(counts.size() < maxSize)
-      return 0;
-    else
+      return mergeError;
+    else 
       return queue.peek().getvalue() + mergeError;
   }
   
@@ -191,10 +207,10 @@ public class SpaceSaving extends FrequencyEstimator{
       SpaceSaving otherCasted = (SpaceSaving)other;
     
     this.stream_length += otherCasted.stream_length;
+    this.mergeError += otherCasted.getMaxError();
     for (Map.Entry<Long, Long> entry : otherCasted.counts.entrySet()) { 
       this.update(entry.getKey(), entry.getValue());
     }
-    this.mergeError += otherCasted.getMaxError();
     return this;
   }
   

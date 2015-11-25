@@ -85,6 +85,13 @@ public abstract class FrequencyEstimator {
   abstract public long getEstimateUpperBound(long key);
   
   /**
+   * @return An upper bound on the maximum error of getEstimate(key) for any key.
+   * This upper bound may only hold for each key with probability failure_prob.
+   */
+  //abstract public long getMaxError();
+  
+  
+  /**
    * @return an array of keys containing all keys whose frequencies are
    * are least the error tolerance.   
    */

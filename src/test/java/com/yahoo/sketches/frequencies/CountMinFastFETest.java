@@ -37,10 +37,10 @@ public class CountMinFastFETest {
   @Test
   public void ErrorCorrect() {
     int size = 100;
-	double eps = 1.0/size;
-	double delta = .01;
+	  double eps = 1.0/size;
+	  double delta = .01;
     CountMinFastFE countmin = new CountMinFastFE(eps, delta);
-    for (long key=0L; key<10000L; key++){
+    for (long key=0L; key<10000L; key++) {
       countmin.update(key, 1);
       Assert.assertTrue(countmin.getMaxError() == (long) (Math.ceil((key+1)*eps)));
     }
@@ -51,7 +51,7 @@ public class CountMinFastFETest {
    * @param prob the probability of success for the geometric distribution. 
    * @return a random number generated from the geometric distribution.
    */
-  static private long randomGeometricDist(double prob){
+  static private long randomGeometricDist(double prob) {
     assert(prob > 0.0 && prob < 1.0);
     return (long) (Math.log(Math.random()) / Math.log(1.0 - prob));
   }
@@ -60,7 +60,7 @@ public class CountMinFastFETest {
   public void testRandomGeometricDist() {
     long maxKey = 0L;
     double prob = .1;
-    for (int i=0; i<100; i++){
+    for (int i=0; i<100; i++) {
       long key = randomGeometricDist(prob) ;
       if (key > maxKey) maxKey = key;
       // If you succeed with probability p the probability 
@@ -75,20 +75,20 @@ public class CountMinFastFETest {
     int size = 50;
     long key;
     double prob = .04;
-	double eps = 1.0/size;
-	double delta = .01;
-	int bad = 0;
+	  double eps = 1.0/size;
+	  double delta = .01;
+	  int bad = 0;
 	 
     CountMinFastFE countmin = new CountMinFastFE(eps, delta);
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    for (int i=0; i<n; i++){   
+    for (int i=0; i<n; i++) {   
       key = randomGeometricDist(prob);
       countmin.update(key);
       realCounts.increment(key);
       long realCount = realCounts.get(key);
       long upperBound = countmin.getEstimateUpperBound(key);
       long lowerBound = countmin.getEstimateLowerBound(key);
-      if(upperBound >=  realCount && realCount >= lowerBound){
+      if(upperBound >=  realCount && realCount >= lowerBound) {
       	continue;
       }
       else{
@@ -108,20 +108,20 @@ public class CountMinFastFETest {
     int size = 50;
     long key;
     double prob = .04;
-	double eps = 1.0/size;
-	double delta = .01;
-	int bad = 0;
+	  double eps = 1.0/size;
+	  double delta = .01;
+	  int bad = 0;
 	 
     CountMinFastFE countmin = new CountMinFastFE(eps, delta);
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    for (int i=0; i<n; i++){   
+    for (int i=0; i<n; i++) {   
       key = randomGeometricDist(prob);
       countmin.conservative_update(key);
       realCounts.increment(key);
       long realCount = realCounts.get(key);
       long upperBound = countmin.getEstimateUpperBound(key);
       long lowerBound = countmin.getEstimateLowerBound(key);
-      if(upperBound >=  realCount && realCount >= lowerBound){
+      if(upperBound >=  realCount && realCount >= lowerBound) {
       	continue;
       }
       else{
@@ -140,13 +140,13 @@ public class CountMinFastFETest {
     int size = 50;
     long key;
     double prob = .04;
-	double eps = 1.0/size;
-	double delta = .01;
+	  double eps = 1.0/size;
+	  double delta = .01;
 	 
     CountMinFastFE countmin1 = new CountMinFastFE(eps, delta);
     CountMinFastFE countmin2 = new CountMinFastFE(eps, delta);
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    for (int i=0; i<n; i++){   
+    for (int i=0; i<n; i++) {   
       key = randomGeometricDist(prob);
       countmin1.conservative_update(key);
       countmin2.update(key);
@@ -178,8 +178,8 @@ public class CountMinFastFETest {
   public void realCountsInBoundsAfterUnion() {
     int n = 1000;
     int size = 400;
-	double delta = .01;
-	double eps = 1.0/size;
+	  double delta = .01;
+	  double eps = 1.0/size;
 	
     double prob1 = .01;
     double prob2 = .005;
@@ -187,7 +187,7 @@ public class CountMinFastFETest {
     PositiveCountersMap realCounts = new PositiveCountersMap();
     CountMinFastFE countmin1 = new CountMinFastFE(eps, delta);
     CountMinFastFE countmin2 = new CountMinFastFE(eps, delta);
-    for (int i=0; i<n; i++){
+    for (int i=0; i<n; i++) {
       long key1 = randomGeometricDist(prob1);
       long key2 = randomGeometricDist(prob2);
       
@@ -202,14 +202,14 @@ public class CountMinFastFETest {
 
 	int bad = 0;
 	int i = 0;
-    for ( long key : realCounts.keys()){
+    for ( long key : realCounts.keys()) {
       i = i + 1;
       
       long realCount = realCounts.get(key);
       long upperBound = countmin.getEstimateUpperBound(key);
       long lowerBound = countmin.getEstimateLowerBound(key);
 
-      if(upperBound <  realCount || realCount < lowerBound){
+      if(upperBound <  realCount || realCount < lowerBound) {
       	bad = bad + 1;
       	System.out.format("upperbound: %d, realCount: %d, lowerbound: %d \n", upperBound, realCount, lowerBound);
       }
@@ -217,6 +217,7 @@ public class CountMinFastFETest {
     Assert.assertTrue(bad <= delta * i); 
   }
   
+ 
 
   @Test
   public void testFrequent() {
@@ -228,30 +229,29 @@ public class CountMinFastFETest {
     CountMinFastFE countmin = new CountMinFastFE(error_tolerance, .1);
 
     PositiveCountersMap realCounts = new PositiveCountersMap();
-    for (int i=0; i<n; i++){   
+    for (int i=0; i<n; i++) {   
       key = randomGeometricDist(prob);
       countmin.update(key); 
       realCounts.increment(key);
     }
     long[] freq = countmin.getFrequentKeys();
-    for(int i = 0; i < freq.length; i++){
-      //if(countmin.getEstimate(freq[i]) < error_tolerance * n){
-      //  System.out.format("length is: %d, i is %d, freq[i] is: %d, Estimate is %d, threshold is %f", freq.length, i, freq[i], countmin.getEstimate(freq[i]), error_tolerance*n);
-      //}
-      Assert.assertTrue(countmin.getEstimate(freq[i]) >= error_tolerance * n); 
+    for(int i = 0; i < freq.length; i++) {
+      if(countmin.getEstimate(freq[i]) < (long)(error_tolerance * n)) {
+        System.out.format("length is: %d, i is %d, freq[i] is: %d, Estimate is %d, threshold is %f", freq.length, i, freq[i], countmin.getEstimate(freq[i]), error_tolerance*n);
+      }
+      Assert.assertTrue(countmin.getEstimate(freq[i]) >= (long)(error_tolerance * n)); 
     } 
     Collection<Long> keysCollection = realCounts.keys();
 
     int found;
-    for (long the_key : keysCollection){
-      if(realCounts.get(the_key) > n/(maxSize+1)){
+    for (long the_key : keysCollection) {
+      if(realCounts.get(the_key) > (long)(error_tolerance*n)) {
         found = 0;
-      	for(int i = 0; i < freq.length; i++){
-      		if(freq[i] == the_key){
+      	for(int i = 0; i < freq.length; i++) {
+      		if(freq[i] == the_key) {
       		  found = 1;
       		}
-      	}
-      		  
+      	}  
         Assert.assertTrue(found == 1);
       }  
     }
@@ -261,8 +261,8 @@ public class CountMinFastFETest {
   public void realCountsInBoundsAfterUnionCU() {
     int n = 1000;
     int size = 400;
-	double delta = .01;
-	double eps = 1.0/size;
+	  double delta = .01;
+	  double eps = 1.0/size;
 	
     double prob1 = .01;
     double prob2 = .005;
@@ -270,7 +270,7 @@ public class CountMinFastFETest {
     PositiveCountersMap realCounts = new PositiveCountersMap();
     CountMinFastFE countmin1 = new CountMinFastFE(eps, delta);
     CountMinFastFE countmin2 = new CountMinFastFE(eps, delta);
-    for (int i=0; i<n; i++){
+    for (int i=0; i<n; i++) {
       long key1 = randomGeometricDist(prob1);
       long key2 = randomGeometricDist(prob2);
       
@@ -283,16 +283,16 @@ public class CountMinFastFETest {
     }
     CountMinFastFE countmin = (CountMinFastFE) countmin1.merge(countmin2);
 
-	int bad = 0;
-	int i = 0;
-    for ( long key : realCounts.keys()){
+	  int bad = 0;
+	  int i = 0;
+    for ( long key : realCounts.keys()) {
       i = i + 1;
       
       long realCount = realCounts.get(key);
       long upperBound = countmin.getEstimateUpperBound(key);
       long lowerBound = countmin.getEstimateLowerBound(key);
 
-      if(upperBound <  realCount || realCount < lowerBound){
+      if(upperBound <  realCount || realCount < lowerBound) {
       	bad = bad + 1;
       	System.out.format("upperbound: %d, realCount: %d, lowerbound: %d \n", upperBound, realCount, lowerBound);
       }
@@ -302,28 +302,53 @@ public class CountMinFastFETest {
   
   @Test
   public void stressTestUpdateTime() {
-    int n = 10000000;
-    int size = 1000000; 
+    int n =   2000000;
+    int size = 100000; 
     double eps = 1.0/size;
-	double delta = .1;
-     
-    CountMinFastFE countmin = new CountMinFastFE(eps, delta);
-    long key;
-    long[] keys = new long[n];
-    //double prob = eps;
-    for(int i = 0; i < n; i++){
-      keys[i] = i;
+    double delta = .1;
+    int trials = 100;
+    double total_updates_per_s = 0;
+    for(int trial = 0; trial < trials; trial++)
+    {
+      CountMinFastFE countmin = new CountMinFastFE(eps, delta);
+      int key=0;
+      double startTime = System.nanoTime();
+      for (int i=0; i<n; i++) {
+        //long key = randomGeometricDist(prob);
+        countmin.update(key++);
+      }
+      double endTime = System.nanoTime();
+      double timePerUpdate = (endTime-startTime)/(1000000.0*n);
+      double updatesPerSecond = 1000.0/timePerUpdate;
+      total_updates_per_s +=updatesPerSecond;
     }
-
-    final long startTime = System.currentTimeMillis();
-    for (int i=0; i<n; i++){
-      key = keys[i];
-      countmin.update(key);
+    System.out.format("Amortized updates per second for update: %f\n", (total_updates_per_s/trials));
+    Assert.assertTrue(total_updates_per_s/trials > 1000000);
+  }
+  
+  @Test
+  public void stressTestUpdateTimeCU() {
+    int n =   2000000;
+    int size = 100000; 
+    double eps = 1.0/size;
+    double delta = .1;
+    int trials = 100;
+    double total_updates_per_s = 0;
+    for(int trial = 0; trial < trials; trial++)
+    {
+      CountMinFastFE countmin = new CountMinFastFE(eps, delta);
+      int key=0;
+      double startTime = System.nanoTime();
+      for (int i=0; i<n; i++) {
+        //long key = randomGeometricDist(prob);
+        countmin.conservative_update(key++);
+      }
+      double endTime = System.nanoTime();
+      double timePerUpdate = (endTime-startTime)/(1000000.0*n);
+      double updatesPerSecond = 1000.0/timePerUpdate;
+      total_updates_per_s +=updatesPerSecond;
     }
-    final long endTime = System.currentTimeMillis();
-    double timePerUpdate = (double)(endTime-startTime)/(double)n;
-    double updatesPerSecond = 1000.0/timePerUpdate;
-    System.out.println("Amortized updates per second: " + updatesPerSecond);
-    Assert.assertTrue(timePerUpdate < 10E-3);
+    System.out.format("Amortized updates per second for conservate_update: %f\n", (total_updates_per_s/trials));
+    Assert.assertTrue(total_updates_per_s/trials > 1000000);
   }
 }

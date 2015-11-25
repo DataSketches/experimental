@@ -338,7 +338,7 @@ public class CountMinFastFE extends FrequencyEstimator{
       }
     }
     it = otherCasted.freq_keys.iterator();
-    for ( int i = this.freq_keys.size(); i-- > 0; ) {
+    for ( int i = otherCasted.freq_keys.size(); i-- > 0; ) {
       long key = it.next();
       if(getEstimate(key) >= threshold){
         newset.add(key);

@@ -17,7 +17,7 @@ import java.util.Arrays;
  * @author Kevin Lang
  */
 public class MergeableQuantileSketch {
-
+  private static final int MIN_BASE_BUF_SIZE = 4; //This is somewhat arbitrary
   /**
    * Parameter that controls space usage of sketch and accuracy of estimates.
    */
@@ -59,11 +59,11 @@ public class MergeableQuantileSketch {
    * @param k Parameter that controls space usage of sketch and accuracy of estimates
    */
   public MergeableQuantileSketch(int k) {
-    assert k >= 1;
+    if (k <= 0) throw new IllegalArgumentException("K must be greater than zero");
     mqK = k;
     mqN = 0;
     mqLevels = new double[0][];
-    mqBaseBuffer = new double[Math.min(4,2*k)]; //The 4 is somewhat arbitrary; the min is important
+    mqBaseBuffer = new double[Math.min(MIN_BASE_BUF_SIZE,2*k)]; //the min is important
     mqBaseBufferCount = 0;
     mqMin = java.lang.Double.POSITIVE_INFINITY;
     mqMax = java.lang.Double.NEGATIVE_INFINITY;
@@ -71,10 +71,9 @@ public class MergeableQuantileSketch {
 
   /** 
    * Updates this sketch with the given double data item
-   * @param dataItem an item from a stream of items
+   * @param dataItem an item from a stream of items.  NaNs are ignored.
    */
   public void update(double dataItem) {
-
     if (Double.isNaN(dataItem)) return;
 
     if (dataItem > mqMax) { mqMax = dataItem; }   // benchmarks faster than Math.max()
@@ -152,20 +151,25 @@ public class MergeableQuantileSketch {
   */
 
   /**
-   * <p>
    * This returns an approximation to the value of the data item
    * that would be preceded by the given fraction of a hypothetical sorted
    * version of the input stream so far.
+   * 
    * <p>
    * We note that this method has a fairly large overhead (microseconds instead of nanoseconds)
    * so it should not be called multiple times to get different quantiles from the same
    * sketch. Instead use getQuantiles(). which pays the overhead only once.
    * 
    * @param fraction the specified fractional position in the hypothetical sorted stream.
+   * If fraction = 0.0, the true minimum value of the stream is returned. 
+   * If fraction = 1.0, the true maximum value of the stream is returned. 
    * 
    * @return the approximation to the value at the above fraction
    */
   public double getQuantile(double fraction) {
+    if ((fraction < 0.0) || (fraction > 1.0)) {
+      throw new IllegalArgumentException("Fraction cannot be less than zero or greater than 1.0");
+    }
     if      (fraction == 0.0) { return mqMin; }
     else if (fraction == 1.0) { return mqMax; }
     else {
@@ -193,6 +197,9 @@ public class MergeableQuantileSketch {
     double [] answers = new double [fractions.length];
     for (int i = 0; i < fractions.length; i++) {
       double fraction = fractions[i];
+      if ((fraction < 0.0) || (fraction > 1.0)) {
+        throw new IllegalArgumentException("Fraction cannot be less than zero or greater than 1.0");
+      }
       if      (fraction == 0.0) { answers[i] = mqMin; }
       else if (fraction == 1.0) { answers[i] = mqMax; }
       else {
@@ -223,7 +230,7 @@ public class MergeableQuantileSketch {
    * splitPoint.
    */
   @SuppressWarnings("cast")
-  public double [] getPDF(double [] splitPoints) {
+  public double[] getPDF(double[] splitPoints) {
     long [] counters = internalBuildHistogram (splitPoints);
     int numCounters = counters.length;
     double [] result = new double [numCounters];
@@ -234,7 +241,7 @@ public class MergeableQuantileSketch {
       subtotal += count;
       result[j] = ((double) count) / denom;
     }
-    assert (subtotal == this.mqN);
+    assert (subtotal == this.mqN); //internal consistency check
     return result;
   }
 
@@ -262,7 +269,7 @@ public class MergeableQuantileSketch {
       subtotal += count;
       result[j] = ((double) subtotal) / denom;
     }
-    assert (subtotal == this.mqN);
+    assert (subtotal == this.mqN); //internal consistency check
     return result;
   }
   
@@ -298,7 +305,7 @@ public class MergeableQuantileSketch {
 
   private void growLevels(int newSize) {
     int oldSize = mqLevels.length;
-    assert (newSize > oldSize);
+    assert (newSize > oldSize); //internal consistency check
     double[][] newLevels = new double[newSize][];
     for (int i = 0; i < oldSize; i++) {
       newLevels[i] = mqLevels[i];
@@ -337,7 +344,7 @@ public class MergeableQuantileSketch {
    * Called when the base buffer has just acquired 2*k elements.
    */
   private void processFullBaseBuffer() {
-    assert mqBaseBufferCount == 2 * mqK;
+    assert mqBaseBufferCount == 2 * mqK; //internal consistency check
 
     // make sure there will be enough levels for the propagation 
     int numLevelsNeeded = computeNumLevelsNeeded (mqK, mqN);
@@ -397,7 +404,6 @@ public class MergeableQuantileSketch {
    */
   private static final double[] allocatingCarryOfOneSize2KBuffer(double [] inbuf, int k) {
     int randomOffset = (rand.nextBoolean())? 1 : 0;
-    assert randomOffset == 0 || randomOffset == 1;
     double[] outbuf = new double [k];
     for (int i = 0; i < k; i++) {
       outbuf[i] = inbuf[2*i + randomOffset];
@@ -412,8 +418,8 @@ public class MergeableQuantileSketch {
    * @return a new sorted buffer of length k
    */
   private static final double[] allocatingMergeTwoSizeKBuffers(double[] bufA, double[] bufB, int k) {
-    assert bufA.length == k;
-    assert bufB.length == k;
+    assert bufA.length == k; //internal consistency check, could be removed
+    assert bufB.length == k; //internal consistency check, could be removed
     int tmpLen = 2 * k;
     double[] tmpBuf = new double [tmpLen];
 
@@ -433,7 +439,6 @@ public class MergeableQuantileSketch {
       System.arraycopy(bufA, a, tmpBuf, j, k - a); 
     }
     else {
-      assert b < k;
       System.arraycopy(bufB, b, tmpBuf, j, k - b);
     }
 
@@ -445,10 +450,9 @@ public class MergeableQuantileSketch {
   // Need to resolve this apparent conflict.
   private static void validateSplitPoints(double[] splitPoints) {
     for (int j = 0; j < splitPoints.length - 1; j++) {
-      if (splitPoints[j] >= splitPoints[j+1]) { //checks for uniqueness and order
-        throw new IllegalArgumentException(
-            "SplitPoints must be unique and monotonically increasing.");
-      }
+      if (splitPoints[j] < splitPoints[j+1]) { continue; }
+      throw new IllegalArgumentException(
+          "SplitPoints must be unique, monotonically increasing and not NaN.");
     }
   }
   
@@ -490,28 +494,27 @@ public class MergeableQuantileSketch {
 
   static void validateMergeableQuantileSketchStructure(MergeableQuantileSketch mq, int k, long n) {
     long long2k = 2L * k;
-    long quotient = n / long2k;
-    int remainder = (int) (n % long2k);
-    assert mq.mqBaseBufferCount == remainder;
+    long quotient = n / long2k;         //the bit pattern
+    int remainder = (int) (n % long2k); //the base buffer count
+    assert mq.mqBaseBufferCount == remainder : "Wrong number of items in base buffer";
     int numLevels = 0;
     if (quotient > 0) { numLevels = (1 + (hiBitPos(quotient))); }
-    assert mq.mqLevels.length == numLevels;
+    assert mq.mqLevels.length == numLevels : "Wrong number of levels";
     int level;
     long bitPattern;
     for (level = 0, bitPattern = quotient; level < numLevels; level++, bitPattern >>>= 1) {
       if ((bitPattern & 1) == 0) {
-        assert mq.mqLevels[level] == null;
-      }
-      else if ((bitPattern & 1) == 1) {
-        assert mq.mqLevels[level] != null; 
-        double [] thisBuf = mq.mqLevels[level];
-        for (int i = 0; i < thisBuf.length - 1; i++) {
-          assert thisBuf[i] <= thisBuf[i+1];
-        }
+        assert mq.mqLevels[level] == null : "Buffer present when it should not be.";
       }
       else {
-        assert false;
+        assert ((bitPattern & 1) == 1) : "Should not happen";
+        assert mq.mqLevels[level] != null : "Buffer missing" ; 
+        double [] thisBuf = mq.mqLevels[level];
+        for (int i = 0; i < thisBuf.length - 1; i++) {
+          assert thisBuf[i] <= thisBuf[i+1] : "Not properly sorted";
+        }
       }
+      //else should not happen
     }
   }
 } // End of class MergeableQuantileSketch

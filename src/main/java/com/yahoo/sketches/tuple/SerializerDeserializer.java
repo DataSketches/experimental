@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SerializerDeserializer {
-  public static enum SketchType { QuickSelectSketch, CompactSketch }
+  public static enum SketchType { QuickSelectSketch, CompactSketch, ArrayOfDoublesQuickSelectSketch, ArrayOfDoublesCompactSketch }
   public static final int TYPE_BYTE_OFFSET = 1;
 
   protected static final Map<String, Method> deserializeMethodCache = new HashMap<String, Method>();

@@ -15,12 +15,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 //@SuppressWarnings("cast")
 public class CountMin{
-  
-  //queue will store counters and their associated keys 
-  //for fast access to smallest counter. 
-  //counts will also store counters and their associated 
-  //keys to quickly check if a key is currently assigned a counter.
-  
+   
   private int rows;
   private int columns;
   private long update_sum;
@@ -38,9 +33,9 @@ public class CountMin{
    * 
    */    
   public CountMin(double eps, double delta) {
-	if (eps <= 0 || delta <= 0){
-	  throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
-	}
+  if (eps <= 0 || delta <= 0) {
+    throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
+  }
     this.eps = eps;
     this.rows = (int) (Math.ceil(Math.log(1/delta)/Math.log(2.0)) ); 
     this.columns = (int) (2*Math.ceil(1/eps));
@@ -55,55 +50,55 @@ public class CountMin{
   /**
    * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
-   */	
+   */  
   public void update(long key) {
-  	update(key, 1);
+    update(key, 1);
   }
   
   /**
    * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
-   */	
+   */  
    
   public void conservative_update(long key) {
-  	conservative_update(key, 1);
+    conservative_update(key, 1);
   }
   
 
   /**
-   * @param key 
+   * @param key, increment
    * Process a key (specified as a long) and an increment (can be negative).
-   */	
+   */  
   public void update(long key, long increment) {
     this.update_sum += increment;
-	for (int i=0; i < this.rows; i++) {
-	      int index = indexForKey(key,i);
-	      counts[index] += increment;
-	}
+  for (int i=0; i < this.rows; i++) {
+        int index = indexForKey(key,i);
+        counts[index] += increment;
+  }
   }
   
   /**
-   * @param key 
+   * @param key, increment
    * Process a key (specified as a long) and an increment (can be negative).
-   */	
+   */  
   public void conservative_update(long key, long increment) {
-	this.update_sum +=increment;
-  	long min_count = Long.MAX_VALUE;
-	for (int i=0; i < this.rows; i++) {
-	  int index = indexForKey(key,i);
-	  if(counts[index] < min_count){
-	    min_count = counts[index];
-	  }
-	}
-	for (int i=0; i < this.rows; i++) {
-	  int index = indexForKey(key,i);
-	  if(counts[index] < min_count + increment){
-	    counts[index] = min_count + increment;
-	  }
-	}
+  this.update_sum +=increment;
+    long min_count = Long.MAX_VALUE;
+  for (int i=0; i < this.rows; i++) {
+    int index = indexForKey(key,i);
+    if(counts[index] < min_count) {
+      min_count = counts[index];
+    }
+  }
+  for (int i=0; i < this.rows; i++) {
+    int index = indexForKey(key,i);
+    if(counts[index] < min_count + increment) {
+      counts[index] = min_count + increment;
+    }
+  }
   }
   
-  private int indexForKey(long key, int i){
+  private int indexForKey(long key, int i) {
     keyArr[0] = key;
     return columns*i + (((int)(MurmurHash3.hash(keyArr,i)[0]))>>>1) % columns;
   }
@@ -116,25 +111,25 @@ public class CountMin{
    * 2) get(key) <= real count + getMaxError() 
    */
   public long getEstimate(long key) { 
-	keyArr[0] = key;
-	long min_count = Long.MAX_VALUE;
-	for (int i=0; i < this.rows; i++) {
-	  int index = indexForKey(key,i);
-	  if(counts[index] < min_count){
-	    min_count = counts[index];
-	  }
-	}
-	return min_count;
+  keyArr[0] = key;
+  long min_count = Long.MAX_VALUE;
+  for (int i=0; i < this.rows; i++) {
+    int index = indexForKey(key,i);
+    if(counts[index] < min_count) {
+      min_count = counts[index];
+    }
+  }
+  return min_count;
   }
   
   
   public long getEstimateUpperBound(long key) { 
-	return getEstimate(key);
+  return getEstimate(key);
   }
   
   
   public long getEstimateLowerBound(long key) { 
-	return getEstimate(key) - getMaxError();
+  return getEstimate(key) - getMaxError();
   }
   
   /**
@@ -144,10 +139,9 @@ public class CountMin{
    * with probability at least 1-delta, realCount(key) is also at most get(key) + getMaxError() 
    */
   public long getMaxError() {
-  	return (long) (Math.ceil(this.eps * this.update_sum)); 
+    return (long) (Math.ceil(this.eps * this.update_sum)); 
   }
   
-  /**
   
   /**
    * @param that
@@ -157,10 +151,10 @@ public class CountMin{
    * This method does not create a new sketch. The sketch whose function is executed is changed.
    */
   public CountMin merge(CountMin other) {
-  	if(this.rows != other.rows || this.columns != other.columns){
-  	  throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");
-  	}
-    for(int i = 0; i < rows*columns; i++){
+    if(this.rows != other.rows || this.columns != other.columns) {
+      throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");
+    }
+    for(int i = 0; i < rows*columns; i++) {
       this.counts[i] +=other.counts[i];
     }
     this.update_sum += other.update_sum;

@@ -1,4 +1,4 @@
-package com.yahoo.sketches.frequencies.hashmap;
+package com.yahoo.sketches.hashmaps;
 
 
 public class HashMapWithImplicitDeletes extends HashMap {
@@ -6,14 +6,14 @@ public class HashMapWithImplicitDeletes extends HashMap {
   private final short AVAILABLE_STATE = 0;
   private final short OCCUPIED_STATE = 1;
   private final short DELETED_STATE = 2;   
-  private int maximalDrift = 0; // DRIFT
+  private int maximalDrift = 0;
   
   public HashMapWithImplicitDeletes (int capacity) {
     super(capacity);
   }
  
   @Override
-  protected boolean isActive(int probe) {
+  public boolean isActive(int probe) {
     return (states[probe]==1);
   }
   
@@ -24,30 +24,26 @@ public class HashMapWithImplicitDeletes extends HashMap {
   }
   
   @Override
-  public void adjust(long key, long value) {
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
     int probe = hashProbe(key);
     if (states[probe] != OCCUPIED_STATE) {
       assert(size < capacity);
       keys[probe] = key;
-      values[probe] = value;
+      values[probe] = putAmount;
       states[probe] = OCCUPIED_STATE;
       size++;
     } else {
       assert(keys[probe] == key);
-      values[probe] += value;
+      values[probe] += adjustAmount;
     }
   }
  
   @Override
-  public void shift(long value){
+  public void keepOnlyLargerThan(long thresholdValue){
     for (int i=0; i<length; i++){
-      if (states[i] == OCCUPIED_STATE){ 
-        if (values[i] > value)
-          values[i] -= value;
-        else {
-          states[i] = DELETED_STATE;
-          size--;
-        }
+      if (states[i] == OCCUPIED_STATE && values[i] <= thresholdValue){ 
+        states[i] = DELETED_STATE;
+        size--;
       } 
     }
   }

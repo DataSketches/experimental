@@ -1,4 +1,4 @@
-package com.yahoo.sketches.frequencies.hashmap;
+package com.yahoo.sketches.hashmaps;
 
 import gnu.trove.procedure.TLongLongProcedure;
 import gnu.trove.function.TLongFunction;
@@ -9,7 +9,8 @@ public class HashMapTrove extends HashMap {
   TLongLongHashMap hashmap;
   
   public HashMapTrove(int capacity){
-    super(1);
+    if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
+    this.capacity = capacity;
     hashmap = new TLongLongHashMap(capacity);
   }
   @Override
@@ -18,8 +19,8 @@ public class HashMapTrove extends HashMap {
   }
   
   @Override
-  public void adjust(long key, long value) {
-    hashmap.adjustOrPutValue(key, value, value);
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
+    hashmap.adjustOrPutValue(key, adjustAmount, putAmount);
   }
 
   @Override
@@ -28,9 +29,13 @@ public class HashMapTrove extends HashMap {
   }
 
   @Override
-  public void shift(long value) {
-    hashmap.retainEntries(new GreaterThenThreshold(value));
-    hashmap.transformValues(new decreaseByThreshold(value));
+  public void keepOnlyLargerThan(long thresholdValue){
+    hashmap.retainEntries(new GreaterThenThreshold(thresholdValue));
+  }
+  
+  @Override
+  public void adjustAllValuesBy(long adjustAmount) {
+    hashmap.transformValues(new AdjustAllValuesBy(adjustAmount));
   }
 
   @Override
@@ -44,7 +49,7 @@ public class HashMapTrove extends HashMap {
   }
   
   @Override
-  protected boolean isActive(int probe) {
+  public boolean isActive(int probe) {
     return false;
   }
   
@@ -60,16 +65,16 @@ public class HashMapTrove extends HashMap {
     }
   }
   
-  private class decreaseByThreshold implements TLongFunction {
-    long threshold;
-    public decreaseByThreshold(long threshold){
-      this.threshold = threshold;
+  private class AdjustAllValuesBy implements TLongFunction {
+    long adjustAmount;
+    public AdjustAllValuesBy(long adjustAmount){
+      this.adjustAmount = adjustAmount;
     }
     
     @Override
     public long execute(long value) {
-      // TODO Auto-generated method stub
-      return value - threshold;
+      return value + adjustAmount;
     }    
   }
+
 }

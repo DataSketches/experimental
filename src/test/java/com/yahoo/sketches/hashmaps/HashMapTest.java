@@ -1,4 +1,4 @@
-package com.yahoo.sketches.frequencies.hashmaps;
+package com.yahoo.sketches.hashmaps;
 
 import java.util.Random;
 
@@ -8,8 +8,6 @@ import org.testng.annotations.Test;
 import gnu.trove.function.TLongFunction;
 import gnu.trove.map.hash.TLongLongHashMap;
 import gnu.trove.procedure.TLongLongProcedure;
-
-import com.yahoo.sketches.frequencies.hashmap.*;
 
 public class HashMapTest {
   
@@ -21,16 +19,20 @@ public class HashMapTest {
       case 3: return new HashMapDoubleHashingWithRebuilds(capacity);
       case 4: return new HashMapWithImplicitDeletes(capacity);
       case 5: return new HashMapWithEfficientDeletes(capacity);
-      case 6: return new HashMapRobinHood(capacity);    
-    }
+      case 6: return new HashMapRobinHood(capacity);   
+      case 7: return new HashMapReverseEfficient(capacity);
+      case 8: return new HashMapReverseEfficientOneArray(capacity);
+    } 
     return null;
   }
 
   @Test
   public void testAllHashMapsCorrect(){
-    int capacity = 1000;
+    int capacity = 127;
     Random random = new Random(); 
-    random.setSeed(0);
+    random.setSeed(422);
+    int valueRange = 35219;
+    int keyRange = 11173;
      
     // Looping over all hashMap types
     for (int h=0; h<10 ;h++){
@@ -43,23 +45,27 @@ public class HashMapTest {
       TLongLongHashMap correct = new TLongLongHashMap(capacity);
       // Insert random keys and values
       for (int i=0; i<capacity;i++) {
-        long key = random.nextInt(1000);
-        long value = random.nextInt(1000);
-        hashmap.adjust(key ,value);
+        long key = random.nextInt(keyRange);
+        long value = random.nextInt(valueRange);
+        hashmap.adjustOrPutValue(key ,value, value);
         correct.adjustOrPutValue(key, value ,value);
       }      
       
       // remove a bunch of values
-      long threshold = random.nextInt(1000);
+      long threshold = valueRange/2;
       
-      hashmap.shift(threshold);
+      hashmap.adjustAllValuesBy(-threshold);
+      hashmap.keepOnlyLargerThan(0);
+      
       correct.retainEntries(new GreaterThenThreshold(threshold));
       correct.transformValues(new decreaseByThreshold(threshold));
+      
+      
       
       long[] keys = hashmap.getKeys();
       long[] values = hashmap.getValues();
       int size = hashmap.getSize();
-            
+      
       // map is of the correct size
       Assert.assertEquals(correct.size(), size);
       // keys and values of the same correct length
@@ -70,11 +76,13 @@ public class HashMapTest {
       for (int i=0;i<size;i++){
         Assert.assertTrue(correct.containsKey(keys[i]));
         Assert.assertEquals(correct.get(keys[i]), values[i]);
+        // Testing the get function
+        Assert.assertEquals(values[i], hashmap.get(keys[i]));
       }
+      
     }
   }
-  
-  
+   
   private class GreaterThenThreshold implements TLongLongProcedure {
     long threshold;
     public GreaterThenThreshold(long threshold){

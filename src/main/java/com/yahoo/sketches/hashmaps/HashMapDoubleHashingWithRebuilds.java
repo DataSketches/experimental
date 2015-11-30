@@ -1,4 +1,4 @@
-package com.yahoo.sketches.frequencies.hashmap;
+package com.yahoo.sketches.hashmaps;
 
 public class HashMapDoubleHashingWithRebuilds extends HashMap {
 
@@ -12,7 +12,7 @@ public class HashMapDoubleHashingWithRebuilds extends HashMap {
   }
   
   @Override
-  protected boolean isActive(int probe) {
+  public boolean isActive(int probe) {
     return (states[probe]>0);
   }
   
@@ -23,30 +23,18 @@ public class HashMapDoubleHashingWithRebuilds extends HashMap {
   }
       
   @Override
-  public void adjust(long key, long value) {
-    if (value < 0) throw new IllegalArgumentException("adjust received negative value.");
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
+    //if (value < 0) throw new IllegalArgumentException("adjust received negative value.");
     int probe = hashProbe(key);
     if (states[probe] == 0) {
       keys[probe] = key;
-      values[probe] = value;
+      values[probe] = putAmount;
       states[probe] = 1;
       size++;
     } else {
       assert(keys[probe] == key);
-      values[probe] += value;
+      values[probe] += adjustAmount;
     }
-  }
-
-  @Override
-  public void shift(long value) {
-    HashMapDoubleHashingWithRebuilds rebuiltHashMap = new HashMapDoubleHashingWithRebuilds(capacity);
-    for(int i=0;i<length;i++)
-      if (states[i] > 0 && values[i] > value)
-        rebuiltHashMap.adjust(keys[i], values[i]-value);
-    System.arraycopy(rebuiltHashMap.keys, 0, keys, 0, length);
-    System.arraycopy(rebuiltHashMap.values, 0, values, 0, length);
-    System.arraycopy(rebuiltHashMap.states, 0, states, 0, length);
-    size = rebuiltHashMap.getSize();
   }
 
   /**
@@ -64,4 +52,15 @@ public class HashMapDoubleHashingWithRebuilds extends HashMap {
     return probe;
   }
   
+  @Override
+  public void keepOnlyLargerThan(long thresholdValue) {
+    HashMapDoubleHashingWithRebuilds rebuiltHashMap = new HashMapDoubleHashingWithRebuilds(capacity);
+    for(int i=0;i<length;i++)
+      if (states[i] > 0 && values[i] > thresholdValue)
+        rebuiltHashMap.adjustOrPutValue(keys[i], values[i], values[i]);
+    System.arraycopy(rebuiltHashMap.keys, 0, keys, 0, length);
+    System.arraycopy(rebuiltHashMap.values, 0, values, 0, length);
+    System.arraycopy(rebuiltHashMap.states, 0, states, 0, length);
+    size = rebuiltHashMap.getSize();
+  }
 }

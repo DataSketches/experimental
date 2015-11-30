@@ -1,4 +1,4 @@
-package com.yahoo.sketches.frequencies.hashmap;
+package com.yahoo.sketches.hashmaps;
 
 public class HashMapReverseEfficientOneArray extends HashMap {
   
@@ -11,12 +11,21 @@ public class HashMapReverseEfficientOneArray extends HashMap {
   private int kvsLength;
   
   public HashMapReverseEfficientOneArray(int capacity) {
-    super(capacity);
+    if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
+    this.capacity = capacity;
+    // arraysLength is the smallest power of 2 greater than capacity/LOAD_FACTOR
+    length = Integer.highestOneBit(2*(int)(capacity/getLoadFactor())-1);
+    arrayMask = length-1;
+    //super(capacity);
     kvsLength = 3*getLength();
     this.kvsArray = new long[kvsLength];
-    
   }
 
+  @Override
+  public boolean isActive(int probe) {
+    return (kvsArray[probe*KVS_SIZE + STATE_OFFSET] > 0);
+  }
+  
   @Override
   public long[] getKeys() {
     if (size==0) return null;
@@ -48,16 +57,23 @@ public class HashMapReverseEfficientOneArray extends HashMap {
   
   @Override
   public long get(long key) {
-//    int probe = hashProbe(key);
-//    if (kvsArray[probe*KVS_SIZE + STATE_OFFSET] > 0){
-//      assert(kvsArray[probe*KVS_SIZE + KEY_OFFSET] == key);
-//      return kvsArray[probe*KVS_SIZE + VALUE_OFFSET];
-//    }
-    return 0;
+    int probe = (int) hash(key) & arrayMask;
+    int kvsProbe = probe*KVS_SIZE;
+    while (kvsArray[kvsProbe + STATE_OFFSET] != 0 && kvsArray[kvsProbe + KEY_OFFSET]!=key){
+      probe = (probe+1) & arrayMask;
+      kvsProbe = probe*KVS_SIZE;
+    }
+    return (kvsArray[kvsProbe + STATE_OFFSET] != 0) ? kvsArray[kvsProbe + VALUE_OFFSET] : 0; 
   }
 
   @Override
-  public void adjust(long key, long value) {
+  public void adjustAllValuesBy(long adjustAmount) {
+    for(int kvsProbe = VALUE_OFFSET; kvsProbe < kvsLength; kvsProbe += KVS_SIZE)
+      kvsArray[kvsProbe] += adjustAmount;
+  }
+  
+  @Override
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
     int probe = (int) hash(key) & arrayMask;
     byte drift = 1;
     while (kvsArray[probe*KVS_SIZE + STATE_OFFSET] != 0 && kvsArray[probe*KVS_SIZE + KEY_OFFSET]!=key) {
@@ -70,75 +86,51 @@ public class HashMapReverseEfficientOneArray extends HashMap {
       assert(size < capacity);
       //kvsProbe = probe*KVS_SIZE;
       kvsArray[kvsProbe + KEY_OFFSET] = key;
-      kvsArray[kvsProbe + VALUE_OFFSET] = value;
+      kvsArray[kvsProbe + VALUE_OFFSET] = putAmount;
       kvsArray[kvsProbe + STATE_OFFSET] = drift;
       size++;
     } else {
       // adjusting the value of an existing key
       assert(kvsArray[kvsProbe + KEY_OFFSET] == key);
-      kvsArray[kvsProbe + VALUE_OFFSET] += value;
+      kvsArray[kvsProbe + VALUE_OFFSET] += adjustAmount;
     }
   }
   
-//  public void del(long key){
-//    int probe = hashProbe(key);
-//    if (kvsArray[probe*KVS_SIZE + STATE_OFFSET]>0){
-//      assert(kvsArray[probe*KVS_SIZE + KEY_OFFSET] == key);
-//      hashDelete(probe);
-//      size--;
-//    }
-//  }
-  
+
   @Override
-  public void shift(long value){
+  public void keepOnlyLargerThan(long thresholdValue) {
     int firstProbe=length-1;
     while(kvsArray[firstProbe*KVS_SIZE + STATE_OFFSET] > 0) firstProbe--;
       
     for (int probe = firstProbe;probe-->0;){
       int kvsProbe = probe*KVS_SIZE;
-      if (kvsArray[kvsProbe + STATE_OFFSET] > 0){
-        if(kvsArray[kvsProbe + VALUE_OFFSET] > value){
-          kvsArray[kvsProbe + VALUE_OFFSET] -= value;
-        } else {
-          hashDelete(probe);
-          size--;
-        }
+      if (kvsArray[kvsProbe + STATE_OFFSET] > 0 && kvsArray[kvsProbe + VALUE_OFFSET] <= thresholdValue){
+        hashDelete(probe);
+        size--;
       }
     }
     for (int probe = length; probe-->firstProbe;){
       int kvsProbe = probe*KVS_SIZE;
-      if (kvsArray[kvsProbe + STATE_OFFSET] > 0){
-        if(kvsArray[kvsProbe + VALUE_OFFSET] > value){
-          kvsArray[kvsProbe + VALUE_OFFSET] -= value;
-        } else {
-          hashDelete(probe);
-          size--;
-        }
+      if (kvsArray[kvsProbe + STATE_OFFSET] > 0 && kvsArray[kvsProbe + VALUE_OFFSET] <= thresholdValue){
+        hashDelete(probe);
+        size--;
       }
     }
   }
-//  
-//  public void shiftNotReversed(long value){
-//    for (int probe=0; probe<length; probe++) {
-//      if (kvsArray[probe*KVS_SIZE + STATE_OFFSET] > 0){
-//        if (kvsArray[probe*KVS_SIZE + VALUE_OFFSET] > value)
-//          kvsArray[probe*KVS_SIZE + VALUE_OFFSET] -= value;
-//        else {
-//          hashDelete(probe);
-//          probe--;
-//          size--;
-//        }
-//      }
-//    }
-//  }
-//  
-  
-//  private int hashProbe(long key) {
-//    int probe = (int)hash(key) &arrayMask;
-//    while (kvsArray[probe*KVS_SIZE + STATE_OFFSET] > 0 && kvsArray[probe*KVS_SIZE + KEY_OFFSET]!=key) probe = (probe+1)&arrayMask;
-//    return probe;
-//  }
 
+
+  @Override
+  public void print(){
+    for (int probe=0; probe<keys.length; probe++){
+      System.out.format("%3d: (%4d,%4d,%3d)\n",
+                        probe, 
+                        kvsArray[probe*KVS_SIZE + STATE_OFFSET],
+                        kvsArray[probe*KVS_SIZE + KEY_OFFSET],
+                        kvsArray[probe*KVS_SIZE + VALUE_OFFSET]);
+    }
+    System.out.format("=====================\n");
+  }
+  
   private void hashDelete(int deleteProbe){
     // Looks ahead in the table to search for another 
     // item to move to this location 
@@ -167,20 +159,4 @@ public class HashMapReverseEfficientOneArray extends HashMap {
     }
   }
 
-  @Override
-  protected boolean isActive(int probe) {
-    return (kvsArray[probe*KVS_SIZE + STATE_OFFSET] > 0);
-  }
-
-  @Override
-  public void print(){
-    for (int probe=0; probe<keys.length; probe++){
-      System.out.format("%3d: (%4d,%4d,%3d)\n",
-                        probe, 
-                        kvsArray[probe*KVS_SIZE + STATE_OFFSET],
-                        kvsArray[probe*KVS_SIZE + KEY_OFFSET],
-                        kvsArray[probe*KVS_SIZE + VALUE_OFFSET]);
-    }
-    System.out.format("=====================\n");
-  }
 }

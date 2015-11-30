@@ -1,4 +1,4 @@
-package com.yahoo.sketches.frequencies.hashmap;
+package com.yahoo.sketches.hashmaps;
 
 public class HashMapWithEfficientDeletes extends HashMap{
  
@@ -17,7 +17,12 @@ public class HashMapWithEfficientDeletes extends HashMap{
   }
 
   @Override
-  public void adjust(long key, long value) {
+  public boolean isActive(int probe) {
+    return (states[probe] > 0);
+  }
+  
+  @Override
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
     int probe = (int) hash(key) & arrayMask;
     byte drift = 1;
     while (states[probe] != 0 && keys[probe]!=key) {
@@ -29,36 +34,23 @@ public class HashMapWithEfficientDeletes extends HashMap{
       // adding the key to the table the value
       assert(size < capacity);
       keys[probe] = key;
-      values[probe] = value;
+      values[probe] = putAmount;
       states[probe] = drift;
       size++;
     } else {
       // adjusting the value of an existing key
       assert(keys[probe] == key);
-      values[probe] += value;
-    }
-  }
-  
-  public void del(long key){
-    int probe = hashProbe(key);
-    if (states[probe]>0){
-      assert(keys[probe] == key);
-      hashDelete(probe);
-      size--;
+      values[probe] += adjustAmount;
     }
   }
   
   @Override
-  public void shift(long value){
+  public void keepOnlyLargerThan(long thresholdValue){
     for (int probe=0; probe<length; probe++) {
-      if (states[probe] > 0){
-        if (values[probe] > value)
-          values[probe] -= value;
-        else {
-          hashDelete(probe);
-          probe--;
-          size--;
-        }
+      if (states[probe] > 0 && values[probe] <= thresholdValue){
+        hashDelete(probe);
+        probe--;
+        size--;
       }
     }
   }
@@ -91,10 +83,5 @@ public class HashMapWithEfficientDeletes extends HashMap{
       probe=(probe+1)&arrayMask; 
       drift++;
     }
-  }
-
-  @Override
-  protected boolean isActive(int probe) {
-    return (states[probe] > 0);
   }
 }

@@ -218,7 +218,7 @@ final class Util {
   static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
     long num = numIn >>> startingPos;
     int pos = 0;
-    while ((num & ((long) 1)) != 0) {
+    while ((num & 1L) != 0) {
       num = num >>> 1;
       pos++;
     }

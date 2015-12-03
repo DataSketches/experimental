@@ -525,26 +525,26 @@ public class MQ6 {
     else return (1 + (hiBitPos (quo)));
   }
   
-  private static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
-    long num = numIn >>> startingPos;
-    int pos = 0;
-    while ((num & ((long) 1)) != 0) {
-      num = num >>> 1;
-      pos++;
-    }
-    return (pos + startingPos);
-  }
-
-  // Code leveraged during testing 
-
-  private static void testPOLZBSA () {
-    int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
-    for (int i = 0, j = 9; i < 10; i++, j--) {
-      int result = positionOfLowestZeroBitStartingAt((long) 109, i);
-      System.out.printf ("%d %d\n", i, result);
-      assert (answers[j] == result);
-    }
-  }
+//  private static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
+//    long num = numIn >>> startingPos;
+//    int pos = 0;
+//    while ((num & ((long) 1)) != 0) {
+//      num = num >>> 1;
+//      pos++;
+//    }
+//    return (pos + startingPos);
+//  }
+//
+//  // Code leveraged during testing 
+//
+//  private static void testPOLZBSA () {
+//    int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
+//    for (int i = 0, j = 9; i < 10; i++, j--) {
+//      int result = positionOfLowestZeroBitStartingAt((long) 109, i);
+//      System.out.printf ("%d %d\n", i, result);
+//      assert (answers[j] == result);
+//    }
+//  }
   
   int getK() { 
     return mqK; 

@@ -22,6 +22,8 @@ class Auxiliary {
     auAccum = accum;
   }
 
+  
+  @SuppressWarnings("unused")
   static void populateAuxiliaryArraysFromMQ6 (int mqK, long mqN, long mqBitPattern, 
                                              double [] mqCombinedBuffer, int mqBaseBufferCount,
                                              int numLevels, int numSamples,

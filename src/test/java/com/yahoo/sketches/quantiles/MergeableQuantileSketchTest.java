@@ -163,101 +163,6 @@ public class MergeableQuantileSketchTest {
     //System.out.printf ("Passed: endToEndTest()\n");
   }
 
-
-      //      System.out.printf ("%d\t%.6f\t%.6f\n", q, phi, subtotal);
-
-
-  // a couple of basic unit tests for the histogram construction helper functions.
-  @Test
-  public void testQuadraticTimeIncrementHistogramCounters () {
-
-    double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
-
-    {
-      double [] splitPoints = {0.25, 0.4};
-      long counters [] = {0, 0, 0};
-      long answers  [] = {200, 100, 200};
-      Util.quadraticTimeIncrementHistogramCounters (samples, 5, 100, splitPoints, counters);
-      for (int j = 0; j < counters.length; j++) {
-        assert counters[j] == answers[j];
-        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
-      }
-      // System.out.printf ("\n");
-    }
- 
-    {
-      double [] splitPoints = {0.01, 0.02};
-      long counters [] = {0, 0, 0};
-      long answers  [] = {0, 0, 500};
-      Util.quadraticTimeIncrementHistogramCounters (samples, 5, 100, splitPoints, counters);
-      for (int j = 0; j < counters.length; j++) {
-        assert counters[j] == answers[j];
-        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
-      }
-      // System.out.printf ("\n");
-    }
- 
-    {
-      double [] splitPoints = {0.8, 0.9};
-      long counters [] = {0, 0, 0};
-      long answers  [] = {500, 0, 0};
-      Util.quadraticTimeIncrementHistogramCounters (samples, 5, 100, splitPoints, counters);
-      for (int j = 0; j < counters.length; j++) {
-        assert counters[j] == answers[j];
-        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
-      }
-      // System.out.printf ("\n");
-    } 
-
-   //System.out.printf ("Passed: quadraticTimeIncrementHistogramCounters\n");
-
-  }
-
-  @Test
-  public void testLinearTimeIncrementHistogramCounters () {
-    double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
-
-    {
-      double [] splitPoints = {0.25, 0.4};
-      long counters [] = {0, 0, 0};
-      long answers  [] = {200, 100, 200};
-      Util.linearTimeIncrementHistogramCounters (samples, 5, 100, splitPoints, counters);
-      for (int j = 0; j < counters.length; j++) {
-        assert counters[j] == answers[j];
-        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
-      }
-      // System.out.printf ("\n");
-    }
- 
-    {
-      double [] splitPoints = {0.01, 0.02};
-      long counters [] = {0, 0, 0};
-      long answers  [] = {0, 0, 500};
-      Util.linearTimeIncrementHistogramCounters (samples, 5, 100, splitPoints, counters);
-      for (int j = 0; j < counters.length; j++) {
-        assert counters[j] == answers[j];
-        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
-      }
-      // System.out.printf ("\n");
-    }
- 
-    {
-      double [] splitPoints = {0.8, 0.9};
-      long counters [] = {0, 0, 0};
-      long answers  [] = {500, 0, 0};
-      Util.linearTimeIncrementHistogramCounters (samples, 5, 100, splitPoints, counters);
-      for (int j = 0; j < counters.length; j++) {
-        assert counters[j] == answers[j];
-        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
-      }
-      // System.out.printf ("\n");
-    } 
-
-   //System.out.printf ("Passed: linearTimeIncrementHistogramCounters\n");
-  }
-
-  /* need to write tests where there are zero or one splitpoints, and zero samples */
-
   @Test
    static void bigTestMinMax () {
     MergeableQuantileSketch mq1  = new MergeableQuantileSketch (32);
@@ -349,13 +254,22 @@ public class MergeableQuantileSketchTest {
     mqst.smallTestMinMax ();   
     mqst.regressionTestMergeableQuantileSketchStructureAfterUpdates ();
     mqst.regressionTestMergeableQuantileSketchStructureAfterMerges ();
-    mqst.testQuadraticTimeIncrementHistogramCounters ();
-    mqst.testLinearTimeIncrementHistogramCounters ();
     mqst.testConstructAuxiliary ();
     mqst.endToEndTest ();
+
+    MQ6Test mq6t = new MQ6Test();
+    mq6t.endToEndTest6 ();
+    mq6t.testConstructAuxiliary6 ();
+    mq6t.bigTestMinMax6 ();   
+    mq6t.smallTestMinMax6 ();   
+    mq6t.auxVersusAux6 ();
+
     UtilTest utest = new UtilTest();
+    utest.testPOLZBSA ();
     utest.checkBlockyTandemMergeSort();
-    
+    utest.testQuadraticTimeIncrementHistogramCounters ();
+    utest.testLinearTimeIncrementHistogramCounters ();
+   
     System.out.println("Regression Tests Complete.");
   }
 

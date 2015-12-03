@@ -22,6 +22,75 @@ class Auxiliary {
     auAccum = accum;
   }
 
+  static void populateAuxiliaryArraysFromMQ6 (int mqK, long mqN, long mqBitPattern, 
+                                             double [] mqCombinedBuffer, int mqBaseBufferCount,
+                                             int numLevels, int numSamples,
+                                             double [] items, long [] accum) {
+    long weight = 1;
+    int nxt = 0;
+    long bits = mqBitPattern;
+    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+      weight *= 2;
+      if ((bits & 1L) > 0L) {
+        int offset = (2+lvl) * mqK;
+        for (int i = 0; i < mqK; i++) {
+          items[nxt] = mqCombinedBuffer[i+offset];
+          accum[nxt] = weight;
+          nxt++;
+        }
+      }
+    }
+
+    weight = 1; // NOT a mistake; we just copied the highest level; now we need to copy the base buffer
+
+    int startOfBaseBufferBlock = nxt;
+
+    /* Copy it over, along with appropriate weights */
+    for (int i = 0; i < mqBaseBufferCount; i++) {
+      items[nxt] = mqCombinedBuffer[i];
+      accum[nxt] = weight;
+      nxt++;
+    }
+    assert nxt == numSamples;
+
+    // Must sort the items that came from the base buffer.
+    // Don't need to sort the corresponding weights because they are all the same.
+
+    Arrays.sort (items, startOfBaseBufferBlock, numSamples);
+
+    accum[numSamples] = 0;
+
+  }
+
+  static Auxiliary constructAuxiliaryFromMQ6 (int mqK, long mqN, long mqBitPattern, 
+                                              double [] mqCombinedBuffer, int mqBaseBufferCount,
+                                              int numLevels, int numSamples) {
+    double [] items = new double [numSamples];
+    long   [] accum = new long   [numSamples+1]; /* the extra slot is very important */
+
+    /* copy over the "levels" and then the base buffer, all with appropriate weights */
+    populateAuxiliaryArraysFromMQ6 (mqK, mqN, mqBitPattern, mqCombinedBuffer, mqBaseBufferCount, numLevels, numSamples, items, accum);
+
+    /* Sort the first "numSamples" slots of the two arrays in tandem, 
+       taking advantage of the already sorted blocks of length k */
+
+    Util.blockyTandemMergeSort (items, accum, numSamples, mqK);
+
+    // convert the item weights into totals of the weights preceding each item
+    long subtot = 0;
+    for (int i = 0; i < numSamples+1; i++) {
+      long newSubtot = subtot + accum[i];
+      accum[i] = subtot;
+      subtot = newSubtot;
+    }
+
+    assert subtot == mqN;
+
+    Auxiliary au = new Auxiliary (mqK, mqN, items, accum);
+    return au;
+  }
+
+
   @SuppressWarnings("unused")
   private static int countSamplesInSketch(int mqK, long mqN, double[][] mqLevels,
       double[] mqBaseBuffer, int mqBaseBufferCount) {

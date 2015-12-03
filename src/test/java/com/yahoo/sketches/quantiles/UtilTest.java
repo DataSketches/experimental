@@ -12,6 +12,108 @@ import org.testng.annotations.Test;
 
 public class UtilTest {
 
+  @Test
+  public void testPOLZBSA () {
+    int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
+    for (int i = 0, j = 9; i < 10; i++, j--) {
+      int result = Util.positionOfLowestZeroBitStartingAt((long) 109, i);
+      //      System.out.printf ("%d %d\n", i, result);
+      assert (answers[j] == result);
+    }
+  }
+
+  // a couple of basic unit tests for the histogram construction helper functions.
+  @Test
+  public void testQuadraticTimeIncrementHistogramCounters () {
+
+    double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
+
+    {
+      double [] splitPoints = {0.25, 0.4};
+      long counters [] = {0, 0, 0};
+      long answers  [] = {200, 100, 200};
+      Util.quadraticTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      for (int j = 0; j < counters.length; j++) {
+        assert counters[j] == answers[j];
+        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
+      }
+      // System.out.printf ("\n");
+    }
+ 
+    {
+      double [] splitPoints = {0.01, 0.02};
+      long counters [] = {0, 0, 0};
+      long answers  [] = {0, 0, 500};
+      Util.quadraticTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      for (int j = 0; j < counters.length; j++) {
+        assert counters[j] == answers[j];
+        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
+      }
+      // System.out.printf ("\n");
+    }
+ 
+    {
+      double [] splitPoints = {0.8, 0.9};
+      long counters [] = {0, 0, 0};
+      long answers  [] = {500, 0, 0};
+      Util.quadraticTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      for (int j = 0; j < counters.length; j++) {
+        assert counters[j] == answers[j];
+        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
+      }
+      // System.out.printf ("\n");
+    } 
+
+   //System.out.printf ("Passed: quadraticTimeIncrementHistogramCounters\n");
+
+  }
+
+  @Test
+  public void testLinearTimeIncrementHistogramCounters () {
+    double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
+
+    {
+      double [] splitPoints = {0.25, 0.4};
+      long counters [] = {0, 0, 0};
+      long answers  [] = {200, 100, 200};
+      Util.linearTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      for (int j = 0; j < counters.length; j++) {
+        assert counters[j] == answers[j];
+        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
+      }
+      // System.out.printf ("\n");
+    }
+ 
+    {
+      double [] splitPoints = {0.01, 0.02};
+      long counters [] = {0, 0, 0};
+      long answers  [] = {0, 0, 500};
+      Util.linearTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      for (int j = 0; j < counters.length; j++) {
+        assert counters[j] == answers[j];
+        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
+      }
+      // System.out.printf ("\n");
+    }
+ 
+    {
+      double [] splitPoints = {0.8, 0.9};
+      long counters [] = {0, 0, 0};
+      long answers  [] = {500, 0, 0};
+      Util.linearTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      for (int j = 0; j < counters.length; j++) {
+        assert counters[j] == answers[j];
+        // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
+      }
+      // System.out.printf ("\n");
+    } 
+
+   //System.out.printf ("Passed: linearTimeIncrementHistogramCounters\n");
+  }
+
+  /* need to write tests where there are zero or one splitpoints, and zero samples */
+
+
 //The remainder of this file is a brute force test of corner cases
  // for blockyTandemMergeSort.
 

@@ -16,7 +16,7 @@ import java.util.Arrays;
  * 
  * @author Kevin Lang
  */
-public class MergeableQuantileSketch {
+public class MQ6 {
   private static final int MIN_BASE_BUF_SIZE = 4; //This is somewhat arbitrary
   /**
    * Parameter that controls space usage of sketch and accuracy of estimates.
@@ -29,15 +29,26 @@ public class MergeableQuantileSketch {
   private long mqN;
 
   /**
+   * Explain this.
+   */
+  private long mqBitPattern;
+
+  /**
    * Each level is either null or a buffer of length K that is completely full and sorted.
    * Note: in the README file these length K buffers are called "mini-sketches".
    */
-  private double[][] mqLevels; 
+  //  private double[][] mqLevels; 
 
   /**
    * The base buffer has length 2*K but might not be full and isn't necessarily sorted.
    */
-  private double[] mqBaseBuffer; 
+  //  private double[] mqBaseBuffer; 
+
+  /**
+   * This single array contains the base buffer plus all levels some of which are empty.
+   * It requires quite a bit of explanation, which we defer until later.
+   */
+  private double[] mqCombinedBuffer; 
 
   /**
    * Number of samples currently in base buffer
@@ -58,12 +69,11 @@ public class MergeableQuantileSketch {
    * Constructs a Mergeable Quantile Sketch of double elements.
    * @param k Parameter that controls space usage of sketch and accuracy of estimates
    */
-  public MergeableQuantileSketch(int k) {
+  public MQ6(int k) {
     if (k <= 0) throw new IllegalArgumentException("K must be greater than zero");
     mqK = k;
     mqN = 0;
-    mqLevels = new double[0][];
-    mqBaseBuffer = new double[Math.min(MIN_BASE_BUF_SIZE,2*k)]; //the min is important
+    mqCombinedBuffer = new double[Math.min(MIN_BASE_BUF_SIZE,2*k)]; //the min is important
     mqBaseBufferCount = 0;
     mqMin = java.lang.Double.POSITIVE_INFINITY;
     mqMax = java.lang.Double.NEGATIVE_INFINITY;
@@ -74,20 +84,19 @@ public class MergeableQuantileSketch {
    * @param dataItem an item from a stream of items.  NaNs are ignored.
    */
   public void update(double dataItem) {
+    // this method is only directly using the base buffer part of the combined buffer
     if (Double.isNaN(dataItem)) return;
 
     if (dataItem > mqMax) { mqMax = dataItem; }   // benchmarks faster than Math.max()
     if (dataItem < mqMin) { mqMin = dataItem; }
 
-    if (mqBaseBufferCount+1 > mqBaseBuffer.length) {
-      this.growBaseBuffer();
+    if (mqBaseBufferCount+1 > mqCombinedBuffer.length) {
+      growBaseBuffer();
     } 
-
-    mqBaseBuffer[mqBaseBufferCount++] = dataItem;
+    mqCombinedBuffer[mqBaseBufferCount++] = dataItem;
     mqN++;
-
     if (mqBaseBufferCount == 2*mqK) {
-      this.processFullBaseBuffer();
+      processFullBaseBuffer();
     }
   }
 
@@ -108,38 +117,48 @@ public class MergeableQuantileSketch {
   * @param mqTarget The target sketch
   * @param mqSource The source sketch
   */
-  public static void mergeInto(MergeableQuantileSketch mqTarget, MergeableQuantileSketch mqSource) {  
+  public static void mergeInto(MQ6 mqTarget, MQ6 mqSource) {  
 
-    if ( mqTarget.mqK != mqSource.mqK) throw new IllegalArgumentException(
-        "Given sketches must have the same value of k.");
+    if ( mqTarget.mqK != mqSource.mqK) 
+      throw new IllegalArgumentException("Given sketches must have the same value of k.");
 
-    int k = mqTarget.mqK;
+    MQ6 mq1 = mqTarget;
+    MQ6 mq2 = mqSource;
+    double [] mq2Levels     = mq2.mqCombinedBuffer; // aliasing is a bit dangerous
+    double [] mq2BaseBuffer = mq2.mqCombinedBuffer; // aliasing is a bit dangerous
 
-    long nFinal = mqTarget.mqN + mqSource.mqN; 
-
-    double [] sourceBaseBuffer = mqSource.mqBaseBuffer;
-    for (int i = 0; i < mqSource.mqBaseBufferCount; i++) {
-      mqTarget.update(sourceBaseBuffer[i]);
-    }
-    // note: the above updates have already changed mqTarget in many ways, 
-    //   but it might still need an additional buffer level
-
-    int numLevelsNeeded = computeNumLevelsNeeded(k, nFinal);
-    if (numLevelsNeeded > mqTarget.mqLevels.length) {
-      mqTarget.growLevels(numLevelsNeeded);
+    int k = mq1.mqK;
+    long nFinal = mq1.mqN + mq2.mqN;
+    
+    for (int i = 0; i < mq2.mqBaseBufferCount; i++) {
+      mq1.update (mq2BaseBuffer[i]);
     }
 
-    for (int lvl = 0; lvl < mqSource.mqLevels.length; lvl++) {
-      double [] buf = mqSource.mqLevels[lvl]; 
-      if (buf != null) {
-        mqTarget.propagateCarry(buf, lvl);
+    int numLevelsNeeded = computeNumLevelsNeeded (k, nFinal);
+    if (numLevelsNeeded > mq1.mqLevelsAllocated()) {
+      mq1.growLevels(numLevelsNeeded);
+    }
+
+    double [] scratchBuf = new double [2*k];
+
+    int numLevels2 = mq2.mqLevelsAllocated();
+    long bits2 = mq2.mqBitPattern;
+    for (int lvl2 = 0; lvl2 < numLevels2; lvl2++, bits2 >>>= 1) {
+      if ((bits2 & 1L) > 0L) {
+        mq1.inPlacePropagateCarry (lvl2,
+                                   mq2Levels, ((2+lvl2) * k),
+                                   scratchBuf, 0,
+                                   false);
+        // won't updated mq1.mqN until the very end
       }
     }
 
-    mqTarget.mqN = nFinal;
+    mq1.mqN = nFinal;
+    
+    assert mq1.mqN / (2*k) == mq1.mqBitPattern; // internal consistency check
 
-    if (mqSource.mqMax > mqTarget.mqMax) { mqTarget.mqMax = mqSource.mqMax; }
-    if (mqSource.mqMin < mqTarget.mqMin) { mqTarget.mqMin = mqSource.mqMin; }
+    if (mq2.mqMax > mq1.mqMax) { mq1.mqMax = mq2.mqMax; }
+    if (mq2.mqMin < mq1.mqMin) { mq1.mqMin = mq2.mqMin; }
 
   }
 
@@ -288,75 +307,165 @@ public class MergeableQuantileSketch {
   //Restricted methods
   
   Auxiliary constructAuxiliary() {
-    Auxiliary au = Auxiliary.constructAuxiliary(
-        this.mqK, this.mqN, this.mqLevels, this.mqBaseBuffer, this.mqBaseBufferCount);
+    Auxiliary au = Auxiliary.constructAuxiliaryFromMQ6 (mqK, mqN, 
+                                                        mqBitPattern, mqCombinedBuffer, mqBaseBufferCount,
+                                                        mqLevelsAllocated(), numSamplesInSketch());
     return au;
   }
 
   private void growBaseBuffer() {
+    double [] mqBaseBuffer = mqCombinedBuffer;
     int oldSize = mqBaseBuffer.length;
+    assert (oldSize < 2 * mqK);
     int newSize = Math.max (Math.min (2*mqK, 2*oldSize), 1);
-    double[] newBuf = new double[newSize];
-    for (int i = 0; i < oldSize; i++) {
-      newBuf[i] = mqBaseBuffer[i];
-    }
-    mqBaseBuffer = newBuf;
+    double [] newBuf = Arrays.copyOf (mqBaseBuffer, newSize);
+    // just while debugging
+    for (int i = oldSize; i < newSize; i++) {newBuf[i] = mqDummyValue;}
+    mqCombinedBuffer = newBuf;
   }
 
-  private void growLevels(int newSize) {
-    int oldSize = mqLevels.length;
-    assert (newSize > oldSize); //internal consistency check
-    double[][] newLevels = new double[newSize][];
-    for (int i = 0; i < oldSize; i++) {
-      newLevels[i] = mqLevels[i];
-    }
-    for (int i = oldSize; i < newSize; i++) {
-      newLevels[i] = null;
-    } 
-    mqLevels = newLevels;
+  private void growLevels(int newNumLevels) {
+    double [] mqLevels = mqCombinedBuffer;
+    int oldNumLevels = mqLevelsAllocated ();
+    assert (newNumLevels > oldNumLevels); //internal consistency check
+    int oldPhysicalLength = (2 + oldNumLevels) * mqK;
+    int newPhysicalLength = (2 + newNumLevels) * mqK;
+    double [] newLevels = Arrays.copyOf (mqLevels, newPhysicalLength); // copies base buffer plus old levels
+    //    just while debugging
+    for (int i = oldPhysicalLength; i < newPhysicalLength; i++) {newLevels[i] = mqDummyValue;}
+    mqCombinedBuffer = newLevels;
   }
 
-
-  /**
-   * Propogate the given buffer of k elements, which must be full and sorted, into the given level.
-   * This buffer must be the output of the overall algorithm up to this given level.
-   * It is the caller's responsibility to ensure that the levels array is big enough so that 
-   * this provably cannot fail. 
-   * Also, while this tail-recursive procedure might cause logarithmic stack growth in java, 
-   * that in itself shouldn't be a problem, nor would recoding it provide a significant speed-up, 
-   * since it is not the inner loop of the algorithm
-   * @param carryIn the buffer that is being propogated into the specified level
-   * @param curLvl the specified level
-   */
-  private void propagateCarry(double[] carryIn, int curLvl) {
-    if (mqLevels[curLvl] == null) {// propagation stops here
-      mqLevels[curLvl] = carryIn;
+  private int mqLevelsAllocated () {
+    // Warning!! this method assumes a certain strategy for slowing growing the combined buffer.
+    // If that is changed, e.g. by growing it sooner than is strictly necessary,
+    // chaos will ensue. In that case we will probably have to cross check with the bitPattern,
+    // or something like that. The details will be subtle, and I haven't worked them out.
+    if (mqCombinedBuffer == null) {
+      return 0;
+    }
+    else if (mqCombinedBuffer.length < 2 * mqK) { // this would be a base buffer only
+      return 0;
     }
     else {
-      double [] oldBuf = mqLevels[curLvl];
-      mqLevels[curLvl] = null;
-      double [] carryOut = allocatingMergeTwoSizeKBuffers (carryIn, oldBuf, mqK);
-      propagateCarry(carryOut, curLvl+1);
+      return ((mqCombinedBuffer.length / mqK) - 2);
     }
+  }
+
+  private static void justZipSize2KBuffer (double [] bufA, int startA, // input
+                                           double [] bufC, int startC, // output
+                                           int k) {
+    assert bufA.length >= 2*k; // just for now    
+    assert startA == 0; // just for now
+
+    //    int randomOffset = (int) (2.0 * Math.random());
+    int randomOffset = (Util.rand.nextBoolean())? 1 : 0;
+    //    assert randomOffset == 0 || randomOffset == 1;
+
+    //    int limA = startA + 2*k;
+    int limC = startC + k;
+
+    for (int a = startA + randomOffset, c = startC; c < limC; a += 2, c++) {
+      bufC[c] = bufA[a];
+    }
+  }
+
+  private static void justMergeTwoSizeKBuffers (double [] keySrc1, int arrStart1,
+                                                double [] keySrc2, int arrStart2,
+                                                double [] keyDst,  int arrStart3,
+                                                int k) {
+    int arrStop1 = arrStart1 + k;
+    int arrStop2 = arrStart2 + k;
+
+    int i1 = arrStart1;
+    int i2 = arrStart2;
+    int i3 = arrStart3;
+
+    while (i1 < arrStop1 && i2 < arrStop2) {
+      if (keySrc2[i2] < keySrc1[i1]) { 
+        keyDst[i3++] = keySrc2[i2++];
+      }     
+      else { 
+        keyDst[i3++] = keySrc1[i1++];
+      } 
+    }
+
+    if (i1 < arrStop1) {
+      System.arraycopy(keySrc1, i1, keyDst, i3, arrStop1 - i1);
+    }
+    else {
+      assert i2 < arrStop2;
+      System.arraycopy(keySrc1, i2, keyDst, i3, arrStop2 - i2);
+    }
+
+  }
+
+  private void inPlacePropagateCarry (int startingLevel,
+                                      double [] sizeKBuf, int sizeKStart,
+                                      double [] size2KBuf, int size2KStart,
+                                      boolean doUpdateVersion) { // else doMergeIntoVersion
+
+    double [] mqLevels = mqCombinedBuffer;
+
+    int endingLevel = positionOfLowestZeroBitStartingAt (mqBitPattern, startingLevel);
+    assert endingLevel < mqLevelsAllocated(); // internal consistency check
+
+    if (doUpdateVersion) { // update version of computation
+      // its is okay for sizeKbuf to be null in this case
+      justZipSize2KBuffer (size2KBuf, size2KStart,
+                           mqLevels, ((2+endingLevel) * mqK),
+                           mqK);
+    }
+    else { // mergeInto version of computation
+      System.arraycopy (sizeKBuf, sizeKStart,
+                        mqLevels, ((2+endingLevel) * mqK),
+                        mqK);
+    }
+
+    for (int lvl = startingLevel; lvl < endingLevel; lvl++) {
+
+      assert (mqBitPattern & (((long) 1) << lvl)) > 0;  // internal consistency check
+
+      justMergeTwoSizeKBuffers (mqLevels, ((2+lvl) * mqK),
+                                mqLevels, ((2+endingLevel) * mqK),
+                                size2KBuf, size2KStart,
+                                mqK);
+
+      justZipSize2KBuffer (size2KBuf, size2KStart,
+                           mqLevels, ((2+endingLevel) * mqK),
+                           mqK);
+    // just while debugging
+      Arrays.fill (mqLevels, ((2+lvl) * mqK), ((2+lvl+1) * mqK), mqDummyValue);
+
+    } // end of loop over lower levels
+
+    // update bit pattern with binary-arithmetic ripple carry
+    mqBitPattern = mqBitPattern + (((long) 1) << startingLevel);
+
   }
 
   /**
    * Called when the base buffer has just acquired 2*k elements.
    */
   private void processFullBaseBuffer() {
-    assert mqBaseBufferCount == 2 * mqK; //internal consistency check
-
-    // make sure there will be enough levels for the propagation 
+    assert mqBaseBufferCount == 2 * mqK;  // internal consistency check
+    // make sure there will be enough levels for the propagation
     int numLevelsNeeded = computeNumLevelsNeeded (mqK, mqN);
-    if (numLevelsNeeded > mqLevels.length) {
-      this.growLevels(numLevelsNeeded);
+    if (numLevelsNeeded > mqLevelsAllocated()) {
+      growLevels(numLevelsNeeded);
     }
+    // this aliasing is a bit dangerous; notice that we did it after the possible resizing
+    double [] mqBaseBuffer = mqCombinedBuffer; 
 
-    // now we construct a new length-k "carry" buffer, and propagate it 
-    Arrays.sort(mqBaseBuffer, 0, mqBaseBufferCount);
-    double[] carry = allocatingCarryOfOneSize2KBuffer(mqBaseBuffer, mqK);
+    Arrays.sort (mqBaseBuffer, 0, mqBaseBufferCount);
+    inPlacePropagateCarry (0,
+                           null, 0,  // this null is okay
+                           mqBaseBuffer, 0,
+                           true);
     mqBaseBufferCount = 0;
-    propagateCarry(carry, 0);
+    // just while debugging
+    Arrays.fill (mqBaseBuffer, 0, 2*mqK, mqDummyValue);
+    assert mqN / (2*mqK) == mqBitPattern;  // internal consistency check
   }
   
   /**
@@ -367,87 +476,40 @@ public class MergeableQuantileSketch {
    * @return the unnormalized, accumulated counts of <i>m + 1</i> intervals.
    */
   private long[] internalBuildHistogram (double[] splitPoints) {
-    MergeableQuantileSketch mq = this;
-    validateSplitPoints(splitPoints);
+    double [] mqLevels     = mqCombinedBuffer; // aliasing is a bit dangerous
+    double [] mqBaseBuffer = mqCombinedBuffer; // aliasing is a bit dangerous
+
+    validateSplitPoints (splitPoints);
+
     int numSplitPoints = splitPoints.length;
     int numCounters = numSplitPoints + 1;
-    long[] counters = new long[numCounters];
+    long [] counters = new long [numCounters];
+
     for (int j = 0; j < numCounters; j++) { counters[j] = 0; } // already true, right?
+
     long weight = 1;
     if (numSplitPoints < 50) { // empirically determined crossover for K = 200
       // not worth it to sort when few split points
-      Util.quadraticTimeIncrementHistogramCounters(mq.mqBaseBuffer, 0, mq.mqBaseBufferCount, weight,
-          splitPoints, counters);
+      Util.quadraticTimeIncrementHistogramCounters (mqBaseBuffer, 0, mqBaseBufferCount, weight, splitPoints, counters);
     }
     else {
-      Arrays.sort(mq.mqBaseBuffer, 0, mq.mqBaseBufferCount); // sort is worth it when many split points
-      Util.linearTimeIncrementHistogramCounters (mq.mqBaseBuffer, 0, mq.mqBaseBufferCount, weight,
-          splitPoints, counters);
+      Arrays.sort (mqBaseBuffer, 0, mqBaseBufferCount); // sort is worth it when many split points
+      Util.linearTimeIncrementHistogramCounters (mqBaseBuffer, 0, mqBaseBufferCount, weight, splitPoints, counters);
     }
-    for (int lvl = 0; lvl < mq.mqLevels.length; lvl++) { 
+
+    int numLevels = mqLevelsAllocated();
+    long bits = mqBitPattern;
+    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
       weight += weight; // *= 2
-      if (mq.mqLevels[lvl] != null) { 
+      if ((bits & 1L) > 0L) {
         // the levels are already sorted so we can use the fast version
-        Util.linearTimeIncrementHistogramCounters(mq.mqLevels[lvl], 0, mq.mqK, weight, 
-            splitPoints, counters);
+        Util.linearTimeIncrementHistogramCounters (mqLevels, (2+lvl)*mqK, mqK, weight, splitPoints, counters);
+                                                   //(mq.mqLevels[lvl], 0, mq.mqK, 
       }
     }
     return counters;
   }
   
-  // 
-  /**
-   * The zip of the merge / zip alternating algorithm.
-   * @param inbuf must be sorted and of length 2*k. 
-   * @param k the k value of the sketch
-   * @return a new sorted buffer of length k
-   */
-  private static final double[] allocatingCarryOfOneSize2KBuffer(double [] inbuf, int k) {
-    int randomOffset = (rand.nextBoolean())? 1 : 0;
-    double[] outbuf = new double [k];
-    for (int i = 0; i < k; i++) {
-      outbuf[i] = inbuf[2*i + randomOffset];
-    }
-    return (outbuf);
-  }
-  /**
-   * Performs both a merge and a zip of the given buffers
-   * @param bufA One side of the merge. Must be sorted and of length k.
-   * @param bufB The second side of the merge. Must be sorted and of length k.
-   * @param k the k of the sketch
-   * @return a new sorted buffer of length k
-   */
-  private static final double[] allocatingMergeTwoSizeKBuffers(double[] bufA, double[] bufB, int k) {
-    assert bufA.length == k; //internal consistency check, could be removed
-    assert bufB.length == k; //internal consistency check, could be removed
-    int tmpLen = 2 * k;
-    double[] tmpBuf = new double [tmpLen];
-
-    int a = 0;
-    int b = 0;
-    int j = 0;
-
-    while (a < k && b < k) {
-      if (bufB[b] < bufA[a]) {
-        tmpBuf[j++] = bufB[b++];
-      }
-      else {
-        tmpBuf[j++] = bufA[a++];
-      }
-    }
-    if (a < k) {
-      System.arraycopy(bufA, a, tmpBuf, j, k - a); 
-    }
-    else {
-      System.arraycopy(bufB, b, tmpBuf, j, k - b);
-    }
-
-    return allocatingCarryOfOneSize2KBuffer(tmpBuf,k);
-  }
-  
-  // Note: there is a comment in the increment histogram counters code that says that the 
-  // splitpoints must be unique. However, the end to end test could generate duplicate splitpoints.
-  // Need to resolve this apparent conflict.
   private static void validateSplitPoints(double[] splitPoints) {
     for (int j = 0; j < splitPoints.length - 1; j++) {
       if (splitPoints[j] < splitPoints[j+1]) { continue; }
@@ -456,7 +518,6 @@ public class MergeableQuantileSketch {
     }
   }
   
-
   private static int computeNumLevelsNeeded(int k, long n) {
     long long2k = ((long) 2 * k);
     long quo = n / long2k;
@@ -464,7 +525,26 @@ public class MergeableQuantileSketch {
     else return (1 + (hiBitPos (quo)));
   }
   
+  private static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
+    long num = numIn >>> startingPos;
+    int pos = 0;
+    while ((num & ((long) 1)) != 0) {
+      num = num >>> 1;
+      pos++;
+    }
+    return (pos + startingPos);
+  }
+
   // Code leveraged during testing 
+
+  private static void testPOLZBSA () {
+    int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
+    for (int i = 0, j = 9; i < 10; i++, j--) {
+      int result = positionOfLowestZeroBitStartingAt((long) 109, i);
+      System.out.printf ("%d %d\n", i, result);
+      assert (answers[j] == result);
+    }
+  }
   
   int getK() { 
     return mqK; 
@@ -475,67 +555,56 @@ public class MergeableQuantileSketch {
   }
   
   int numSamplesInSketch() {
-    int count = this.mqBaseBufferCount;
-    for (int lvl = 0; lvl < this.mqLevels.length; lvl++) {
-      if (this.mqLevels[lvl] != null) { count += this.mqK; }
+    int count = mqBaseBufferCount;
+    int numLevels = mqLevelsAllocated();
+    long bits = mqBitPattern;
+    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+      if ((bits & 1L) > 0L) {
+        count += mqK;
+      }
     }
     return count;
   }
 
   double sumOfSamplesInSketch() {
-    double total = Util.sumOfDoublesInArrayPrefix(this.mqBaseBuffer, this.mqBaseBufferCount);
-    for (int lvl = 0; lvl < this.mqLevels.length; lvl++) {
-      if (this.mqLevels[lvl] != null) { 
-        total += Util.sumOfDoublesInArrayPrefix(this.mqLevels[lvl], this.mqK);
+    double total = Util.sumOfDoublesInSubArray (mqCombinedBuffer, 0, mqBaseBufferCount);
+    int numLevels = mqLevelsAllocated();
+    long bits = mqBitPattern;
+    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+      if ((bits & 1L) > 0L) {
+        total += Util.sumOfDoublesInSubArray (mqCombinedBuffer, ((2+lvl) * mqK), mqK);
       }
     }
     return total;
   }
 
-  static void validateMergeableQuantileSketchStructure(MergeableQuantileSketch mq, int k, long n) {
-    long long2k = 2L * k;
-    long quotient = n / long2k;         //the bit pattern
-    int remainder = (int) (n % long2k); //the base buffer count
-    assert mq.mqBaseBufferCount == remainder : "Wrong number of items in base buffer";
-    int numLevels = 0;
-    if (quotient > 0) { numLevels = (1 + (hiBitPos(quotient))); }
-    assert mq.mqLevels.length == numLevels : "Wrong number of levels";
-    int level;
-    long bitPattern;
-    for (level = 0, bitPattern = quotient; level < numLevels; level++, bitPattern >>>= 1) {
-      if ((bitPattern & 1) == 0) {
-        assert mq.mqLevels[level] == null : "Buffer present when it should not be.";
-      }
-      else {
-        assert ((bitPattern & 1) == 1) : "Should not happen";
-        assert mq.mqLevels[level] != null : "Buffer missing" ; 
-        double [] thisBuf = mq.mqLevels[level];
-        for (int i = 0; i < thisBuf.length - 1; i++) {
-          assert thisBuf[i] <= thisBuf[i+1] : "Not properly sorted";
-        }
-      }
-      //else should not happen
+
+  void show () { // just for debugging
+    double [] mqLevels     = mqCombinedBuffer;
+    double [] mqBaseBuffer = mqCombinedBuffer;
+    System.out.printf ("showing: K=%d N=%d levels=%d combinedBufferLength=%d baseBufferCount=%d bitPattern=%d\n",
+                       mqK, mqN, mqLevelsAllocated(), mqCombinedBuffer.length, mqBaseBufferCount, mqBitPattern);
+    for (int i = 0; i < mqBaseBufferCount; i++) {
+      System.out.printf (" %.1f", mqBaseBuffer[i]);
     }
+    System.out.printf ("\n");
+    System.out.printf ("Levels:\n");
+    
+    int numLevels = mqLevelsAllocated ();
+    int bbo = 2 * mqK; // base buffer offset; actually the offset to skip past the base buffer
+
+    for (int j = 0; j < numLevels * mqK; j++) {
+      if (j % mqK == 0) {
+        System.out.printf ("\n");
+      }
+      System.out.printf ("    %.1f", mqLevels[j+bbo]);
+    }
+    System.out.printf ("\n");
   }
-} // End of class MergeableQuantileSketch
+
+  private static double mqDummyValue = -99.0;  // just for debugging
 
 
-//  Discussion of structure sharing and modification of buffer contents.
 
-// We are currently using a scheme whose "zip" operation always creates a 
-// fresh level buffer, whose contents are never modified afterwards.
+} // End of class MQ6
 
-// This means that nothing bad can happen even though the current mergeInto code can cause
-// the source and target sketches to both contain pointers to the exact same level buffer.
-
-// There is a different scheme, which we are current NOT using because it is slightly more
-// complicated and dangerous, that re-uses and therefore modifies level buffers as each
-// carry wave propagates. If we ever switched to that scheme, different sketches could 
-// not be allowed to share level buffers. 
-
-// The fix (which actually isn't all that complicated) would be the following:
-// (1) Keep track of which sketch owns each level buffer during a multi-sketch carry propagation.
-// (2) Never modify a level buffer that belongs to a different sketch; 
-//     instead modify the "other" buffer that is involved in the buffer merge.
-// (3) Never store a pointer to a level buffer that belongs to a different sketch;
-//     instead copy the level buffer.

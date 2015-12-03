@@ -144,14 +144,14 @@ final class Util {
 
   // Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, not quadratic.
   // This subroutine does NOT require the samples to be sorted.
-  static void quadraticTimeIncrementHistogramCounters (double [] samples, int numSamples, long weight, 
+  static void quadraticTimeIncrementHistogramCounters (double [] samples, int offset, int numSamples, long weight, 
                                                               double [] splitPoints, long [] counters) {
     // samples must be sorted
     // splitPoints must be unique and sorted
     // question: what happens if they aren't unique?
     assert (splitPoints.length + 1 == counters.length);
     for (int i = 0; i < numSamples; i++) {
-      double sample = samples[i];
+      double sample = samples[i+offset];
       int j = 0;
 
       for (j = 0; j < splitPoints.length; j++) {
@@ -169,7 +169,7 @@ final class Util {
   /** this one does a linear time simultaneous walk of the samples and splitPoints
    * It DOES require the samples to be sorted
    */
-  static void linearTimeIncrementHistogramCounters (double [] samples, int numSamples, 
+  static void linearTimeIncrementHistogramCounters (double [] samples, int offset, int numSamples, 
                                                     long weight, double [] splitPoints, long [] counters) {
     // 1) samples must be sorted
     // 2) splitPoints must be unique and sorted (what happens if they aren't unique?)
@@ -182,7 +182,7 @@ final class Util {
     int j = 0;
 
     while (i < numSamples && j < numSplitPoints) {
-      if (samples[i] < splitPoints[j]) {
+      if (samples[i+offset] < splitPoints[j]) {
         counters[j] += weight; // this sample goes into this bucket
         i++; // move on to next sample and see whether it also goes into this bucket
       }
@@ -202,19 +202,29 @@ final class Util {
 
   // several miscellaneous utility functions
   
- static double lg(double x) {
+  static double lg(double x) {
     return ( Math.log(x)) / (Math.log(2.0) );
   }
   
- /**
-  * Zero based position of the highest one-bit of the given long
-  * @param num the given long
-  * @return Zero based position of the highest one-bit of the given long
-  */
- static int hiBitPos(long num) {
-   return 63 - Long.numberOfLeadingZeros(num);
- }
+  /**
+   * Zero based position of the highest one-bit of the given long
+   * @param num the given long
+   * @return Zero based position of the highest one-bit of the given long
+   */
+  static int hiBitPos(long num) {
+    return 63 - Long.numberOfLeadingZeros(num);
+  }
  
+  static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
+    long num = numIn >>> startingPos;
+    int pos = 0;
+    while ((num & ((long) 1)) != 0) {
+      num = num >>> 1;
+      pos++;
+    }
+    return (pos + startingPos);
+  }
+
   static double sumOfDoublesInArrayPrefix (double [] arr, int prefixLength) {
     double total = 0.0;
     for (int i = 0; i < prefixLength; i++) {
@@ -223,6 +233,14 @@ final class Util {
     return total;
   }
   
+  static double sumOfDoublesInSubArray (double [] arr, int subArrayStart, int subArrayLength) {
+    double total = 0.0;
+    int subArrayStop = subArrayStart + subArrayLength;
+    for (int i = subArrayStart; i < subArrayStop; i++) {
+      total += arr[i];
+    }
+    return total;
+  }
   
   
   public static void main(String[] args) {

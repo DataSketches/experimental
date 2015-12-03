@@ -250,8 +250,8 @@ public class MergeableQuantileSketchTest {
 
  static void runRegressionTests () {
     MergeableQuantileSketchTest mqst = new MergeableQuantileSketchTest();
-    mqst.bigTestMinMax ();   
-    mqst.smallTestMinMax ();   
+    MergeableQuantileSketchTest.bigTestMinMax ();   
+    MergeableQuantileSketchTest.smallTestMinMax ();   
     mqst.regressionTestMergeableQuantileSketchStructureAfterUpdates ();
     mqst.regressionTestMergeableQuantileSketchStructureAfterMerges ();
     mqst.testConstructAuxiliary ();

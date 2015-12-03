@@ -16,7 +16,7 @@ public class UtilTest {
   public void testPOLZBSA () {
     int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
     for (int i = 0, j = 9; i < 10; i++, j--) {
-      int result = Util.positionOfLowestZeroBitStartingAt((long) 109, i);
+      int result = Util.positionOfLowestZeroBitStartingAt(109L, i);
       //      System.out.printf ("%d %d\n", i, result);
       assert (answers[j] == result);
     }

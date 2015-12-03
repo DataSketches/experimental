@@ -29,29 +29,27 @@ public class MQ6 {
   private long mqN;
 
   /**
-   * Explain this.
+   * Active levels expressed as a bit pattern.
+   * 
+   * Pattern = N / (2 * K)
    */
   private long mqBitPattern;
 
   /**
-   * Each level is either null or a buffer of length K that is completely full and sorted.
-   * Note: in the README file these length K buffers are called "mini-sketches".
-   */
-  //  private double[][] mqLevels; 
-
-  /**
-   * The base buffer has length 2*K but might not be full and isn't necessarily sorted.
-   */
-  //  private double[] mqBaseBuffer; 
-
-  /**
    * This single array contains the base buffer plus all levels some of which are empty.
+   * A level is of size K and is either full and sorted, or empty. An "empty" buffer may have
+   * garbage. Whether a level buffer is empty or not is indicated by the mqBitPattern.
+   * The base buffer has length 2*K but might not be full and isn't necessarily sorted.
+   * The base buffer precedes the level buffers. 
+   * 
    * It requires quite a bit of explanation, which we defer until later.
    */
   private double[] mqCombinedBuffer; 
 
   /**
-   * Number of samples currently in base buffer
+   * Number of samples currently in base buffer. Can be computed from K and N: 
+   * 
+   * Count = N % (2*K)
    */
   private int mqBaseBufferCount; 
   
@@ -525,27 +523,6 @@ public class MQ6 {
     else return (1 + (hiBitPos (quo)));
   }
   
-//  private static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
-//    long num = numIn >>> startingPos;
-//    int pos = 0;
-//    while ((num & ((long) 1)) != 0) {
-//      num = num >>> 1;
-//      pos++;
-//    }
-//    return (pos + startingPos);
-//  }
-//
-//  // Code leveraged during testing 
-//
-//  private static void testPOLZBSA () {
-//    int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
-//    for (int i = 0, j = 9; i < 10; i++, j--) {
-//      int result = positionOfLowestZeroBitStartingAt((long) 109, i);
-//      System.out.printf ("%d %d\n", i, result);
-//      assert (answers[j] == result);
-//    }
-//  }
-  
   int getK() { 
     return mqK; 
   }
@@ -603,8 +580,6 @@ public class MQ6 {
   }
 
   private static double mqDummyValue = -99.0;  // just for debugging
-
-
 
 } // End of class MQ6
 

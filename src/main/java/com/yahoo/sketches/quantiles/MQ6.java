@@ -47,6 +47,14 @@ public class MQ6 {
   private double[] mqCombinedBuffer; 
 
   /**
+   * In the initial on-heap version, equals mqCombinedBuffer.length.
+   * May differ in later versions that grow space more aggressively.
+   * Also, in the off-heap version, mqCombinedBuffer won't even be a java array,
+   * so it won't know its own length.
+   */
+  private int mqAllocatedBufferSpace;
+
+  /**
    * Number of samples currently in base buffer. Can be computed from K and N: 
    * 
    * Count = N % (2*K)
@@ -71,7 +79,8 @@ public class MQ6 {
     if (k <= 0) throw new IllegalArgumentException("K must be greater than zero");
     mqK = k;
     mqN = 0;
-    mqCombinedBuffer = new double[Math.min(MIN_BASE_BUF_SIZE,2*k)]; //the min is important
+    mqAllocatedBufferSpace = Math.min(MIN_BASE_BUF_SIZE,2*k); //the min is important
+    mqCombinedBuffer = new double[mqAllocatedBufferSpace];
     mqBaseBufferCount = 0;
     mqMin = java.lang.Double.POSITIVE_INFINITY;
     mqMax = java.lang.Double.NEGATIVE_INFINITY;
@@ -316,6 +325,7 @@ public class MQ6 {
     int oldSize = mqBaseBuffer.length;
     assert (oldSize < 2 * mqK);
     int newSize = Math.max (Math.min (2*mqK, 2*oldSize), 1);
+    mqAllocatedBufferSpace = newSize;
     double [] newBuf = Arrays.copyOf (mqBaseBuffer, newSize);
     // just while debugging
     for (int i = oldSize; i < newSize; i++) {newBuf[i] = mqDummyValue;}
@@ -328,6 +338,7 @@ public class MQ6 {
     assert (newNumLevels > oldNumLevels); //internal consistency check
     int oldPhysicalLength = (2 + oldNumLevels) * mqK;
     int newPhysicalLength = (2 + newNumLevels) * mqK;
+    mqAllocatedBufferSpace = newPhysicalLength;
     double [] newLevels = Arrays.copyOf (mqLevels, newPhysicalLength); // copies base buffer plus old levels
     //    just while debugging
     for (int i = oldPhysicalLength; i < newPhysicalLength; i++) {newLevels[i] = mqDummyValue;}

@@ -296,9 +296,87 @@ public class MQ6 {
     return result;
   }
   
-  public double getNormalizedCountError() {
-    return 0;  //a function of k table lookup.
+
+
+  // start of code for computing epsilon from K
+
+  /*
+         eps      eps from inverted
+   K   empirical  adjusted formula
+-------------------------------------
+  16   0.121094   0.121454102233560
+  32   0.063477   0.063586601346532
+  64   0.033081   0.033169048393679
+ 128   0.017120   0.017248096847308
+ 256   0.008804   0.008944835012965
+ 512   0.004509   0.004627803568920
+1024   0.002303   0.002389303789572
+  */
+
+  /*
+these could be used in a unit test
+2   0.821714930853465
+16   0.12145410223356
+1024   0.00238930378957284
+1073741824   3.42875166500824e-09
+  */
+
+  // the following delta was used while crunching down the empirical results
+  private static final double deltaForEps = 0.01;  
+
+  // this is a heuristic fudge factor that causes the inverted formula to better match the empirical
+  private static final double adjustKForEps = 4.0 / 3.0;  // fudge factor
+
+  // ridiculously fine tolerance given the fudge factor; 1e-3 would probably suffice
+  private static final double bracketedBinarySearchForEpsTol = 1e-15; 
+
+  static double kOfEpsFormula (double eps) {
+    return ((1.0 / eps) * (Math.sqrt (Math.log (1.0 / (eps * deltaForEps)))));
   }
+
+  static boolean epsForKPredicate (double eps, double kf) {
+    return (kOfEpsFormula(eps) >= kf);
+  }
+
+  static double bracketedBinarySearchForEps (double kf, double lo, double hi) {
+    assert lo < hi;
+    assert epsForKPredicate(lo, kf);
+    assert !epsForKPredicate(hi, kf);
+    if ((hi - lo) / lo < bracketedBinarySearchForEpsTol) {
+      return lo;
+    }
+    double mid = (lo + hi) / 2.0;
+    assert mid > lo;
+    assert mid < hi;
+    if (epsForKPredicate(mid, kf)) {
+      return (bracketedBinarySearchForEps (kf, mid, hi));
+    }
+    else {
+      return (bracketedBinarySearchForEps (kf, lo, mid));
+    }
+  }
+
+  static double findEpsForK (double kf) {
+    assert (kf >= 2.15); // ensures that the bracketing succeeds
+    assert (kf < 1e12);  // ditto, but could actually be bigger
+    double lo = 1e-16;
+    double hi = 1.0 - 1e-16;
+    assert epsForKPredicate(lo, kf);
+    assert !epsForKPredicate(hi, kf);
+    return (bracketedBinarySearchForEps (kf, lo, hi));
+  }
+
+  static double adjustedFindEpsForK (int k) {
+    assert (k >= 2); // should actually raise invalid input
+    // don't need to check in the other direction because an int is very small
+    return (findEpsForK (adjustKForEps * k));
+  }
+
+  public double getNormalizedCountError() {
+    return adjustedFindEpsForK (mqK);
+  }
+
+  // end of code for computing epsilon from K
 
   /**
    * Returns the length of the input stream so far.

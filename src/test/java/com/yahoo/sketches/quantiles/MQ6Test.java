@@ -5,13 +5,39 @@
 package com.yahoo.sketches.quantiles;
 
 import org.testng.annotations.Test;
+import static org.testng.Assert.assertEquals;
 
 @SuppressWarnings("cast")
 public class MQ6Test { 
 
+  @Test
+    public void testAdjustedFindEpsForK () {
+    // note: there is a big fudge factor in these numbers, so they don't need to be computed exactly
+    double absTol = 1e-14; // we just want to catch gross bugs
+    int [] kArr = {2,16,1024,1 << 30};
+    double [] epsArr = { // these were computed by an earlier ocaml version of the function
+      0.821714930853465,
+      0.12145410223356,
+      0.00238930378957284,
+      3.42875166500824e-09 };
+    for (int i = 0; i < 4; i++) {
+      assertEquals(epsArr[i], 
+                   MQ6.adjustedFindEpsForK (kArr[i]),
+                   absTol,
+                   "adjustedFindEpsForK() doesn't match precomputed value");
+    }
+    for (int i = 0; i < 3; i++) {
+      MQ6 mq = new MQ6 (kArr[i]);
+      assertEquals(epsArr[i], 
+                   mq.getNormalizedCountError(),
+                   absTol,
+                   "getNormalizedCountError() doesn't match precomputed value");
+    }
+  }
+
   // Please note that this is a randomized test that CAN fail.
   // The probability of failure could be reduced by increasing k.
-  // Actually, setting the seed made it deterministic.
+  // Actually, setting the seed has now made it deterministic.
   @Test
   public void endToEndTest6 () {
 

@@ -97,7 +97,7 @@ public class MQ6 {
     if (dataItem > mqMax) { mqMax = dataItem; }   // benchmarks faster than Math.max()
     if (dataItem < mqMin) { mqMin = dataItem; }
 
-    if (mqBaseBufferCount+1 > mqCombinedBuffer.length) {
+    if (mqBaseBufferCount+1 > mqAllocatedBufferSpace) {
       growBaseBuffer();
     } 
     mqCombinedBuffer[mqBaseBufferCount++] = dataItem;
@@ -322,7 +322,7 @@ public class MQ6 {
 
   private void growBaseBuffer() {
     double [] mqBaseBuffer = mqCombinedBuffer;
-    int oldSize = mqBaseBuffer.length;
+    int oldSize = mqAllocatedBufferSpace;
     assert (oldSize < 2 * mqK);
     int newSize = Math.max (Math.min (2*mqK, 2*oldSize), 1);
     mqAllocatedBufferSpace = newSize;
@@ -353,19 +353,19 @@ public class MQ6 {
     if (mqCombinedBuffer == null) {
       return 0;
     }
-    else if (mqCombinedBuffer.length < 2 * mqK) { // this would be a base buffer only
+    else if (mqAllocatedBufferSpace < 2 * mqK) { // this would be a base buffer only
       return 0;
     }
     else {
-      return ((mqCombinedBuffer.length / mqK) - 2);
+      return ((mqAllocatedBufferSpace / mqK) - 2);
     }
   }
 
   private static void justZipSize2KBuffer (double [] bufA, int startA, // input
                                            double [] bufC, int startC, // output
                                            int k) {
-    assert bufA.length >= 2*k; // just for now    
-    assert startA == 0; // just for now
+    //    assert bufA.length >= 2*k; // just for now    
+    //    assert startA == 0; // just for now
 
     //    int randomOffset = (int) (2.0 * Math.random());
     int randomOffset = (Util.rand.nextBoolean())? 1 : 0;
@@ -571,7 +571,7 @@ public class MQ6 {
     double [] mqLevels     = mqCombinedBuffer;
     double [] mqBaseBuffer = mqCombinedBuffer;
     System.out.printf ("showing: K=%d N=%d levels=%d combinedBufferLength=%d baseBufferCount=%d bitPattern=%d\n",
-                       mqK, mqN, mqLevelsAllocated(), mqCombinedBuffer.length, mqBaseBufferCount, mqBitPattern);
+                       mqK, mqN, mqLevelsAllocated(), mqAllocatedBufferSpace, mqBaseBufferCount, mqBitPattern);
     for (int i = 0; i < mqBaseBufferCount; i++) {
       System.out.printf (" %.1f", mqBaseBuffer[i]);
     }

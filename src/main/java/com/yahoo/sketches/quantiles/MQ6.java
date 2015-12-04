@@ -349,22 +349,6 @@ public class MQ6 {
     mqCombinedBuffer = newCombinedBuffer;
   }
 
-  private int mqLevelsAllocated () {
-    // Warning!! this method assumes a certain strategy for slowing growing the combined buffer.
-    // If that is changed, e.g. by growing it sooner than is strictly necessary,
-    // chaos will ensue. In that case we will probably have to cross check with the bitPattern,
-    // or something like that. The details will be subtle, and I haven't worked them out.
-    if (mqCombinedBuffer == null) {
-      return 0;
-    }
-    else if (mqAllocatedBufferSpace < 2 * mqK) { // this would be a base buffer only
-      return 0;
-    }
-    else {
-      return ((mqAllocatedBufferSpace / mqK) - 2);
-    }
-  }
-
   private static void justZipSize2KBuffer (double [] bufA, int startA, // input
                                            double [] bufC, int startC, // output
                                            int k) {
@@ -421,7 +405,7 @@ public class MQ6 {
     double [] mqLevels = mqCombinedBuffer;
 
     int endingLevel = positionOfLowestZeroBitStartingAt (mqBitPattern, startingLevel);
-    assert endingLevel < mqLevelsAllocated(); // internal consistency check
+    //    assert endingLevel < mqLevelsAllocated(); // was an internal consistency check
 
     if (doUpdateVersion) { // update version of computation
       // its is okay for sizeKbuf to be null in this case
@@ -569,26 +553,22 @@ public class MQ6 {
     return total;
   }
 
-
   void show () { // just for debugging
     double [] mqLevels     = mqCombinedBuffer;
     double [] mqBaseBuffer = mqCombinedBuffer;
+    int numLevels = computeNumLevelsNeeded (mqK, mqN);
     System.out.printf ("showing: K=%d N=%d levels=%d combinedBufferLength=%d baseBufferCount=%d bitPattern=%d\n",
-                       mqK, mqN, mqLevelsAllocated(), mqAllocatedBufferSpace, mqBaseBufferCount, mqBitPattern);
+                       mqK, mqN, numLevels, mqAllocatedBufferSpace, mqBaseBufferCount, mqBitPattern);
     for (int i = 0; i < mqBaseBufferCount; i++) {
       System.out.printf (" %.1f", mqBaseBuffer[i]);
     }
     System.out.printf ("\n");
     System.out.printf ("Levels:\n");
-    
-    int numLevels = mqLevelsAllocated ();
-    int bbo = 2 * mqK; // base buffer offset; actually the offset to skip past the base buffer
-
-    for (int j = 0; j < numLevels * mqK; j++) {
+    for (int j = 2*mqK; j < mqAllocatedBufferSpace; j++) {
       if (j % mqK == 0) {
         System.out.printf ("\n");
       }
-      System.out.printf ("    %.1f", mqLevels[j+bbo]);
+      System.out.printf ("    %.1f", mqLevels[j]);
     }
     System.out.printf ("\n");
   }

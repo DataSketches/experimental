@@ -141,10 +141,7 @@ public class MQ6 {
       mq1.update (mq2BaseBuffer[i]);
     }
 
-    int numLevelsNeeded = computeNumLevelsNeeded (k, nFinal);
-    if (numLevelsNeeded > mq1.mqLevelsAllocated()) {
-      mq1.growLevels(numLevelsNeeded);
-    }
+    mq1.maybeGrowLevels (nFinal); 
 
     double [] scratchBuf = new double [2*k];
 
@@ -332,17 +329,24 @@ public class MQ6 {
     mqCombinedBuffer = newBuf;
   }
 
-  private void growLevels(int newNumLevels) {
-    double [] mqLevels = mqCombinedBuffer;
-    int oldNumLevels = mqLevelsAllocated ();
-    assert (newNumLevels > oldNumLevels); //internal consistency check
-    int oldPhysicalLength = (2 + oldNumLevels) * mqK;
-    int newPhysicalLength = (2 + newNumLevels) * mqK;
-    mqAllocatedBufferSpace = newPhysicalLength;
-    double [] newLevels = Arrays.copyOf (mqLevels, newPhysicalLength); // copies base buffer plus old levels
+  private void maybeGrowLevels (long newN) {     // important: newN might not equal mqN
+    int numLevelsNeeded = computeNumLevelsNeeded (mqK, newN);
+    if (numLevelsNeeded == 0) {
+      return; // don't need any levels yet, and might have small base buffer; this can happen during a merge
+    }
+    // from here on we need a full-size base buffer and at least one level
+    assert (newN >= 2L * mqK);
+    assert (numLevelsNeeded > 0); 
+    int spaceNeeded = (2 + numLevelsNeeded) * mqK;
+    if (spaceNeeded <= mqAllocatedBufferSpace) {
+      return;
+    }
+    double [] newCombinedBuffer = Arrays.copyOf (mqCombinedBuffer, spaceNeeded); // copies base buffer plus old levels
     //    just while debugging
-    for (int i = oldPhysicalLength; i < newPhysicalLength; i++) {newLevels[i] = mqDummyValue;}
-    mqCombinedBuffer = newLevels;
+    for (int i = mqAllocatedBufferSpace; i < spaceNeeded; i++) {newCombinedBuffer[i] = mqDummyValue;}
+
+    mqAllocatedBufferSpace = spaceNeeded;
+    mqCombinedBuffer = newCombinedBuffer;
   }
 
   private int mqLevelsAllocated () {
@@ -459,10 +463,9 @@ public class MQ6 {
   private void processFullBaseBuffer() {
     assert mqBaseBufferCount == 2 * mqK;  // internal consistency check
     // make sure there will be enough levels for the propagation
-    int numLevelsNeeded = computeNumLevelsNeeded (mqK, mqN);
-    if (numLevelsNeeded > mqLevelsAllocated()) {
-      growLevels(numLevelsNeeded);
-    }
+
+    maybeGrowLevels (mqN); // important: mqN was incremented by update before we got here
+
     // this aliasing is a bit dangerous; notice that we did it after the possible resizing
     double [] mqBaseBuffer = mqCombinedBuffer; 
 

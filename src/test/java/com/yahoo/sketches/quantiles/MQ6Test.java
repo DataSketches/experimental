@@ -114,7 +114,7 @@ public class MQ6Test {
 
     } // end of loop over values of k
 
-    System.out.printf ("Passed: testConstructAuxiliary6()\n");
+    //    System.out.printf ("Passed: testConstructAuxiliary6()\n");
   }
 
   public void auxVersusAux6 () {
@@ -155,7 +155,7 @@ public class MQ6Test {
       assert (au.auAccum[i] == au6.auAccum[i]);
     }
 
-    System.out.printf ("Passed: AU vs AU6\n");
+    //    System.out.printf ("Passed: AU vs AU6\n");
 
   }
 
@@ -195,7 +195,7 @@ public class MQ6Test {
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 1999.0);
 
-    System.out.printf ("Passed: bigTestMinMax6\n");
+    //    System.out.printf ("Passed: bigTestMinMax6\n");
   }
 
 
@@ -241,7 +241,7 @@ public class MQ6Test {
     assert (resultsC[1] == 11.0);
     assert (resultsC[2] == 18.0);
 
-    System.out.printf ("Passed: smallTestMinMax6\n");
+    //    System.out.printf ("Passed: smallTestMinMax6\n");
   }
 
 

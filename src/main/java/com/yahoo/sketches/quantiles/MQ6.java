@@ -139,9 +139,9 @@ public class MQ6 {
 
     double [] scratchBuf = new double [2*k];
 
-    int numLevels2 = mq2.mqLevelsAllocated();
     long bits2 = mq2.mqBitPattern;
-    for (int lvl2 = 0; lvl2 < numLevels2; lvl2++, bits2 >>>= 1) {
+    assert bits2 == mq2.mqN / (2L * mq2.mqK);
+    for (int lvl2 = 0; bits2 != 0L; lvl2++, bits2 >>>= 1) {
       if ((bits2 & 1L) > 0L) {
         mq1.inPlacePropagateCarry (lvl2,
                                    mq2Levels, ((2+lvl2) * k),
@@ -307,7 +307,7 @@ public class MQ6 {
   Auxiliary constructAuxiliary() {
     Auxiliary au = Auxiliary.constructAuxiliaryFromMQ6 (mqK, mqN, 
                                                         mqBitPattern, mqCombinedBuffer, mqBaseBufferCount,
-                                                        mqLevelsAllocated(), numSamplesInSketch());
+                                                        numSamplesInSketch());
     return au;
   }
 
@@ -495,9 +495,9 @@ public class MQ6 {
       Util.linearTimeIncrementHistogramCounters (mqBaseBuffer, 0, mqBaseBufferCount, weight, splitPoints, counters);
     }
 
-    int numLevels = mqLevelsAllocated();
     long bits = mqBitPattern;
-    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+    assert bits == mqN / (2L * mqK); // internal consistency check
+    for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
       weight += weight; // *= 2
       if ((bits & 1L) > 0L) {
         // the levels are already sorted so we can use the fast version
@@ -533,9 +533,9 @@ public class MQ6 {
   
   int numSamplesInSketch() {
     int count = mqBaseBufferCount;
-    int numLevels = mqLevelsAllocated();
     long bits = mqBitPattern;
-    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+    assert bits == mqN / (2L * mqK); // internal consistency check
+    for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
       if ((bits & 1L) > 0L) {
         count += mqK;
       }
@@ -545,9 +545,9 @@ public class MQ6 {
 
   double sumOfSamplesInSketch() {
     double total = Util.sumOfDoublesInSubArray (mqCombinedBuffer, 0, mqBaseBufferCount);
-    int numLevels = mqLevelsAllocated();
     long bits = mqBitPattern;
-    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+    assert bits == mqN / (2L * mqK); // internal consistency check
+    for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
       if ((bits & 1L) > 0L) {
         total += Util.sumOfDoublesInSubArray (mqCombinedBuffer, ((2+lvl) * mqK), mqK);
       }

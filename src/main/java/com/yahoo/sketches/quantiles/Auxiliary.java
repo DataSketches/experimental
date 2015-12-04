@@ -26,12 +26,13 @@ class Auxiliary {
   @SuppressWarnings("unused")
   static void populateAuxiliaryArraysFromMQ6 (int mqK, long mqN, long mqBitPattern, 
                                              double [] mqCombinedBuffer, int mqBaseBufferCount,
-                                             int numLevels, int numSamples,
+                                             int numSamples,
                                              double [] items, long [] accum) {
     long weight = 1;
     int nxt = 0;
     long bits = mqBitPattern;
-    for (int lvl = 0; lvl < numLevels; lvl++, bits >>>= 1) {
+    assert bits == mqN / (2L * mqK); // internal consistency check
+    for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
       weight *= 2;
       if ((bits & 1L) > 0L) {
         int offset = (2+lvl) * mqK;
@@ -66,12 +67,13 @@ class Auxiliary {
 
   static Auxiliary constructAuxiliaryFromMQ6 (int mqK, long mqN, long mqBitPattern, 
                                               double [] mqCombinedBuffer, int mqBaseBufferCount,
-                                              int numLevels, int numSamples) {
+                                              int numSamples) {
     double [] items = new double [numSamples];
     long   [] accum = new long   [numSamples+1]; /* the extra slot is very important */
 
     /* copy over the "levels" and then the base buffer, all with appropriate weights */
-    populateAuxiliaryArraysFromMQ6 (mqK, mqN, mqBitPattern, mqCombinedBuffer, mqBaseBufferCount, numLevels, numSamples, items, accum);
+    populateAuxiliaryArraysFromMQ6 (mqK, mqN, mqBitPattern, mqCombinedBuffer, mqBaseBufferCount, 
+                                    numSamples, items, accum);
 
     /* Sort the first "numSamples" slots of the two arrays in tandem, 
        taking advantage of the already sorted blocks of length k */

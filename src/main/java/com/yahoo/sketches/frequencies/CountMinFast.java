@@ -82,6 +82,7 @@ public class CountMinFast{
     
     //initialize counts to contain only zeros
     counts = new long[this.length];
+    System.out.format("This.length in CountMinFast is: %d \n", this.length);
     for(int i = 0; i < this.length; i++){
       counts[i] = 0;
     }

@@ -1,10 +1,6 @@
 package com.yahoo.sketches.frequencies;
 
-import java.util.PriorityQueue;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import gnu.trove.map.hash.TLongIntHashMap;
 
 /**
  * The Space Saving algorithm is useful for keeping approximate counters for 
@@ -43,15 +39,17 @@ import java.util.Map;
 
 
 //@SuppressWarnings("cast")
-public class SpaceSaving extends FrequencyEstimator{
+public class SpaceSavingGood extends FrequencyEstimator{
   
   //queue will store counters and their associated keys 
   //for fast access to smallest counter. 
   //counts will also store counters and their associated 
   //keys to quickly check if a key is currently assigned a counter.
   
-  private PriorityQueue<Pair> queue; 
-  private HashMap<Long,Long> counts;
+  private TLongIntHashMap heap_indices;
+  private long[] keys;
+  private long[] counts;
+  private double errorTolerance;
   private int maxSize;
   private long mergeError;
   private long stream_length;
@@ -63,15 +61,78 @@ public class SpaceSaving extends FrequencyEstimator{
    * If fewer than maxSize different keys are inserted the size will be smaller 
    * than maxSize and the counts will be exact.  
    */    
-  public SpaceSaving(double errorTolerance) {
+  public SpaceSavingGood(double errorTolerance) {
     super(errorTolerance);
-    this.maxSize = (int)(1.0/getErrorTolerance())+1;
-    this.queue = new PriorityQueue<Pair>(maxSize);
-    this.counts = new HashMap<Long,Long>(maxSize);
+    this.errorTolerance = errorTolerance;
+    //make sure maxSize is odd to ensure that all heap nodes either have
+    //two children or no children
+    this.maxSize = ((int)(1.0/getErrorTolerance())+1) | 1;
+    this.heap_indices = new TLongIntHashMap(maxSize);
+    //keys and counts will be indexed from 1, to maintain easy min-heap arithmetic
+    //i.e., children of index i will be indices 2*i and 2*i+1
+    this.keys = new long[maxSize+1];
+    this.counts = new long[maxSize+1];
     this.mergeError = 0;
     this.stream_length = 0;
-    
-    //System.out.format("maxSize in SpaceSacing is: %d \n", maxSize);
+  }
+  
+  /**
+   * @param index
+   * pre-condition: this.keys satisfies min-heap property (parent is always at most its children)
+   * except possibly at location index.
+   * post-condition: min-heap property is restored.
+   */
+  void Heapify(int index)
+  { // restore the heap condition in case it has been violated
+    long tmp_key;
+    long tmp_val;
+    int minchild_index;
+
+    int moved = 0;
+    while(true)
+    {
+      //if the current node has no children then we are done
+      if ((index<<1) + 1 > maxSize)  {
+        if(moved == 1)
+          heap_indices.put(keys[index], index); 
+        
+        break;
+      }
+     
+     //compute which child is the lesser of the two
+      minchild_index=(index<<1);
+      if ((minchild_index+1) <= maxSize) {
+        if (counts[minchild_index+1] < counts[minchild_index])
+          minchild_index++;
+      }
+      else {
+       System.out.println("WTF!!!!\n");
+       System.exit(1);
+      }
+      
+      //if the parent is less than the smallest child, we can stop
+      if (counts[index] <= counts[minchild_index])  {
+        if(moved == 1)
+          heap_indices.put(keys[index], index); 
+        break;
+      }
+      
+      //else, swap the parent and child in the heap
+      tmp_key = keys[index];
+      tmp_val = counts[index];
+      counts[index] = counts[minchild_index];
+      keys[index] = keys[minchild_index];
+      
+      //update the heap index associated with the just-moved key
+      heap_indices.put(keys[index], index);
+      
+      keys[minchild_index] = tmp_key;
+      counts[minchild_index] = tmp_val;
+       
+      //continue on with the heapify from the child position
+      index=minchild_index;
+      moved=1;
+    } 
   }
   
   /**
@@ -93,39 +154,28 @@ public class SpaceSaving extends FrequencyEstimator{
     
     this.stream_length += increment;
     
+    int index;
+    
     //if key is already assigned a counter
-    if(counts.containsKey(key)) {
-      long old_count = counts.get(key);
-      long new_count = old_count + increment;
+    if(heap_indices.containsKey(key)) {
+      index = heap_indices.get(key);
+      counts[index] += increment;
+      Heapify(index);
       //update count of key in hash table
-      counts.put(key, new_count);
-
-      //update count of key in min-heap by 
-      //removing it and adding it back in with new count
-      queue.remove(new Pair(key, old_count));
-      queue.add(new Pair(key, new_count));
     }
     else{
       //if key not already assigned a counter, 
-      //and not all counters are used, assign it one
-      if(counts.size() < maxSize) {
-        counts.put(key, increment);
-        queue.add(new Pair(key, increment));
-      }
-      else{
-        //if all counters are used, assign the smallest counter to the key
-        Pair lowest = queue.peek();
-        long new_count = lowest.getvalue() + increment;
-        counts.remove(lowest.getname());
-        counts.put(key, new_count);
-        boolean success = queue.remove(lowest);
-        if(!success)
-        {
-          throw new IllegalArgumentException("Failed to remove an element from priority queue "
-              + "in SpaceSaving algorithm!");
-        }
-        queue.add(new Pair(key, new_count));
-      }
+      //assign the smallest counter to the key
+      //note: if heap is not full, smallest counter will just be 0
+      //(with no corresponding entry in heap_indices)
+      
+      if(counts[1] != 0) 
+        heap_indices.remove(keys[1]);
+      
+      keys[1] = key;
+      heap_indices.put(key, 1);
+      counts[1] += increment;
+      Heapify(1);
     }
   }
   
@@ -144,8 +194,8 @@ public class SpaceSaving extends FrequencyEstimator{
     //If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
     //Otherwise, the minimum counter value is returned.
 
-    if(counts.containsKey(key)) 
-      return counts.get(key);
+    if(heap_indices.containsKey(key)) 
+      return counts[heap_indices.get(key)];
     else
       return 0;
   }
@@ -157,9 +207,7 @@ public class SpaceSaving extends FrequencyEstimator{
    @Override
    public long getEstimateUpperBound(long key)
    {
-     if(counts.size() > 0)
-       return (getEstimate(key) + mergeError + queue.peek().getvalue());
-     return 0;
+     return (getEstimate(key) + mergeError + counts[1]);
    }
    
    /**
@@ -169,13 +217,11 @@ public class SpaceSaving extends FrequencyEstimator{
    @Override
    public long getEstimateLowerBound(long key)
    {
-     if(getEstimate(key) == 0)
+       
+     if((getEstimate(key)-counts[1]-mergeError) < 0)
        return 0;
        
-     if((getEstimate(key)-queue.peek().getvalue()-mergeError) < 0)
-       return 0;
-       
-     return (getEstimate(key)-queue.peek().getvalue()-mergeError);
+     return (getEstimate(key)-counts[1]-mergeError);
    }
   
   /**
@@ -184,59 +230,57 @@ public class SpaceSaving extends FrequencyEstimator{
    * get(key) + getMaxError() >= realCount(key) >= get(key) - getMaxError().
    */
   public long getMaxError() {
-    if(counts.size() < maxSize)
-      return mergeError;
-    else 
-      return queue.peek().getvalue() + mergeError;
+    return counts[1] + mergeError;
   }
   
   /**
    * @return the number of positive counters in the sketch.
    */
   public long nnz() {
-    return counts.size();
+    return heap_indices.size();
   }
   
   /**
    * @param that
-   * Another SpaceSaving sketch. Potentially of different size. 
+   * Another SpaceSavingTrove sketch. Potentially of different size. 
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
    */
   @Override
   public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof SpaceSaving)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-      SpaceSaving otherCasted = (SpaceSaving)other;
+    if (!(other instanceof SpaceSavingGood)) throw new IllegalArgumentException("SpaceSavingTrove can only merge with other SpaceSavingTrove");
+      SpaceSavingGood otherCasted = (SpaceSavingGood)other;
     
     this.stream_length += otherCasted.stream_length;
     this.mergeError += otherCasted.getMaxError();
-    int count = 0;
-    for (Map.Entry<Long, Long> entry : otherCasted.counts.entrySet()) { 
-      this.update(entry.getKey(), entry.getValue());
-      count++;
+    
+    for ( int i = otherCasted.maxSize; i >= 1; i-- ) {
+      if(otherCasted.counts[i] > 0)
+        this.update(otherCasted.keys[i], otherCasted.counts[i]);
     }
-    //System.out.format("count in merge for SpaceSaving was: %d\n", count);
     return this;
   }
   
   @Override
-  public long[] getFrequentKeys() {
-    Collection<Long> keysCollection = counts.keySet();
+  public long[] getFrequentKeys() {    
     int count = 0;
-    for (long key : keysCollection) {
-      if(getEstimate(key) >= this.stream_length / this.maxSize) {
-        count++;
-      }
+    long threshold = (long) (this.stream_length * this.errorTolerance);
+    
+    for ( int i = maxSize; i >= 1; i-- ) {
+      if(counts[i] >= threshold)
+        count++;     
     }
     
-    long[] keys = new long[count];
-    int i=0;
-    for (long key : keysCollection) {
-      if(getEstimate(key) >= this.stream_length / this.maxSize) {
-        keys[i] = key;
-          i++;
+    
+    long[] freq_keys = new long[count];
+    count = 0;
+    for ( int i = maxSize; i >= 1; i-- ) {
+      if(counts[i] >= threshold) {
+        freq_keys[count] = keys[i];
+        count++;     
       }
     }
-    return keys;
+
+    return freq_keys;
   }
 }

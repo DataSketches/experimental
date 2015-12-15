@@ -137,7 +137,7 @@ public class FrequentItems extends FrequencyEstimator{
   public void purge()
   {
     //System.out.format("hit capacity of: %f\n, purging.", this.threshold);
-    int sample_size = 300;
+    int sample_size = 100;
     if (sample_size > counters.getSize())
       sample_size = counters.getSize();
     long samples[] = new long[sample_size]; 

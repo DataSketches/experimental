@@ -2,7 +2,7 @@ package com.yahoo.sketches.frequencies;
 
 import java.util.Arrays;
 
-import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
+import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
 
 /**
  * The frequent-items sketch is useful for keeping approximate counters for keys (map from key (long) to value (long)).  
@@ -28,9 +28,9 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
  * 
  * @author Justin8712
  */
-public class FrequentItems extends FrequencyEstimator{
+public class FrequentItemsDHWR extends FrequencyEstimator{
 
-  private HashMapReverseEfficient counters;
+  private HashMapDoubleHashingWithRebuilds counters;
   //maxSize is maximum number of counters stored
   private int maxSize;
   //offset will track total number of decrements performed on sketch
@@ -47,10 +47,10 @@ public class FrequentItems extends FrequencyEstimator{
    * The space usage of the sketch is proportional to the inverse of errorParameter. 
    * If fewer than ~1/errorParameter different keys are inserted then the counts will be exact.  
    */
-  public FrequentItems(double errorParameter) {
+  public FrequentItemsDHWR(double errorParameter) {
     if (errorParameter <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
     this.maxSize = (int) (1/errorParameter)+1;
-    counters = new HashMapReverseEfficient(4*this.maxSize/3);
+    counters = new HashMapDoubleHashingWithRebuilds(4*this.maxSize/3);
     this.offset = 0;
     if (this.maxSize < 100) 
       this.sample_size = this.maxSize;
@@ -155,6 +155,8 @@ public class FrequentItems extends FrequencyEstimator{
   private void purge()
   {
     int limit = this.sample_size;
+    if (limit > counters.getSize())
+      limit = counters.getSize();
     
     long[] values = counters.ProtectedGetValues();
     int num_samples = 0;
@@ -178,14 +180,14 @@ public class FrequentItems extends FrequencyEstimator{
   
    /**
     * @param other
-    * Another FrequentItems sketch. Potentially of different size. 
+    * Another FrequentItemsDHWR sketch. Potentially of different size. 
     * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
     * This method does not create a new sketch. The sketch whose function is executed is changed.
     */
     @Override
    public FrequencyEstimator merge(FrequencyEstimator other) {
-     if (!(other instanceof FrequentItems)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-       FrequentItems otherCasted = (FrequentItems) other;
+     if (!(other instanceof FrequentItemsDHWR)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
+       FrequentItemsDHWR otherCasted = (FrequentItemsDHWR) other;
        
      this.streamLength += otherCasted.streamLength;
      this.mergeError += otherCasted.getMaxError();

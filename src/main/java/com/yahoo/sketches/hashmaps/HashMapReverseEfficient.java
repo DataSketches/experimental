@@ -14,7 +14,7 @@ public class HashMapReverseEfficient extends HashMap {
   @Override
   public long get(long key) {
     int probe = hashProbe(key);
-    if (states[probe] > 0){
+    if (states[probe] > 0) {
       assert(keys[probe] == key);
       return values[probe];
     }
@@ -22,7 +22,7 @@ public class HashMapReverseEfficient extends HashMap {
   }
 
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
     int probe = (int) hash(key) & arrayMask;
     byte drift = 1;
     while (states[probe] != 0 && keys[probe]!=key) {
@@ -43,29 +43,20 @@ public class HashMapReverseEfficient extends HashMap {
       values[probe] += adjustAmount;
     }
   }
-  
-  public void del(long key){
-    int probe = hashProbe(key);
-    if (states[probe]>0){
-      assert(keys[probe] == key);
-      hashDelete(probe);
-      size--;
-    }
-  }
-  
+    
   @Override
   public void keepOnlyLargerThan(long thresholdValue) {
     int firstProbe=length-1;
     while(states[firstProbe] > 0) firstProbe--;
       
     for (int probe = firstProbe;probe-->0;){
-      if (states[probe] > 0 && values[probe] <= thresholdValue){
+      if (states[probe] > 0 && values[probe] <= thresholdValue) {
         hashDelete(probe);
         size--;
         }
       }
     for (int probe = length; probe-->firstProbe;){
-      if (states[probe] > 0 && values[probe] <= thresholdValue){
+      if (states[probe] > 0 && values[probe] <= thresholdValue) {
         hashDelete(probe);
         size--;
         }
@@ -78,7 +69,7 @@ public class HashMapReverseEfficient extends HashMap {
     return probe;
   }
 
-  private void hashDelete(int deleteProbe){
+  private void hashDelete(int deleteProbe) {
     // Looks ahead in the table to search for another 
     // item to move to this location 
     // if none are found, the status is changed
@@ -101,6 +92,4 @@ public class HashMapReverseEfficient extends HashMap {
       drift++;
     }
   }
-
-  
 }

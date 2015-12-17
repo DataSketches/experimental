@@ -26,7 +26,7 @@ import gnu.trove.set.hash.TLongHashSet;
 
 
 //@SuppressWarnings("cast")
-public class CountMinFastFE extends FrequencyEstimator{
+public class CountMinFastFECU extends FrequencyEstimator{
   
   //hashes denotes the number of cells in the sketcheach key is hashed to
   private int hashes;
@@ -66,7 +66,7 @@ public class CountMinFastFE extends FrequencyEstimator{
    * update_sum is the sum of all the increments the sketch has processed.
    * 
    */    
-  public CountMinFastFE(double eps, double delta) {
+  public CountMinFastFECU(double eps, double delta) {
     if (eps <= 0 || delta <= 0){
       throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
     }
@@ -121,9 +121,9 @@ public class CountMinFastFE extends FrequencyEstimator{
    * value still guaranteed to not underestimate any item's frequency.
    */  
   public void conservative_update(long key) {
-    conservative_update(key, 1);
+    update(key, 1);
   }
-  
+ 
   /**
    * @param key
    * @param increment
@@ -132,48 +132,6 @@ public class CountMinFastFE extends FrequencyEstimator{
    */  
    @Override
   public void update(long key, long increment) {
-    if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
-    
-    //add increment update_sum
-    this.update_sum += increment;
-    
-    long hash = hash(key);
-    
-    //We will use double hashing to determine the cells that key hashes to.
-    //Determine probe (i.e., the first cell this key is hashed to) 
-    //and then make the stride odd and independent of the probe.
-    //The first logLength bits of hash are used to determine probe, 
-    //so the stride will be computed using the higher-order bits of hash.
-    int probe = (int) (hash & arrayMask);
-    int stride = ((int) ((hash >> logLength) & STRIDE_MASK)<< 1) + 1;
-    
-    //is_freq will equal 0 unless key might be frequent after this update
-    int is_freq = 0;
-    for (int i=this.hashes; i-->0;) {
-      counts[probe] += increment;
-      if(counts[probe] >= this.eps * this.update_sum){
-        is_freq = 1;
-      }
-      probe = (probe + stride) & arrayMask;
-    }
-  
-    //if key is frequent after this update, according to the sketch, then add key to freq_keys,
-    //and check if freq_keys is now storing too many keys and needs to be purged
-    if(is_freq == 1){
-      this.freq_keys.add(key);
-      if(this.freq_keys.size() > this.freq_limit){
-        purge();
-      }
-    }
-  }
-  
-  /**
-   * @param key
-   * @param increment
-   * Process a key (specified as a long) and an increment (also specified as a long).
-   * Increment CANNOT be negative, because of the way we are tracking frequent items.
-   */  
-  public void conservative_update(long key, long increment) {
     if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
   
     //add increment update_sum
@@ -315,8 +273,8 @@ public class CountMinFastFE extends FrequencyEstimator{
    */
   @Override
   public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof CountMinFastFE)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-    CountMinFastFE otherCasted = (CountMinFastFE)other;
+    if (!(other instanceof CountMinFastFECU)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
+    CountMinFastFECU otherCasted = (CountMinFastFECU)other;
     if(this.hashes != otherCasted.hashes || this.length != otherCasted.length){
       throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");
     }

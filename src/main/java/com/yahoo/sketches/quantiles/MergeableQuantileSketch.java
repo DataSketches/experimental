@@ -8,51 +8,62 @@ import static com.yahoo.sketches.quantiles.Util.*;
 import java.util.Arrays;
 
 /**
- * This is an implementation of the low-discrepancy mergeable quantile sketch, using double elements, 
- * described in section 3.2 of the journal version of the paper "Mergeable Summaries"
- * by Agarwal, Cormode, Huang, Phillips, Wei, and Yi.
+ * This is an implementation of the low-discrepancy mergeable quantile sketch, using double 
+ * valued elements. The basic algorithm concepts are described in section 3.2 of the 
+ * journal version of the paper "Mergeable Summaries" by Agarwal, Cormode, Huang, Phillips, Wei, 
+ * and Yi.
  * 
- *  //TODO add comments on direction consistency, exact and approximate, etc.
+ * This algorithm intentionally inserts randomness into the process that selects the values that
+ * ultimately get retained in the sketch. The consequence of this is that this algorithm is not 
+ * deterministic. I.e., if the same exact stream with the same ordering is inserted into two 
+ * different instances of this sketch, the answers obtained from the two sketches may not be 
+ * exactly the same but both will be within the error tolerances for the sketch.
+ * 
+ * Similarly, there may be directional inconsistencies. For example, the resulting array of values
+ * obtained from  getQuantiles(fractions[]) input into the reverse directional query 
+ * getPDF(splitPoints[]) may not result in the same fractional values.
  * 
  * @author Kevin Lang
+ * @author Lee Rhodes
  */
 public class MergeableQuantileSketch {
   private static final int MIN_BASE_BUF_SIZE = 4; //This is somewhat arbitrary
+
   /**
    * Parameter that controls space usage of sketch and accuracy of estimates.
    */
-  private int mqK;
+  private final int k_;
 
   /**
    * Total number of data items in the stream so far. (Uniqueness plays no role in these sketches).
    */
-  private long mqN;
+  private long n_;
+
+  /**
+   * The smallest value ever seen in the stream.
+   */
+  private double minValue_;
+
+  /**
+   * The largest value ever seen in the stream.
+   */
+  private double maxValue_;
+
+  /**
+   * Number of samples currently in base buffer
+   */
+  private int baseBufferCount_; 
+
+  /**
+   * The base buffer has length 2*K but might not be full and isn't necessarily sorted.
+   */
+  private double[] baseBuffer_; 
 
   /**
    * Each level is either null or a buffer of length K that is completely full and sorted.
    * Note: in the README file these length K buffers are called "mini-sketches".
    */
-  private double[][] mqLevels; 
-
-  /**
-   * The base buffer has length 2*K but might not be full and isn't necessarily sorted.
-   */
-  private double[] mqBaseBuffer; 
-
-  /**
-   * Number of samples currently in base buffer
-   */
-  private int mqBaseBufferCount; 
-  
-  /**
-   * The smallest value ever seen in the stream.
-   */
-  private double mqMin;
-
-  /**
-   * The largest value ever seen in the stream.
-   */
-  private double mqMax;
+  private double[][] levelsArr_; 
 
   /**
    * Constructs a Mergeable Quantile Sketch of double elements.
@@ -60,13 +71,13 @@ public class MergeableQuantileSketch {
    */
   public MergeableQuantileSketch(int k) {
     if (k <= 0) throw new IllegalArgumentException("K must be greater than zero");
-    mqK = k;
-    mqN = 0;
-    mqLevels = new double[0][];
-    mqBaseBuffer = new double[Math.min(MIN_BASE_BUF_SIZE,2*k)]; //the min is important
-    mqBaseBufferCount = 0;
-    mqMin = java.lang.Double.POSITIVE_INFINITY;
-    mqMax = java.lang.Double.NEGATIVE_INFINITY;
+    k_ = k;
+    n_ = 0;
+    levelsArr_ = new double[0][];
+    baseBuffer_ = new double[Math.min(MIN_BASE_BUF_SIZE,2*k)]; //the min is important
+    baseBufferCount_ = 0;
+    minValue_ = java.lang.Double.POSITIVE_INFINITY;
+    maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
   }
 
   /** 
@@ -76,17 +87,17 @@ public class MergeableQuantileSketch {
   public void update(double dataItem) {
     if (Double.isNaN(dataItem)) return;
 
-    if (dataItem > mqMax) { mqMax = dataItem; }   // benchmarks faster than Math.max()
-    if (dataItem < mqMin) { mqMin = dataItem; }
+    if (dataItem > maxValue_) { maxValue_ = dataItem; }   // benchmarks faster than Math.max()
+    if (dataItem < minValue_) { minValue_ = dataItem; }
 
-    if (mqBaseBufferCount+1 > mqBaseBuffer.length) {
+    if (baseBufferCount_+1 > baseBuffer_.length) {
       this.growBaseBuffer();
     } 
 
-    mqBaseBuffer[mqBaseBufferCount++] = dataItem;
-    mqN++;
+    baseBuffer_[baseBufferCount_++] = dataItem;
+    n_++;
 
-    if (mqBaseBufferCount == 2*mqK) {
+    if (baseBufferCount_ == 2*k_) {
       this.processFullBaseBuffer();
     }
   }
@@ -104,43 +115,42 @@ public class MergeableQuantileSketch {
   // merging work, which is identical in the two approaches.
 
  /**
-  * Modified the target sketch by merging the source sketch into it.
+  * Modifies the target sketch by merging the source sketch into it.
   * @param mqTarget The target sketch
   * @param mqSource The source sketch
   */
+  //TODO the source and target order need to be reversed.
   public static void mergeInto(MergeableQuantileSketch mqTarget, MergeableQuantileSketch mqSource) {  
-
-    if ( mqTarget.mqK != mqSource.mqK) throw new IllegalArgumentException(
+    if ( mqTarget.k_ != mqSource.k_) throw new IllegalArgumentException(
         "Given sketches must have the same value of k.");
 
-    int k = mqTarget.mqK;
+    int k = mqTarget.k_;
 
-    long nFinal = mqTarget.mqN + mqSource.mqN; 
+    long nFinal = mqTarget.n_ + mqSource.n_; 
 
-    double [] sourceBaseBuffer = mqSource.mqBaseBuffer;
-    for (int i = 0; i < mqSource.mqBaseBufferCount; i++) {
+    double [] sourceBaseBuffer = mqSource.baseBuffer_;
+    for (int i = 0; i < mqSource.baseBufferCount_; i++) {
       mqTarget.update(sourceBaseBuffer[i]);
     }
     // note: the above updates have already changed mqTarget in many ways, 
     //   but it might still need an additional buffer level
 
     int numLevelsNeeded = computeNumLevelsNeeded(k, nFinal);
-    if (numLevelsNeeded > mqTarget.mqLevels.length) {
+    if (numLevelsNeeded > mqTarget.levelsArr_.length) {
       mqTarget.growLevels(numLevelsNeeded);
     }
 
-    for (int lvl = 0; lvl < mqSource.mqLevels.length; lvl++) {
-      double [] buf = mqSource.mqLevels[lvl]; 
+    for (int lvl = 0; lvl < mqSource.levelsArr_.length; lvl++) {
+      double [] buf = mqSource.levelsArr_[lvl]; 
       if (buf != null) {
         mqTarget.propagateCarry(buf, lvl);
       }
     }
 
-    mqTarget.mqN = nFinal;
+    mqTarget.n_ = nFinal;
 
-    if (mqSource.mqMax > mqTarget.mqMax) { mqTarget.mqMax = mqSource.mqMax; }
-    if (mqSource.mqMin < mqTarget.mqMin) { mqTarget.mqMin = mqSource.mqMin; }
-
+    if (mqSource.maxValue_ > mqTarget.maxValue_) { mqTarget.maxValue_ = mqSource.maxValue_; }
+    if (mqSource.minValue_ < mqTarget.minValue_) { mqTarget.minValue_ = mqSource.minValue_; }
   }
 
   /*
@@ -170,11 +180,11 @@ public class MergeableQuantileSketch {
     if ((fraction < 0.0) || (fraction > 1.0)) {
       throw new IllegalArgumentException("Fraction cannot be less than zero or greater than 1.0");
     }
-    if      (fraction == 0.0) { return mqMin; }
-    else if (fraction == 1.0) { return mqMax; }
+    if      (fraction == 0.0) { return minValue_; }
+    else if (fraction == 1.0) { return maxValue_; }
     else {
-      Auxiliary au = this.constructAuxiliary ();
-      return (au.getQuantile (fraction));
+      Auxiliary aux = this.constructAuxiliary ();
+      return (aux.getQuantile (fraction));
     }
   }
 
@@ -192,19 +202,19 @@ public class MergeableQuantileSketch {
    * 
    * @return array of approximations to the given fractions in the same order as given fractions array. 
    */
-  public double [] getQuantiles(double [] fractions) {
-    Auxiliary au = null;
+  public double[] getQuantiles(double [] fractions) {
+    Auxiliary aux = null;
     double [] answers = new double [fractions.length];
     for (int i = 0; i < fractions.length; i++) {
       double fraction = fractions[i];
       if ((fraction < 0.0) || (fraction > 1.0)) {
         throw new IllegalArgumentException("Fraction cannot be less than zero or greater than 1.0");
       }
-      if      (fraction == 0.0) { answers[i] = mqMin; }
-      else if (fraction == 1.0) { answers[i] = mqMax; }
+      if      (fraction == 0.0) { answers[i] = minValue_; }
+      else if (fraction == 1.0) { answers[i] = maxValue_; }
       else {
-        if (au == null) au = this.constructAuxiliary ();
-        answers[i] = au.getQuantile (fraction);
+        if (aux == null) aux = this.constructAuxiliary ();
+        answers[i] = aux.getQuantile (fraction);
       }
     }
     return (answers);
@@ -229,19 +239,18 @@ public class MergeableQuantileSketch {
    * The definition of an "interval" is inclusive of the left splitPoint and exclusive of the right
    * splitPoint.
    */
-  @SuppressWarnings("cast")
   public double[] getPDF(double[] splitPoints) {
     long [] counters = internalBuildHistogram (splitPoints);
     int numCounters = counters.length;
     double [] result = new double [numCounters];
-    double denom = (double) this.mqN;
+    double denom = n_;
     long subtotal = 0;
     for (int j = 0; j < numCounters; j++) { 
       long count = counters[j];
       subtotal += count;
-      result[j] = ((double) count) / denom;
+      result[j] = count / denom;
     }
-    assert (subtotal == this.mqN); //internal consistency check
+    assert (subtotal == this.n_); //internal consistency check
     return result;
   }
 
@@ -257,22 +266,25 @@ public class MergeableQuantileSketch {
    * 
    * @return an approximation to the CDF of the input stream given the splitPoints.
    */
-  @SuppressWarnings("cast")
   public double[] getCDF(double [] splitPoints) {
     long [] counters = internalBuildHistogram (splitPoints);
     int numCounters = counters.length;
     double [] result = new double [numCounters];
-    double denom = (double) this.mqN;
+    double denom = n_;
     long subtotal = 0;
     for (int j = 0; j < numCounters; j++) { 
       long count = counters[j];
       subtotal += count;
-      result[j] = ((double) subtotal) / denom;
+      result[j] = subtotal / denom;
     }
-    assert (subtotal == this.mqN); //internal consistency check
+    assert (subtotal == this.n_); //internal consistency check
     return result;
   }
   
+  /**
+   * Get the count (or rank) error normalized as a fraction between zero and one.
+   * @return the count (or rank) error normalized as a fraction between zero and one.
+   */
   public double getNormalizedCountError() {
     return 0;  //a function of k table lookup.
   }
@@ -282,38 +294,60 @@ public class MergeableQuantileSketch {
    * @return the length of the input stream so far
    */
   public long getStreamLength() {
-    return (mqN);
+    return (n_);
   }
   
-  //Restricted methods
+  //Restricted
+  
+  int getK() { 
+    return k_; 
+  }
+  
+  long getN() { 
+    return n_; 
+  }
+  
+  void setN(long n) {
+    n_ = n;
+  }
+  
+  int getBaseBufferCount() {
+    return baseBufferCount_;
+  }
+  
+  double[][] getLevelsArr() {
+    return levelsArr_;
+  }
+  
+  double[] getBaseBuffer() {
+    return baseBuffer_;
+  }
   
   Auxiliary constructAuxiliary() {
-    Auxiliary au = Auxiliary.constructAuxiliary(
-        this.mqK, this.mqN, this.mqLevels, this.mqBaseBuffer, this.mqBaseBufferCount);
-    return au;
+    return new Auxiliary( this );
   }
 
   private void growBaseBuffer() {
-    int oldSize = mqBaseBuffer.length;
-    int newSize = Math.max (Math.min (2*mqK, 2*oldSize), 1);
+    int oldSize = baseBuffer_.length;
+    int newSize = Math.max (Math.min (2*k_, 2*oldSize), 1);
     double[] newBuf = new double[newSize];
     for (int i = 0; i < oldSize; i++) {
-      newBuf[i] = mqBaseBuffer[i];
+      newBuf[i] = baseBuffer_[i];
     }
-    mqBaseBuffer = newBuf;
+    baseBuffer_ = newBuf;
   }
 
   private void growLevels(int newSize) {
-    int oldSize = mqLevels.length;
+    int oldSize = levelsArr_.length;
     assert (newSize > oldSize); //internal consistency check
     double[][] newLevels = new double[newSize][];
     for (int i = 0; i < oldSize; i++) {
-      newLevels[i] = mqLevels[i];
+      newLevels[i] = levelsArr_[i];
     }
     for (int i = oldSize; i < newSize; i++) {
       newLevels[i] = null;
     } 
-    mqLevels = newLevels;
+    levelsArr_ = newLevels;
   }
 
 
@@ -329,13 +363,13 @@ public class MergeableQuantileSketch {
    * @param curLvl the specified level
    */
   private void propagateCarry(double[] carryIn, int curLvl) {
-    if (mqLevels[curLvl] == null) {// propagation stops here
-      mqLevels[curLvl] = carryIn;
+    if (levelsArr_[curLvl] == null) {// propagation stops here
+      levelsArr_[curLvl] = carryIn;
     }
     else {
-      double [] oldBuf = mqLevels[curLvl];
-      mqLevels[curLvl] = null;
-      double [] carryOut = allocatingMergeTwoSizeKBuffers (carryIn, oldBuf, mqK);
+      double [] oldBuf = levelsArr_[curLvl];
+      levelsArr_[curLvl] = null;
+      double [] carryOut = allocatingMergeTwoSizeKBuffers (carryIn, oldBuf, k_);
       propagateCarry(carryOut, curLvl+1);
     }
   }
@@ -344,18 +378,18 @@ public class MergeableQuantileSketch {
    * Called when the base buffer has just acquired 2*k elements.
    */
   private void processFullBaseBuffer() {
-    assert mqBaseBufferCount == 2 * mqK; //internal consistency check
+    assert baseBufferCount_ == 2 * k_; //internal consistency check
 
     // make sure there will be enough levels for the propagation 
-    int numLevelsNeeded = computeNumLevelsNeeded (mqK, mqN);
-    if (numLevelsNeeded > mqLevels.length) {
+    int numLevelsNeeded = computeNumLevelsNeeded (k_, n_);
+    if (numLevelsNeeded > levelsArr_.length) {
       this.growLevels(numLevelsNeeded);
     }
 
     // now we construct a new length-k "carry" buffer, and propagate it 
-    Arrays.sort(mqBaseBuffer, 0, mqBaseBufferCount);
-    double[] carry = allocatingCarryOfOneSize2KBuffer(mqBaseBuffer, mqK);
-    mqBaseBufferCount = 0;
+    Arrays.sort(baseBuffer_, 0, baseBufferCount_);
+    double[] carry = allocatingCarryOfOneSize2KBuffer(baseBuffer_, k_);
+    baseBufferCount_ = 0;
     propagateCarry(carry, 0);
   }
   
@@ -376,19 +410,19 @@ public class MergeableQuantileSketch {
     long weight = 1;
     if (numSplitPoints < 50) { // empirically determined crossover for K = 200
       // not worth it to sort when few split points
-      Util.quadraticTimeIncrementHistogramCounters(mq.mqBaseBuffer, 0, mq.mqBaseBufferCount, weight,
+      Util.quadraticTimeIncrementHistogramCounters(mq.baseBuffer_, 0, mq.baseBufferCount_, weight,
           splitPoints, counters);
     }
     else {
-      Arrays.sort(mq.mqBaseBuffer, 0, mq.mqBaseBufferCount); // sort is worth it when many split points
-      Util.linearTimeIncrementHistogramCounters (mq.mqBaseBuffer, 0, mq.mqBaseBufferCount, weight,
+      Arrays.sort(mq.baseBuffer_, 0, mq.baseBufferCount_); // sort is worth it when many split points
+      Util.linearTimeIncrementHistogramCounters (mq.baseBuffer_, 0, mq.baseBufferCount_, weight,
           splitPoints, counters);
     }
-    for (int lvl = 0; lvl < mq.mqLevels.length; lvl++) { 
+    for (int lvl = 0; lvl < mq.levelsArr_.length; lvl++) { 
       weight += weight; // *= 2
-      if (mq.mqLevels[lvl] != null) { 
+      if (mq.levelsArr_[lvl] != null) { 
         // the levels are already sorted so we can use the fast version
-        Util.linearTimeIncrementHistogramCounters(mq.mqLevels[lvl], 0, mq.mqK, weight, 
+        Util.linearTimeIncrementHistogramCounters(mq.levelsArr_[lvl], 0, mq.k_, weight, 
             splitPoints, counters);
       }
     }
@@ -466,27 +500,19 @@ public class MergeableQuantileSketch {
   
   // Code leveraged during testing 
   
-  int getK() { 
-    return mqK; 
-  }
-  
-  long getN() { 
-    return mqN; 
-  }
-  
   int numSamplesInSketch() {
-    int count = this.mqBaseBufferCount;
-    for (int lvl = 0; lvl < this.mqLevels.length; lvl++) {
-      if (this.mqLevels[lvl] != null) { count += this.mqK; }
+    int count = this.baseBufferCount_;
+    for (int lvl = 0; lvl < this.levelsArr_.length; lvl++) {
+      if (this.levelsArr_[lvl] != null) { count += this.k_; }
     }
     return count;
   }
 
   double sumOfSamplesInSketch() {
-    double total = Util.sumOfDoublesInArrayPrefix(this.mqBaseBuffer, this.mqBaseBufferCount);
-    for (int lvl = 0; lvl < this.mqLevels.length; lvl++) {
-      if (this.mqLevels[lvl] != null) { 
-        total += Util.sumOfDoublesInArrayPrefix(this.mqLevels[lvl], this.mqK);
+    double total = Util.sumOfDoublesInArrayPrefix(this.baseBuffer_, this.baseBufferCount_);
+    for (int lvl = 0; lvl < this.levelsArr_.length; lvl++) {
+      if (this.levelsArr_[lvl] != null) { 
+        total += Util.sumOfDoublesInArrayPrefix(this.levelsArr_[lvl], this.k_);
       }
     }
     return total;
@@ -496,20 +522,20 @@ public class MergeableQuantileSketch {
     long long2k = 2L * k;
     long quotient = n / long2k;         //the bit pattern
     int remainder = (int) (n % long2k); //the base buffer count
-    assert mq.mqBaseBufferCount == remainder : "Wrong number of items in base buffer";
+    assert mq.baseBufferCount_ == remainder : "Wrong number of items in base buffer";
     int numLevels = 0;
     if (quotient > 0) { numLevels = (1 + (hiBitPos(quotient))); }
-    assert mq.mqLevels.length == numLevels : "Wrong number of levels";
+    assert mq.levelsArr_.length == numLevels : "Wrong number of levels";
     int level;
     long bitPattern;
     for (level = 0, bitPattern = quotient; level < numLevels; level++, bitPattern >>>= 1) {
       if ((bitPattern & 1) == 0) {
-        assert mq.mqLevels[level] == null : "Buffer present when it should not be.";
+        assert mq.levelsArr_[level] == null : "Buffer present when it should not be.";
       }
       else {
         assert ((bitPattern & 1) == 1) : "Should not happen";
-        assert mq.mqLevels[level] != null : "Buffer missing" ; 
-        double [] thisBuf = mq.mqLevels[level];
+        assert mq.levelsArr_[level] != null : "Buffer missing" ; 
+        double [] thisBuf = mq.levelsArr_[level];
         for (int i = 0; i < thisBuf.length - 1; i++) {
           assert thisBuf[i] <= thisBuf[i+1] : "Not properly sorted";
         }

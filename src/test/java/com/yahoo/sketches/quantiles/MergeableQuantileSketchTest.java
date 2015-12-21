@@ -62,12 +62,12 @@ public class MergeableQuantileSketchTest {
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
         Auxiliary au = mq.constructAuxiliary ();
         int numSamples = mq.numSamplesInSketch ();
-        double [] auxItems = au.auItems;
-        long [] auxAccum = au.auAccum;
+        double [] auxItems = au.auxSamplesArr_;
+        long [] auxAccum = au.auxCumWtsArr_;
 
-        assert mq.getK() == au.auK;
-        assert mq.getN() == au.auN;
-        assert numItemsSoFar == au.auN;
+        assert mq.getK() == au.auxK_;
+        assert mq.getN() == au.auxN_;
+        assert numItemsSoFar == au.auxN_;
 
         assert auxItems.length == numSamples;
         assert auxAccum.length == numSamples + 1;
@@ -257,7 +257,7 @@ public class MergeableQuantileSketchTest {
     mqst.testConstructAuxiliary ();
     mqst.endToEndTest ();
 
-    MQ6Test mq6t = new MQ6Test();
+    QuantilesSketchTest mq6t = new QuantilesSketchTest();
     mq6t.endToEndTest6 ();
     mq6t.testConstructAuxiliary6 ();
     mq6t.bigTestMinMax6 ();   

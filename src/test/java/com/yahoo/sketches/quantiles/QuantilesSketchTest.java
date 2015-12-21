@@ -8,7 +8,7 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 
 @SuppressWarnings("cast")
-public class MQ6Test { 
+public class QuantilesSketchTest { 
 
   @Test
     public void testAdjustedFindEpsForK () {
@@ -22,12 +22,12 @@ public class MQ6Test {
       3.42875166500824e-09 };
     for (int i = 0; i < 4; i++) {
       assertEquals(epsArr[i], 
-                   MQ6.adjustedFindEpsForK (kArr[i]),
+                   QuantilesSketch.EpsilonFromK.adjustedFindEpsForK (kArr[i]),
                    absTol,
                    "adjustedFindEpsForK() doesn't match precomputed value");
     }
     for (int i = 0; i < 3; i++) {
-      MQ6 mq = new MQ6 (kArr[i]);
+      QuantilesSketch mq = new QuantilesSketch (kArr[i]);
       assertEquals(epsArr[i], 
                    mq.getNormalizedCountError(),
                    absTol,
@@ -43,8 +43,8 @@ public class MQ6Test {
 
     Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic
 
-    MQ6 mq  = new MQ6 (256);
-    MQ6 mq2 = new MQ6 (256);
+    QuantilesSketch mq  = new QuantilesSketch (256);
+    QuantilesSketch mq2 = new QuantilesSketch (256);
 
     for (int item = 1000000; item >= 1; item--) {
       if (item % 4 == 0) {
@@ -55,7 +55,7 @@ public class MQ6Test {
       }
     }
 
-    MQ6.mergeInto (mq, mq2);
+    QuantilesSketch.mergeInto (mq, mq2);
 
     int numPhiValues = 99;
     double [] phiArr = new double [numPhiValues];
@@ -103,16 +103,16 @@ public class MQ6Test {
   @Test
   public void testConstructAuxiliary6 () {
     for (int k = 1; k <= 32; k+= 31) {
-      MQ6 mq = new MQ6 (k);
+      QuantilesSketch mq = new QuantilesSketch (k);
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
         Auxiliary au = mq.constructAuxiliary ();
         int numSamples = mq.numSamplesInSketch ();
-        double [] auxItems = au.auItems;
-        long [] auxAccum = au.auAccum;
+        double [] auxItems = au.auxSamplesArr_;
+        long [] auxAccum = au.auxCumWtsArr_;
 
-        assert mq.getK() == au.auK;
-        assert mq.getN() == au.auN;
-        assert numItemsSoFar == au.auN;
+        assert mq.getK() == au.auxK_;
+        assert mq.getN() == au.auxN_;
+        assert numItemsSoFar == au.auxN_;
 
         assert auxItems.length == numSamples;
         assert auxAccum.length == numSamples + 1;
@@ -157,7 +157,7 @@ public class MQ6Test {
     }
 
     Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
-    MQ6 mq6 = new MQ6 (16);
+    QuantilesSketch mq6 = new QuantilesSketch (16);
     bouncy = phi_inverse;
     for (int i = 0; i < 1357; i++) {
       mq6.update (bouncy);
@@ -168,17 +168,17 @@ public class MQ6Test {
     Auxiliary au   = mq.constructAuxiliary();
     Auxiliary au6 = mq6.constructAuxiliary();
 
-    assert (au.auK == au6.auK);
-    assert (au.auN == au6.auN);
-    assert (au.auItems.length == au6.auItems.length);
-    assert (au.auAccum.length == au6.auAccum.length);
+    assert (au.auxK_ == au6.auxK_);
+    assert (au.auxN_ == au6.auxN_);
+    assert (au.auxSamplesArr_.length == au6.auxSamplesArr_.length);
+    assert (au.auxCumWtsArr_.length == au6.auxCumWtsArr_.length);
 
-    for (int i = 0; i < au.auItems.length; i++) {
-      assert (au.auItems[i] == au6.auItems[i]);
+    for (int i = 0; i < au.auxSamplesArr_.length; i++) {
+      assert (au.auxSamplesArr_[i] == au6.auxSamplesArr_[i]);
     }
 
-    for (int i = 0; i < au.auAccum.length; i++) {
-      assert (au.auAccum[i] == au6.auAccum[i]);
+    for (int i = 0; i < au.auxCumWtsArr_.length; i++) {
+      assert (au.auxCumWtsArr_[i] == au6.auxCumWtsArr_[i]);
     }
 
     //    System.out.printf ("Passed: AU vs AU6\n");
@@ -187,9 +187,9 @@ public class MQ6Test {
 
   @Test
   public void bigTestMinMax6 () {
-    MQ6 mq1  = new MQ6 (32);
-    MQ6 mq2  = new MQ6 (32);
-    MQ6 mq3  = new MQ6 (32);
+    QuantilesSketch mq1  = new QuantilesSketch (32);
+    QuantilesSketch mq2  = new QuantilesSketch (32);
+    QuantilesSketch mq3  = new QuantilesSketch (32);
     for (int i = 999; i >= 1; i--) {
       mq1.update ((double) i);
       mq2.update ((double) (1000+i));
@@ -210,8 +210,8 @@ public class MQ6Test {
     assert (resultsA[0] == 1.0);
     assert (resultsA[1] == 999.0);
 
-    MQ6.mergeInto (mq1, mq2);
-    MQ6.mergeInto (mq2, mq3);
+    QuantilesSketch.mergeInto (mq1, mq2);
+    QuantilesSketch.mergeInto (mq2, mq3);
 
     double [] resultsB = mq1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
@@ -227,9 +227,9 @@ public class MQ6Test {
 
   @Test
   public void smallTestMinMax6 () {
-    MQ6 mq1  = new MQ6 (32);
-    MQ6 mq2  = new MQ6 (32);
-    MQ6 mq3  = new MQ6 (32);
+    QuantilesSketch mq1  = new QuantilesSketch (32);
+    QuantilesSketch mq2  = new QuantilesSketch (32);
+    QuantilesSketch mq3  = new QuantilesSketch (32);
     for (int i = 8; i >= 1; i--) {
       mq1.update ((double) i);
       mq2.update ((double) (10+i));
@@ -254,8 +254,8 @@ public class MQ6Test {
     assert (resultsA[1] == 5.0);
     assert (resultsA[2] == 8.0);
 
-    MQ6.mergeInto (mq1, mq2);
-    MQ6.mergeInto (mq2, mq3);
+    QuantilesSketch.mergeInto (mq1, mq2);
+    QuantilesSketch.mergeInto (mq2, mq3);
 
     double [] resultsB = mq1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);

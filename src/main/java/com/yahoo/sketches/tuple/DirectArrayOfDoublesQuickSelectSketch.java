@@ -171,8 +171,8 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   @Override
   protected void updateValues(int index, double[] values) {
     long offset = valuesOffset_ + SIZE_OF_VALUE_BYTES * getNumValues() * index;
-    for (int i = 0; i < getNumValues(); i++) {
-      mem_.putDouble(offset, mem_.getDouble(offset + SIZE_OF_VALUE_BYTES * i) + values[i]);
+    for (int i = 0; i < numValues_; i++) {
+      mem_.putDouble(offset, mem_.getDouble(offset) + values[i]);
       offset += SIZE_OF_VALUE_BYTES;
     }
   }

@@ -10,7 +10,6 @@ import org.testng.annotations.Test;
 public class MergeableQuantileSketchTest { 
 
   /* the cost of testing for k is k^2, */
- 
   @Test
   public void regressionTestMergeableQuantileSketchStructureAfterUpdates() {
     for (int k = 1; k <= 100; k++) { // was 300
@@ -20,21 +19,20 @@ public class MergeableQuantileSketchTest {
         MergeableQuantileSketch.validateMergeableQuantileSketchStructure (mq, k, n);
         mq.update (Math.random ());
       }
-      //      if (k % 10 == 0) { System.out.printf ("Tested updates with k = %d\n", k); }
+      //if (k % 10 == 0) { System.out.printf ("Tested updates with k = %d\n", k); }
     }
-    //System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterUpdates ()\n");
   }
 
   /* the cost of testing for k is k^4, */
   @Test
-  public void regressionTestMergeableQuantileSketchStructureAfterMerges () {
+  public void regressionTestMergeableQuantileSketchStructureAfterMerges() {
     for (int k = 1; k <= 9; k++) { // was 20
       long longK = (long) k;
       for (long n = 0; n < (longK * longK + 100); n++) {
         for (long n1 = 0; n1 <= n; n1++) {
           long n2 = n - n1;
-          MergeableQuantileSketch mq1 = new MergeableQuantileSketch (k);
-          MergeableQuantileSketch mq2 = new MergeableQuantileSketch (k);
+          MergeableQuantileSketch mq1 = new MergeableQuantileSketch(k);
+          MergeableQuantileSketch mq2 = new MergeableQuantileSketch(k);
           
           for (long j1 = 0; j1 < n1; j1++) {
             mq1.update (Math.random ());            
@@ -45,20 +43,18 @@ public class MergeableQuantileSketchTest {
           }
 
           MergeableQuantileSketch.mergeInto (mq2, mq1);
-
-          MergeableQuantileSketch.validateMergeableQuantileSketchStructure (mq1, k, n1 + n2);
+          MergeableQuantileSketch.validateMergeableQuantileSketchStructure(mq1, k, n1 + n2);
 
         } // end of loop over n1
       } // end of loop over n
       //      System.out.printf ("Tested merges with k = %d\n", k);
     } // end of loop over k
-    //System.out.printf ("Passed: regressionTestMergeableQuantileSketchStructureAfterMerges ()\n");
   }
 
   @Test
-  public void testConstructAuxiliary () {
+  public void testConstructAuxiliary() {
     for (int k = 1; k <= 32; k+= 31) {
-      MergeableQuantileSketch mq = new MergeableQuantileSketch (k);
+      MergeableQuantileSketch mq = new MergeableQuantileSketch(k);
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
         Auxiliary au = mq.constructAuxiliary ();
         int numSamples = mq.numSamplesInSketch ();
@@ -90,21 +86,15 @@ public class MergeableQuantileSketchTest {
         // This is a better test when the items are inserted in reverse order
         // as follows, but the negation seems kind of awkward.
         mq.update (-1.0 * ((double) (numItemsSoFar + 1)));
-
       } // end of loop over test stream
-
     } // end of loop over values of k
-
-    //System.out.printf ("Passed: testConstructAuxiliary()\n");
   }
-
 
   // Please note that this is a randomized test that CAN fail.
   // The probability of failure could be reduced by increasing k.
   // Actually, setting the seed made it deterministic.
   @Test
   public void endToEndTest () {
-
     Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic
 
     MergeableQuantileSketch mq  = new MergeableQuantileSketch (256);
@@ -159,8 +149,6 @@ public class MergeableQuantileSketchTest {
       assert subtotal <= phi + 0.01;
     }
     // should probably assert that the final cdf value is 1.0
-
-    //System.out.printf ("Passed: endToEndTest()\n");
   }
 
   @Test
@@ -198,10 +186,7 @@ public class MergeableQuantileSketchTest {
     double [] resultsC = mq2.getQuantiles(queries);
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 1999.0);
-
-    //    System.out.printf ("Passed: bigTestMinMax\n");
   }
-
 
   @Test
   static void smallTestMinMax () {
@@ -244,11 +229,48 @@ public class MergeableQuantileSketchTest {
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 11.0);
     assert (resultsC[2] == 18.0);
-
-    //    System.out.printf ("Passed: smallTestMinMax\n");
   }
 
- static void runRegressionTests () {
+  public void qsAuxVersusMQSAux () { //TODO Depends on both MQS and QS
+    double phi_inverse = (Math.sqrt(5.0) - 1.0) / 2.0;
+    double bouncy = phi_inverse;
+
+    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
+    MergeableQuantileSketch mq  = new MergeableQuantileSketch (16);
+    bouncy = phi_inverse;
+    for (int i = 0; i < 1357; i++) {
+      mq.update (bouncy);
+      bouncy += phi_inverse;
+      while (bouncy > 1.0) { bouncy -= 1.0; }
+    }
+
+    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
+    QuantilesSketch mq6 = new QuantilesSketch(16);
+    bouncy = phi_inverse;
+    for (int i = 0; i < 1357; i++) {
+      mq6.update (bouncy);
+      bouncy += phi_inverse;
+      while (bouncy > 1.0) { bouncy -= 1.0; }
+    }
+
+    Auxiliary au   = mq.constructAuxiliary();
+    Auxiliary au6 = mq6.constructAuxiliary();
+
+    assert (au.auxK_ == au6.auxK_);
+    assert (au.auxN_ == au6.auxN_);
+    assert (au.auxSamplesArr_.length == au6.auxSamplesArr_.length);
+    assert (au.auxCumWtsArr_.length == au6.auxCumWtsArr_.length);
+
+    for (int i = 0; i < au.auxSamplesArr_.length; i++) {
+      assert (au.auxSamplesArr_[i] == au6.auxSamplesArr_[i]);
+    }
+
+    for (int i = 0; i < au.auxCumWtsArr_.length; i++) {
+      assert (au.auxCumWtsArr_[i] == au6.auxCumWtsArr_[i]);
+    }
+  }
+  
+  static void runRegressionTests () {
     MergeableQuantileSketchTest mqst = new MergeableQuantileSketchTest();
     MergeableQuantileSketchTest.bigTestMinMax ();   
     MergeableQuantileSketchTest.smallTestMinMax ();   
@@ -256,23 +278,20 @@ public class MergeableQuantileSketchTest {
     mqst.regressionTestMergeableQuantileSketchStructureAfterMerges ();
     mqst.testConstructAuxiliary ();
     mqst.endToEndTest ();
+    mqst.qsAuxVersusMQSAux();
 
     QuantilesSketchTest mq6t = new QuantilesSketchTest();
     mq6t.checkEndToEnd ();
     mq6t.checkConstructAuxiliary ();
-    mq6t.checkBigMinMax ();   
-    mq6t.checkSmallMinMax ();   
-    mq6t.auxVersusAux6 ();
+    mq6t.checkBigMinMax ();
+    mq6t.checkSmallMinMax ();
 
     UtilTest utest = new UtilTest();
     utest.testPOLZBSA ();
     utest.checkBlockyTandemMergeSort();
     utest.testQuadraticTimeIncrementHistogramCounters ();
     utest.testLinearTimeIncrementHistogramCounters ();
-   
-    System.out.println("Regression Tests Complete.");
   }
-
   
   public static void main (String [] args) {
     runRegressionTests ();

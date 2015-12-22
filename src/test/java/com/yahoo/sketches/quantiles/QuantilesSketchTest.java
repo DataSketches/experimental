@@ -4,12 +4,12 @@
  */
 package com.yahoo.sketches.quantiles;
 
-//import static com.yahoo.sketches.quantiles.Util.*;
-//import static com.yahoo.sketches.quantiles.QuantilesSketch.*;
 import org.testng.annotations.Test;
 import static org.testng.Assert.*;
+import static com.yahoo.sketches.quantiles.QuantilesSketch.*;
+import static com.yahoo.sketches.quantiles.Util.*;
+import static java.lang.Math.*;
 
-//@SuppressWarnings("cast")
 public class QuantilesSketchTest { 
 
   @Test
@@ -24,7 +24,7 @@ public class QuantilesSketchTest {
       3.42875166500824e-09 };
     for (int i = 0; i < 4; i++) {
       assertEquals(epsArr[i], 
-                   QuantilesSketch.EpsilonFromK.getAdjustedEpsilon(kArr[i]),
+                   Util.EpsilonFromK.getAdjustedEpsilon(kArr[i]),
                    absTol,
                    "adjustedFindEpsForK() doesn't match precomputed value");
     }
@@ -42,9 +42,7 @@ public class QuantilesSketchTest {
   // Actually, setting the seed has now made it deterministic.
   @Test
   public void checkEndToEnd() {
-
     Util.rand.setSeed(917351); // arbitrary seed that makes this test deterministic
-
     QuantilesSketch qs  = new QuantilesSketch(256);
     QuantilesSketch qs2 = new QuantilesSketch(256);
 
@@ -97,10 +95,7 @@ public class QuantilesSketchTest {
       assert subtotal <= phi + 0.01;
     }
     // should probably assert that the final cdf value is 1.0
-
-    //System.out.printf("Passed: endToEndTest()\n");
   }
-
 
   @Test
   public void checkConstructAuxiliary() {
@@ -137,54 +132,8 @@ public class QuantilesSketchTest {
         // This is a better test when the items are inserted in reverse order
         // as follows, but the negation seems kind of awkward.
         qs.update (-1.0 * (numItemsSoFar + 1) );
-
       } // end of loop over test stream
-
     } // end of loop over values of k
-
-    //    System.out.printf ("Passed: testConstructAuxiliary6()\n");
-  }
-
-  public void auxVersusAux6 () { //TODO Depends on both MQS and QS
-    double phi_inverse = (Math.sqrt(5.0) - 1.0) / 2.0;
-    double bouncy = phi_inverse;
-
-    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
-    MergeableQuantileSketch mq  = new MergeableQuantileSketch (16);
-    bouncy = phi_inverse;
-    for (int i = 0; i < 1357; i++) {
-      mq.update (bouncy);
-      bouncy += phi_inverse;
-      while (bouncy > 1.0) { bouncy -= 1.0; }
-    }
-
-    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
-    QuantilesSketch mq6 = new QuantilesSketch (16);
-    bouncy = phi_inverse;
-    for (int i = 0; i < 1357; i++) {
-      mq6.update (bouncy);
-      bouncy += phi_inverse;
-      while (bouncy > 1.0) { bouncy -= 1.0; }
-    }
-
-    Auxiliary au   = mq.constructAuxiliary();
-    Auxiliary au6 = mq6.constructAuxiliary();
-
-    assert (au.auxK_ == au6.auxK_);
-    assert (au.auxN_ == au6.auxN_);
-    assert (au.auxSamplesArr_.length == au6.auxSamplesArr_.length);
-    assert (au.auxCumWtsArr_.length == au6.auxCumWtsArr_.length);
-
-    for (int i = 0; i < au.auxSamplesArr_.length; i++) {
-      assert (au.auxSamplesArr_[i] == au6.auxSamplesArr_[i]);
-    }
-
-    for (int i = 0; i < au.auxCumWtsArr_.length; i++) {
-      assert (au.auxCumWtsArr_[i] == au6.auxCumWtsArr_[i]);
-    }
-
-    //    System.out.printf ("Passed: AU vs AU6\n");
-
   }
 
   @Test
@@ -222,8 +171,6 @@ public class QuantilesSketchTest {
     double[] resultsC = mq2.getQuantiles(queries);
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 1999.0);
-
-    //    System.out.printf ("Passed: bigTestMinMax6\n");
   }
 
   @Test
@@ -267,24 +214,77 @@ public class QuantilesSketchTest {
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 11.0);
     assert (resultsC[2] == 18.0);
-
-    //    System.out.printf ("Passed: smallTestMinMax6\n");
   }
   
   @Test
-  public void checkToString() {
-    int k = 256;
+  public void checkToStringDetail() {
+    int k = 227;
     QuantilesSketch qs = new QuantilesSketch(k);
     
     int n = 1000000;
     for (int i=1; i<=n; i++) {
       qs.update(i);
     }
-    println(qs.toString(true, true));
+    println(qs.toString());
+    println(qs.toString(false, true));
+    
+    int n2 = (int)qs.getStreamLength();
+    assertEquals(n2, n);
+    qs.update(Double.NaN);
+    qs.reset();
+    assertEquals(qs.getStreamLength(), 0);
   }
   
   @Test
-  public void checkQuantilesSimple() {
+  public void checkMisc() {
+    int k = 227;
+    QuantilesSketch qs = new QuantilesSketch(k);
+    
+    int n = 1000000;
+    for (int i=1; i<=n; i++) {
+      qs.update(i);
+    }
+    int n2 = (int)qs.getStreamLength();
+    assertEquals(n2, n);
+    qs.update(Double.NaN);
+    qs.reset();
+    assertEquals(qs.getStreamLength(), 0);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkConstructorException() {
+    @SuppressWarnings("unused")
+    QuantilesSketch qs = new QuantilesSketch(0);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkGetQuantiles() {
+    int k = 227;
+    QuantilesSketch qs = new QuantilesSketch(k);
+    
+    int n = 1000000;
+    for (int i=1; i<=n; i++) {
+      qs.update(i);
+    }
+    double[] frac = {-0.5};
+    qs.getQuantiles(frac);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkGetQuantile() {
+    int k = 227;
+    QuantilesSketch qs = new QuantilesSketch(k);
+    
+    int n = 1000000;
+    for (int i=1; i<=n; i++) {
+      qs.update(i);
+    }
+    double frac = -0.5;
+    qs.getQuantile(frac);
+  }
+  
+  @Test
+  public void simpleQuantilesCheck() {
     int k = 256;
     QuantilesSketch qs = new QuantilesSketch(k);
     int n = 1000000;
@@ -292,8 +292,6 @@ public class QuantilesSketchTest {
     for (int i=0; i<n; i++) {
       qs.update(start + i);
     }
-    //println(qs.toString(true, true));
-    
     double rankError = qs.getNormalizedRankError();
     
     double[] ranks = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
@@ -324,6 +322,75 @@ public class QuantilesSketchTest {
   }
   
   @Test
+  public void checkComputeNumLevelsNeeded() {
+    int n = 1 << 20;
+    int k = 227;
+    int lvls1 = computeNumLevelsNeeded(k, n);
+    int lvls2 = (int)Math.max(floor(lg((double)n/k)),0);
+    assertEquals(lvls1, lvls2);
+  }
+  
+  @Test
+  public void checkComputeBitPattern() {
+    int n = 1 << 20;
+    int k = 227;
+    long bitP = computeBitPattern(k, n);
+    assertEquals(bitP, n/(2L*k));
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkValidateSplitPoints() {
+    double[] arr = {2, 1};
+    validateSplitPoints(arr);
+  }
+  
+  @Test
+  public void checkMerge() {
+    int k = 227;
+    QuantilesSketch qs1 = new QuantilesSketch(k);
+    QuantilesSketch qs2 = new QuantilesSketch(k);
+    
+    int n = 1000000;
+    for (int i=1; i<=n; i++) {
+      qs1.update(i);
+    }
+    qs2.merge(qs1);
+    double med1 = qs1.getQuantile(0.5);
+    double med2 = qs2.getQuantile(0.5);
+    println(med1+","+med2);
+    
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkMergeException() {
+    int k = 227;
+    QuantilesSketch qs1 = new QuantilesSketch(k);
+    QuantilesSketch qs2 = new QuantilesSketch(2*k);
+    qs2.merge(qs1);
+  }
+  
+  @Test
+  public void checkInternalBuildHistogram() {
+    int k = 227;
+    QuantilesSketch qs = new QuantilesSketch(k);
+    int n = 1000000;
+    for (int i=1; i<=n; i++) {
+      qs.update(i);
+    }
+    double[] spts = {100000, 500000, 900000};
+    qs.getPDF(spts);
+  }
+  
+  
+  @Test
+  public void checkComputeBaseBufferCount() {
+    int n = 1 << 20;
+    int k = 227;
+    long bbCnt = computeBaseBufferCount(k, n);
+    assertEquals(bbCnt, n % (2L*k));
+  }
+  
+  @Test
   public void printlnTest() {
     println("PRINTING: "+this.getClass().getName());
   }
@@ -332,7 +399,7 @@ public class QuantilesSketchTest {
    * @param s value to print 
    */
   static void println(String s) {
-    //System.out.println(s); //disable here
+    System.out.println(s); //disable here
   }
   
 }

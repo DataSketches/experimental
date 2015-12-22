@@ -23,10 +23,6 @@ import java.util.Arrays;
  * obtained from getQuantiles(fractions[]) input into the reverse directional query 
  * getPDF(splitPoints[]) may not result in the original fractional values.</p>
  * 
- * //TODO Discuss Error?
- * 
- * 
- * 
  * @author Kevin Lang
  * @author Lee Rhodes
  */
@@ -117,7 +113,7 @@ public class QuantilesSketch {
     minValue_ = java.lang.Double.POSITIVE_INFINITY;
     maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
   }
-  
+
   /** 
    * Updates this sketch with the given double data item
    * @param dataItem an item from a stream of items.  NaNs are ignored.
@@ -146,7 +142,7 @@ public class QuantilesSketch {
   public void merge(QuantilesSketch qsSource) {
     mergeInto(qsSource, this);
   }
-  
+
   // It is easy to prove that the following simplified code which launches 
   // multiple waves of carry propagation does exactly the same amount of merging work
   // (including the work of allocating fresh buffers) as the more complicated and 
@@ -173,7 +169,7 @@ public class QuantilesSketch {
 
     int tgtK = qsTarget.getK();
     long nFinal = qsTarget.getN() + qsSource.getN();
-    
+
     for (int i = 0; i < qsSource.baseBufferCount_; i++) {
       qsTarget.update(srcBaseBuffer[i]);
     }
@@ -329,13 +325,29 @@ public class QuantilesSketch {
     assert subtotal == n; //internal consistency check
     return result;
   }
-  
+
   /**
-   * Get the rank error normalized as a fraction between zero and one.
+   * Get the rank error normalized as a fraction between zero and one. 
+   * The error of this sketch is specified as a fraction of the normalized rank of the hypothetical 
+   * sorted stream of items presented to the sketch. 
+   * 
+   * <p>Suppose the sketch is presented with N values. The raw rank (1 to N) of an item 
+   * would be its index position in the sorted version of the input stream. If we divide the 
+   * raw rank by N, it becomes the normalized rank, which is between 0 and 1.0.
+   * 
+   * <p>For example, choosing a K of 227 yields a normalized rank error of about 1%. 
+   * The upper bound on the median value obtained by getQuantile(0.5) would be the value in the 
+   * hypothetical ordered stream of values at the normalized rank of 0.51. 
+   * The lower bound would be the value in the hypothetical ordered stream of values at the 
+   * normalized rank of 0.49.
+   * 
+   * <p>The error of this sketch cannot be translated into an error (relative or absolute) of the 
+   * returned quantile values. 
+   * 
    * @return the rank error normalized as a fraction between zero and one.
    */
   public double getNormalizedRankError() {
-    return EpsilonFromK.getAdjustedEpsilon(k_);
+    return Util.EpsilonFromK.getAdjustedEpsilon(k_);
   }
 
   /**
@@ -345,7 +357,15 @@ public class QuantilesSketch {
   public long getStreamLength() {
     return n_;
   }
-  
+
+  /**
+   * Returns the configured value of K
+   * @return the configured value of K
+   */
+  public int getK() { 
+    return k_; 
+  }
+
   /**
    * Returns the min value of the stream
    * @return the min value of the stream
@@ -353,7 +373,7 @@ public class QuantilesSketch {
   public double getMinValue() {
     return minValue_;
   }
-  
+
   /**
    * Returns the max value of the stream
    * @return the max value of the stream
@@ -361,36 +381,172 @@ public class QuantilesSketch {
   public double getMaxValue() {
     return maxValue_;
   }
-  
+
+  @Override
+  public String toString() {
+    return toString(true, false);
+  }
+
+  /**
+   * Returns summary information about the sketch. Used for debugging
+   * @param sketchSummary if true includes sketch summary
+   * @param dataDetail if true includes data detail
+   * @return summary information about the sketch.
+   */
+  public String toString(boolean sketchSummary, boolean dataDetail ) {
+    StringBuilder sb = new StringBuilder();
+    String thisSimpleName = this.getClass().getSimpleName();
+    
+    if (dataDetail) {
+      sb.append(LS).append("### ").append(thisSimpleName).append(" DATA DETAIL: ").append(LS);
+      double[] levelsArr  = combinedBuffer_;
+      double[] baseBuffer = combinedBuffer_;
+      
+      //output the base buffer
+      sb.append("   BaseBuffer   : ");
+      if (baseBufferCount_ > 0) {
+        for (int i = 0; i < baseBufferCount_; i++) { 
+          sb.append(String.format("%10.1f", baseBuffer[i]));
+        }
+      }
+      sb.append(LS);
+      //output all the levels
+      
+      int items = combinedBufferAllocatedCount_;
+      if (items > 2*k_) {
+        sb.append("   Valid | Level");
+        for (int j = 2*k_; j < items; j++) { //output level data starting at 2K
+          if (j % k_ == 0) { //start output of new level
+            int levelNum = (j > 2*k_)? ((j-2*k_)/k_): 0;
+            String validLvl = (((1L << levelNum) & bitPattern_) > 0L)? "    T  " : "    F  "; 
+            String lvl = String.format("%5d",levelNum);
+            sb.append(LS).append("   ").append(validLvl).append(" ").append(lvl).append(": ");
+          }
+          sb.append(String.format("%10.1f", levelsArr[j]));
+        }
+        sb.append(LS);
+      }
+      sb.append("### END DATA DETAIL").append(LS);
+    }
+    
+    if (sketchSummary) {
+      int numLevels = computeNumLevelsNeeded(k_, n_);
+      
+      int bufBytes = combinedBufferAllocatedCount_ * 8;
+      //includes k, n, min, max, preamble of 8.
+      int preBytes = 4 + 8 + 8 + 8 + 8;
+      double eps = Util.EpsilonFromK.getAdjustedEpsilon(k_);
+      String epsPct = String.format("%.3f%%", eps * 100.0);
+      int numSamples = numValidSamples();
+      sb.append(LS).append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+      sb.append("   K                            : ").append(getK()).append(LS);
+      sb.append("   N                            : ").append(getN()).append(LS);
+      sb.append("   BaseBufferCount              : ").append(getBaseBufferCount()).append(LS);
+      sb.append("   CombinedBufferAllocatedCount : ").append(combinedBufferAllocatedCount_).append(LS);
+      sb.append("   Total Levels                 : ").append(numLevels).append(LS);
+      sb.append("   Valid Levels                 : ").append(numValidLevels()).append(LS);
+      sb.append("   Level Bit Pattern            : ").append(Long.toBinaryString(bitPattern_)).append(LS);
+      sb.append("   Valid Samples                : ").append(numSamples).append(LS);
+      sb.append("   Buffer Storage Bytes         : ").append(String.format("%,d", bufBytes)).append(LS);
+      sb.append("   Preamble Bytes               : ").append(preBytes).append(LS);
+      sb.append("   Normalized Rank Error        : ").append(epsPct).append(LS);
+      sb.append("   Min Value                    : ").append(getMinValue()).append(LS);
+      sb.append("   Max Value                    : ").append(getMaxValue()).append(LS);
+      sb.append("### END SKETCH SUMMARY").append(LS);
+    }
+    return sb.toString();
+  }
+
   //Restricted
-  
-  long getBitPattern() {
-    return bitPattern_;
-  }
-  
-  double[] getCombinedBuffer() {
-    return combinedBuffer_;
-  }
-  
-  int getBaseBufferCount() {
-    return baseBufferCount_;
-  }
-  
-  int getK() { 
-    return k_; 
-  }
-  
-  long getN() { 
-    return n_; 
-  }
-  
-  void setN(long n) {
-    n_ = n;
-  }
-  
+
   Auxiliary constructAuxiliary() {
     return new Auxiliary( this );
         //k_, n_, bitPattern_, combinedBuffer_, baseBufferCount_, numSamplesInSketch());
+  }
+
+  /**
+   * Returns the length of the input stream so far.
+   * @return the length of the input stream so far
+   */
+  long getN() { 
+    return n_; 
+  }
+
+  long getBitPattern() {
+    return bitPattern_;
+  }
+
+  double[] getCombinedBuffer() {
+    return combinedBuffer_;
+  }
+
+  int getBaseBufferCount() {
+    return baseBufferCount_;
+  }
+
+  /**
+   * Computes the number of logarithmic levels needed given k and n.
+   * This is equivalent to max(floor(lg(n/k), 0).
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch.
+   * @return the number of levels needed.
+   */
+  static final int computeNumLevelsNeeded(int k, long n) {
+    long quo = n / (2L * k);
+    return (quo == 0)? 0 : 1 + hiBitPos(quo);
+  }
+
+  /**
+   * Computes the number of valid levels above the base buffer
+   * @return the number of valid levels above the base buffer
+   */
+  final int numValidLevels() {
+    return Long.bitCount(bitPattern_);
+  }
+
+  /**
+   * Computes the levels bit pattern given k, n.
+   * This is computed as <i>n / (2*k)</i>.
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch.
+   * @return the levels bit pattern
+   */
+  static final long computeBitPattern(int k, long n) {
+    return n / (2L * k);
+  }
+
+  /**
+   * Computes the base buffer count given k, n
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch
+   * @return the base buffer count
+   */
+  static final int computeBaseBufferCount(int k, long n) {
+    return (int) (n % (2L * k));
+  }
+
+  /**
+   * Computes the number of samples in the sketch from the base buffer count and the bit pattern
+   * @return the number of samples in the sketch
+   */
+  final int numValidSamples() {
+    return baseBufferCount_ + Long.bitCount(bitPattern_)*k_;
+  }
+
+  /**
+   * Computes a checksum of all the samples in the sketch. Used in testing the Auxiliary
+   * @return a checksum of all the samples in the sketch
+   */
+  final double sumOfSamplesInSketch() {
+    double total = Util.sumOfDoublesInSubArray(combinedBuffer_, 0, baseBufferCount_);
+    long bits = bitPattern_;
+    assert bits == n_ / (2L * k_); // internal consistency check
+    for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
+      if ((bits & 1L) > 0L) {
+        total += Util.sumOfDoublesInSubArray(combinedBuffer_, ((2+lvl) * k_), k_);
+      }
+    }
+    return total;
   }
 
   private void growBaseBuffer() {
@@ -539,7 +695,7 @@ public class QuantilesSketch {
     //Arrays.fill(mqBaseBuffer, 0, 2*k_, DUMMY_VALUE);
     assert n_ / (2*k_) == bitPattern_;  // internal consistency check
   }
-  
+
   /**
    * Shared algorithm for both PDF and CDF functions. The splitPoints must be unique, monotonically
    * increasing values.
@@ -582,249 +738,18 @@ public class QuantilesSketch {
     }
     return counters;
   }
-  
+
   /**
    * Checks the validity of the split points. They must be unique, monotonically increasing and
    * not NaN.
    * @param splitPoints array
    */
-  private static final void validateSplitPoints(double[] splitPoints) {
+  static final void validateSplitPoints(double[] splitPoints) {
     for (int j = 0; j < splitPoints.length - 1; j++) {
       if (splitPoints[j] < splitPoints[j+1]) { continue; }
       throw new IllegalArgumentException(
           "SplitPoints must be unique, monotonically increasing and not NaN.");
     }
   }
-  
-  /**
-   * Computes the number of logarithmic levels needed given k and n.
-   * @param k the configured size of the sketch
-   * @param n the total values presented to the sketch.
-   * @return the number of levels needed.
-   */
-  static final int computeNumLevelsNeeded(int k, long n) {
-    long quo = n / (2L * k);
-    return (quo == 0)? 0 : 1 + hiBitPos(quo);
-  }
-  
-  /**
-   * Computes the levels bit pattern given k, n.
-   * @param k the configured size of the sketch
-   * @param n the total values presented to the sketch.
-   * @return the levels bit pattern
-   */
-  static final long computeBitPattern(int k, long n) {
-    return n / (2L * k);
-  }
-  
-  /**
-   * Computes the base buffer count given k, n
-   * @param k the configured size of the sketch
-   * @param n the total values presented to the sketch
-   * @return the base buffer count
-   */
-  static final int computeBaseBufferCount(int k, long n) {
-    return (int) (n % (2L * k));
-  }
-  
-  /**
-   * Computes the number of samples in the sketch from the base buffer count and the bit pattern
-   * @return the number of samples in the sketch
-   */
-  int numValidSamples() {
-    return baseBufferCount_ + Long.bitCount(bitPattern_)*k_;
-  }
-  
-  /**
-   * Computes the number of valid levels above the base buffer
-   * @return the number of valid levels above the base buffer
-   */
-  int numValidLevels() {
-    return Long.bitCount(bitPattern_);
-  }
-  
-  
-  /**
-   * Computes a checksum of all the samples in the sketch. Used in testing the Auxiliary
-   * @return a checksum of all the samples in the sketch
-   */
-  double sumOfSamplesInSketch() {
-    double total = Util.sumOfDoublesInSubArray(combinedBuffer_, 0, baseBufferCount_);
-    long bits = bitPattern_;
-    assert bits == n_ / (2L * k_); // internal consistency check
-    for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
-      if ((bits & 1L) > 0L) {
-        total += Util.sumOfDoublesInSubArray(combinedBuffer_, ((2+lvl) * k_), k_);
-      }
-    }
-    return total;
-  }
 
-  /**
-   * Computes epsilon from K. The following table are examples.
-   * <code><pre>
-   *           eps      eps from inverted
-   *     K   empirical  adjusted formula
-   *  -------------------------------------
-   *    16   0.121094   0.121454102233560
-   *    32   0.063477   0.063586601346532
-   *    64   0.033081   0.033169048393679
-   *   128   0.017120   0.017248096847308
-   *   256   0.008804   0.008944835012965
-   *   512   0.004509   0.004627803568920
-   *  1024   0.002303   0.002389303789572
-   *
-   *  these could be used in a unit test
-   *  2   0.821714930853465
-   *  16   0.12145410223356
-   *  1024   0.00238930378957284
-   *  1073741824   3.42875166500824e-09
-   * </pre></code>
-   */
-  public static class EpsilonFromK {
-    // the following delta was used while crunching down the empirical results
-    private static final double deltaForEps = 0.01;  
-
-    // this is a heuristic fudge factor that causes the inverted formula to better match the empirical
-    private static final double adjustKForEps = 4.0 / 3.0;  // fudge factor
-
-    // ridiculously fine tolerance given the fudge factor; 1e-3 would probably suffice
-    private static final double bracketedBinarySearchForEpsTol = 1e-15; 
-
-    private static double kOfEpsFormula(double eps) {
-      return (1.0 / eps) * (Math.sqrt(Math.log(1.0 / (eps * deltaForEps))));
-    }
-
-    private static boolean epsForKPredicate(double eps, double kf) {
-      return kOfEpsFormula(eps) >= kf;
-    }
-
-    private static double bracketedBinarySearchForEps(double kf, double lo, double hi) {
-      assert lo < hi;
-      assert epsForKPredicate(lo, kf);
-      assert !epsForKPredicate(hi, kf);
-      if ((hi - lo) / lo < bracketedBinarySearchForEpsTol) {
-        return lo;
-      }
-      double mid = (lo + hi) / 2.0;
-      assert mid > lo;
-      assert mid < hi;
-      if (epsForKPredicate(mid, kf)) {
-        return bracketedBinarySearchForEps(kf, mid, hi);
-      }
-      else {
-        return bracketedBinarySearchForEps(kf, lo, mid);
-      }
-    }
-
-    /**
-     * Finds the theoretical epsilon given K and a fudge factor.
-     * @param k The given value of k
-     * @param ff The given fudge factor. No fudge factor = 1.0. 
-     * @return the resulting epsilon
-     */
-    public static double getTheoreticalEpsilon(int k, double ff) {
-      double kf = k*ff;
-      assert kf >= 2.15; // ensures that the bracketing succeeds
-      assert kf < 1e12;  // ditto, but could actually be bigger
-      double lo = 1e-16;
-      double hi = 1.0 - 1e-16;
-      assert epsForKPredicate(lo, kf);
-      assert !epsForKPredicate(hi, kf);
-      return bracketedBinarySearchForEps(kf, lo, hi);
-    }
-
-    //also used by test
-    /**
-     * From extensive empirical testing we recommend most users use this method for deriving 
-     * epsilon. This uses a fudge factor of 4/3 times the theoretical calculation of epsilon.
-     * @param k the given k
-     * @return the resulting epsilon
-     */
-    public static double getAdjustedEpsilon(int k) {
-      assert k >= 2; // should actually raise invalid input
-      // don't need to check in the other direction because an int is very small
-      return getTheoreticalEpsilon(k, adjustKForEps);
-    }
-  } //End of EpsilonFromK
-  
-  @Override
-  public String toString() {
-    return toString(true, false);
-  }
-  
-  /**
-   * Returns summary information about the sketch. Used for debugging
-   * @param sketchSummary if true includes sketch summary
-   * @param dataDetail if true includes data detail
-   * @return summary information about the sketch.
-   */
-  public String toString(boolean sketchSummary, boolean dataDetail ) {
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
-    
-    if (dataDetail) {
-      sb.append(LS).append("### ").append(thisSimpleName).append(" DATA DETAIL: ").append(LS);
-      double[] levelsArr  = combinedBuffer_;
-      double[] baseBuffer = combinedBuffer_;
-      
-      //output the base buffer
-      sb.append("   BaseBuffer   : ");
-      if (baseBufferCount_ > 0) {
-        for (int i = 0; i < baseBufferCount_; i++) { 
-          sb.append(String.format("%10.1f", baseBuffer[i]));
-        }
-      }
-      sb.append(LS);
-      //output all the levels
-      
-      int items = combinedBufferAllocatedCount_;
-      if (items > 2*k_) {
-        sb.append("   Valid | Level");
-        for (int j = 2*k_; j < items; j++) { //output level data starting at 2K
-          if (j % k_ == 0) { //start output of new level
-            int levelNum = (j > 2*k_)? ((j-2*k_)/k_): 0;
-            String validLvl = (((1L << levelNum) & bitPattern_) > 0L)? "    T  " : "    F  "; 
-            String lvl = String.format("%5d",levelNum);
-            sb.append(LS).append("   ").append(validLvl).append(" ").append(lvl).append(": ");
-          }
-          sb.append(String.format("%10.1f", levelsArr[j]));
-        }
-        sb.append(LS);
-      }
-      sb.append("### END DATA DETAIL").append(LS);
-    }
-    
-    if (sketchSummary) {
-      
-      int numLevels = computeNumLevelsNeeded(k_, n_);
-      
-      int bufBytes = combinedBufferAllocatedCount_ * 8;
-      //includes k, n, min, max, preamble of 8.
-      int preBytes = 4 + 8 + 8 + 8 + 8;
-      double eps = EpsilonFromK.getAdjustedEpsilon(k_);
-      String epsPct = String.format("%.1f%%", eps * 100.0);
-      int numSamples = numValidSamples();
-      sb.append(LS).append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-      sb.append("   K                            : ").append(getK()).append(LS);
-      sb.append("   N                            : ").append(getN()).append(LS);
-      sb.append("   BaseBufferCount              : ").append(getBaseBufferCount()).append(LS);
-      sb.append("   CombinedBufferAllocatedCount : ").append(combinedBufferAllocatedCount_).append(LS);
-      sb.append("   Total Levels                 : ").append(numLevels).append(LS);
-      sb.append("   Valid Levels                 : ").append(numValidLevels()).append(LS);
-      sb.append("   Level Bit Pattern            : ").append(Long.toBinaryString(bitPattern_)).append(LS);
-      sb.append("   Valid Samples                : ").append(numSamples).append(LS);
-      sb.append("   Buffer Storage Bytes         : ").append(String.format("%,d", bufBytes)).append(LS);
-      sb.append("   Preamble Bytes               : ").append(preBytes).append(LS);
-      sb.append("   Normalized Rank Error        : ").append(epsPct).append(LS);
-      sb.append("   Min Value                    : ").append(getMinValue()).append(LS);
-      sb.append("   Max Value                    : ").append(getMaxValue()).append(LS);
-      sb.append("### END SKETCH SUMMARY").append(LS);
-    }
-    
-    return sb.toString();
-  }
-  
-  //static void println(String s) { System.out.println(s); }
-  
 } // End of class QuantilesSketch

@@ -9,7 +9,6 @@ import static java.lang.System.*;
 import java.util.Arrays;
 import java.util.Random;
 
-
 /**
  * This class contains a highly specialized sort called blockyTandemMergeSort ().
  *
@@ -22,10 +21,97 @@ final class Util {
    * The java line separator character as a String.
    */
   public static final String LS = System.getProperty("line.separator");
-  
+
   static Random rand = new Random();
-  
-  
+
+  /**
+   * Computes epsilon from K. The following table are examples.
+   * <code><pre>
+   *           eps      eps from inverted
+   *     K   empirical  adjusted formula
+   *  -------------------------------------
+   *    16   0.121094   0.121454102233560
+   *    32   0.063477   0.063586601346532
+   *    64   0.033081   0.033169048393679
+   *   128   0.017120   0.017248096847308
+   *   256   0.008804   0.008944835012965
+   *   512   0.004509   0.004627803568920
+   *  1024   0.002303   0.002389303789572
+   *
+   *  these could be used in a unit test
+   *  2   0.821714930853465
+   *  16   0.12145410223356
+   *  1024   0.00238930378957284
+   *  1073741824   3.42875166500824e-09
+   * </pre></code>
+   */
+  public static class EpsilonFromK {
+    // the following delta was used while crunching down the empirical results
+    private static final double deltaForEps = 0.01;  
+
+    // this is a heuristic fudge factor that causes the inverted formula to better match the empirical
+    private static final double adjustKForEps = 4.0 / 3.0;  // fudge factor
+
+    // ridiculously fine tolerance given the fudge factor; 1e-3 would probably suffice
+    private static final double bracketedBinarySearchForEpsTol = 1e-15; 
+
+    private static double kOfEpsFormula(double eps) {
+      return (1.0 / eps) * (Math.sqrt(Math.log(1.0 / (eps * deltaForEps))));
+    }
+
+    private static boolean epsForKPredicate(double eps, double kf) {
+      return kOfEpsFormula(eps) >= kf;
+    }
+
+    private static double bracketedBinarySearchForEps(double kf, double lo, double hi) {
+      assert lo < hi;
+      assert epsForKPredicate(lo, kf);
+      assert !epsForKPredicate(hi, kf);
+      if ((hi - lo) / lo < bracketedBinarySearchForEpsTol) {
+        return lo;
+      }
+      double mid = (lo + hi) / 2.0;
+      assert mid > lo;
+      assert mid < hi;
+      if (epsForKPredicate(mid, kf)) {
+        return bracketedBinarySearchForEps(kf, mid, hi);
+      }
+      else {
+        return bracketedBinarySearchForEps(kf, lo, mid);
+      }
+    }
+
+    /**
+     * Finds the theoretical epsilon given K and a fudge factor.
+     * @param k The given value of k
+     * @param ff The given fudge factor. No fudge factor = 1.0. 
+     * @return the resulting epsilon
+     */
+    public static double getTheoreticalEpsilon(int k, double ff) {
+      if (k < 2) throw new IllegalArgumentException("K must be greater than one.");
+      // don't need to check in the other direction because an int is very small
+      double kf = k*ff;
+      assert kf >= 2.15; // ensures that the bracketing succeeds
+      assert kf < 1e12;  // ditto, but could actually be bigger
+      double lo = 1e-16;
+      double hi = 1.0 - 1e-16;
+      assert epsForKPredicate(lo, kf);
+      assert !epsForKPredicate(hi, kf);
+      return bracketedBinarySearchForEps(kf, lo, hi);
+    }
+
+    //also used by test
+    /**
+     * From extensive empirical testing we recommend most users use this method for deriving 
+     * epsilon. This uses a fudge factor of 4/3 times the theoretical calculation of epsilon.
+     * @param k the given k that must be greater than one.
+     * @return the resulting epsilon
+     */
+    public static double getAdjustedEpsilon(int k) {
+      return getTheoreticalEpsilon(k, adjustKForEps);
+    }
+  } //End of EpsilonFromK
+
   // Performs two merges in tandem. One of them provides the sort keys
   // while the other one passively undergoes the same data motion.
   private static void tandemMerge (double [] keySrc, long [] valSrc,
@@ -33,13 +119,11 @@ final class Util {
                                     int arrStart2, int arrLen2,
                                     double [] keyDst, long [] valDst,
                                     int arrStart3) {
-
     int arrStop1 = arrStart1 + arrLen1;
     int arrStop2 = arrStart2 + arrLen2;
 
     int i1 = arrStart1;
     int i2 = arrStart2;
-
     int i3 = arrStart3;
 
     while (i1 < arrStop1 && i2 < arrStop2) {
@@ -64,7 +148,6 @@ final class Util {
       arraycopy(keySrc, i2, keyDst, i3, arrStop2 - i2);
       arraycopy(valSrc, i2, valDst, i3, arrStop2 - i2);
     }
-
   }
 
   // blockyTandemMergeSortRecursion() is called by blockyTandemMergeSort()
@@ -73,10 +156,8 @@ final class Util {
   // It also maps the input's pre-sorted blocks into the subarrays 
   // that are processed by tandemMerge().
   private static void blockyTandemMergeSortRecursion (double [] keySrc, long [] valSrc,
-                                                       double [] keyDst, long [] valDst,
-                                                       int grpStart, int grpLen, /* indices of blocks */
-                                                       int blkSize, int arrLim) {
-
+      double [] keyDst, long [] valDst, int grpStart, int grpLen, /* indices of blocks */
+      int blkSize, int arrLim) {
     // Important note: grpStart and grpLen do NOT refer to positions in the underlying array.
     // Instead, they refer to the pre-sorted blocks, such as block 0, block 1, etc.
 
@@ -114,9 +195,7 @@ final class Util {
                  arrStart2, arrLen2,
                  keyDst, valDst,
                  arrStart1); // which will be arrStart3
-
   }
-
 
   // blockyTandemMergeSort() is an implementation of top-down merge sort specialized
   // for the case where the input contains successive equal-length blocks
@@ -148,9 +227,19 @@ final class Util {
   // Now a couple of helper functions for histogram construction.
 
   // Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, not quadratic.
-  // This subroutine does NOT require the samples to be sorted.
-  static void quadraticTimeIncrementHistogramCounters (double [] samples, int offset, int numSamples, long weight, 
-                                                              double [] splitPoints, long [] counters) {
+  // This method does NOT require the samples to be sorted.
+  /**
+   * Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, 
+   * not quadratic. This method does NOT require the samples to be sorted.
+   * @param samples array of samples
+   * @param offset into samples array
+   * @param numSamples number of samples in samples array
+   * @param weight of the samples
+   * @param splitPoints must be unique and sorted. Number of splitPoints +1 = counters.length.
+   * @param counters array of counters
+   */
+  static void quadraticTimeIncrementHistogramCounters (double[] samples, int offset, 
+      int numSamples, long weight, double[] splitPoints, long[] counters) {
     // samples must be sorted
     // splitPoints must be unique and sorted
     // question: what happens if they aren't unique?
@@ -171,16 +260,23 @@ final class Util {
     }
   }
 
-  /** this one does a linear time simultaneous walk of the samples and splitPoints
-   * It DOES require the samples to be sorted
+  /**
+   * This one does a linear time simultaneous walk of the samples and splitPoints. Because this
+   * internal procedure is called multiple times, we require the caller to ensure these 3 properties:
+   * <ol><li>samples array must be sorted.</li>
+   * <li>splitPoints must be unique and sorted</li>
+   * <li>number of SplitPoints + 1 == counters.length</li>
+   * </ol>
+   * @param samples sorted array of samples
+   * @param offset into samples array
+   * @param numSamples number of samples in samples array
+   * @param weight of the samples
+   * @param splitPoints must be unique and sorted. Number of splitPoints +1 = counters.length.
+   * @param counters array of counters
    */
-  static void linearTimeIncrementHistogramCounters (double [] samples, int offset, int numSamples, 
-                                                    long weight, double [] splitPoints, long [] counters) {
-    // 1) samples must be sorted
-    // 2) splitPoints must be unique and sorted (what happens if they aren't unique?)
-    // 3) numSplitPoints + 1 == counters.length
-    // Because this internal procedure is called multiple times, 
-    // we will require the caller to ensure these 3 properties.
+  static void linearTimeIncrementHistogramCounters (double[] samples, int offset, int numSamples, 
+      long weight, double[] splitPoints, long[] counters) {
+
     int numSplitPoints = splitPoints.length;
 
     int i = 0;
@@ -202,15 +298,14 @@ final class Util {
     if (j == numSplitPoints) {
       counters[numSplitPoints] += (weight * (numSamples - i));
     }
-
   }
 
   // several miscellaneous utility functions
-  
+
   static double lg(double x) {
     return ( Math.log(x)) / (Math.log(2.0) );
   }
-  
+
   /**
    * Zero based position of the highest one-bit of the given long
    * @param num the given long
@@ -219,8 +314,8 @@ final class Util {
   static int hiBitPos(long num) {
     return 63 - Long.numberOfLeadingZeros(num);
   }
- 
-  static int positionOfLowestZeroBitStartingAt (long numIn, int startingPos) {
+
+  static int positionOfLowestZeroBitStartingAt(long numIn, int startingPos) {
     long num = numIn >>> startingPos;
     int pos = 0;
     while ((num & 1L) != 0) {
@@ -230,15 +325,15 @@ final class Util {
     return (pos + startingPos);
   }
 
-  static double sumOfDoublesInArrayPrefix (double [] arr, int prefixLength) {
+  static double sumOfDoublesInArrayPrefix(double[] arr, int prefixLength) {
     double total = 0.0;
     for (int i = 0; i < prefixLength; i++) {
       total += arr[i];
     }
     return total;
   }
-  
-  static double sumOfDoublesInSubArray (double [] arr, int subArrayStart, int subArrayLength) {
+
+  static double sumOfDoublesInSubArray(double[] arr, int subArrayStart, int subArrayLength) {
     double total = 0.0;
     int subArrayStop = subArrayStart + subArrayLength;
     for (int i = subArrayStart; i < subArrayStop; i++) {
@@ -246,15 +341,14 @@ final class Util {
     }
     return total;
   }
-  
-  
-  public static void main(String[] args) {
-    long v = 1;
-    for (int i=0; i<64; i++) {
-      long w = v << i;
-      long w2 = w -1;
-      System.out.println(i+"\t"+Long.toBinaryString(w2)+"\t"+hiBitPos(w2)+"\t"+w2);
-    }
-  }
+
+//  public static void main(String[] args) {
+//    long v = 1;
+//    for (int i=0; i<64; i++) {
+//      long w = v << i;
+//      long w2 = w -1;
+//      System.out.println(i+"\t"+Long.toBinaryString(w2)+"\t"+hiBitPos(w2)+"\t"+w2);
+//    }
+//  }
   
 }

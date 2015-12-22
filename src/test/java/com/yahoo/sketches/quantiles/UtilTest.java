@@ -4,14 +4,51 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static org.testng.Assert.assertEquals;
+import static com.yahoo.sketches.quantiles.Util.*;
 import java.util.Arrays;
-
-//import static org.testng.Assert.*;
 
 import org.testng.annotations.Test;
 
 public class UtilTest {
-
+  
+  @Test
+  public void checkGetAdjustedEpsilon() {
+    double eps = EpsilonFromK.getAdjustedEpsilon(227);
+    assertEquals(eps, .01, .005);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkGetAdjustedEpsilonException() {
+    EpsilonFromK.getAdjustedEpsilon(1);
+  }
+  
+  @Test
+  public void checkLg() {
+    int lgbase2 = (int)lg(4096);
+    assertEquals(lgbase2, 12);
+  }
+  
+  @Test
+  public void checkHiBitPos() {
+    int bitPos = hiBitPos(4096);
+    assertEquals(bitPos, 12);
+  }
+  
+  @Test
+  public void checkSumOfDoublesInArrayPrefix() {
+    double[] arr = {1, 2, 3, 4, 5, 6, 7, 8};
+    double sum = sumOfDoublesInArrayPrefix(arr, 4);
+    assertEquals(sum, 10.0, 0.0);
+  }
+  
+  @Test
+  public void checkSumOfDoublesInSubArray() {
+    double[] arr = {1, 2, 3, 4, 5, 6, 7, 8};
+    double sum = sumOfDoublesInSubArray(arr, 0, 4);
+    assertEquals(sum, 10.0, 0.0);
+  }
+  
   @Test
   public void testPOLZBSA () {
     int [] answers = {9, 8, 7, 7, 7, 4, 4, 4, 1, 1};
@@ -25,9 +62,7 @@ public class UtilTest {
   // a couple of basic unit tests for the histogram construction helper functions.
   @Test
   public void testQuadraticTimeIncrementHistogramCounters () {
-
     double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
-
     {
       double [] splitPoints = {0.25, 0.4};
       long counters [] = {0, 0, 0};
@@ -63,9 +98,6 @@ public class UtilTest {
       }
       // System.out.printf ("\n");
     } 
-
-   //System.out.printf ("Passed: quadraticTimeIncrementHistogramCounters\n");
-
   }
 
   @Test
@@ -107,8 +139,6 @@ public class UtilTest {
       }
       // System.out.printf ("\n");
     } 
-
-   //System.out.printf ("Passed: linearTimeIncrementHistogramCounters\n");
   }
 
   /* need to write tests where there are zero or one splitpoints, and zero samples */
@@ -197,7 +227,7 @@ public class UtilTest {
   * @param numTries number of tries
   * @param maxArrLen maximum length of array size
   */
- public void testBlockyTandemMergeSort (int numTries, int maxArrLen) {
+ private static void testBlockyTandemMergeSort (int numTries, int maxArrLen) {
    for (int arrLen = 0; arrLen <= maxArrLen; arrLen++) {
      for (int blkSize = 1; blkSize <= arrLen + 100; blkSize++) {
        for (int tryno = 1; tryno <= numTries; tryno++) {  
@@ -234,5 +264,4 @@ public class UtilTest {
     }
   }
  
-  
 }

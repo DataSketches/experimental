@@ -18,6 +18,11 @@ public class SerializerDeserializer {
     if (!sketchType.equals(expectedType)) throw new RuntimeException("Sketch Type mismatch. Expected " + expectedType.name() + ", got " + sketchType.name());
   }
 
+  public static void validateType(byte sketchTypeByte, SketchType expectedType) {
+    SketchType sketchType = getSketchType(sketchTypeByte);
+    if (!sketchType.equals(expectedType)) throw new RuntimeException("Sketch Type mismatch. Expected " + expectedType.name() + ", got " + sketchType.name());
+  }
+
   public static SketchType getSketchTypeAbsolute(ByteBuffer buffer) {
     byte sketchTypeByte = buffer.get(TYPE_BYTE_OFFSET);
     return getSketchType(sketchTypeByte);

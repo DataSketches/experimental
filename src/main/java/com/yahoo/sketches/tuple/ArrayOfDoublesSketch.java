@@ -1,12 +1,21 @@
 package com.yahoo.sketches.tuple;
 
-import java.nio.ByteBuffer;
-
 public abstract class ArrayOfDoublesSketch {
 
-  protected long[] keys_;
-  protected double[][] values_;
+  // The concept of being empty is about representing an empty set.
+  // So a sketch can be non-empty, and have no entries.
+  // For example, as a result of a sampling, when some data was presented to the sketch, but no entries were retained.
+  static enum Flags { IS_BIG_ENDIAN, IS_IN_SAMPLING_MODE, IS_EMPTY, HAS_ENTRIES }
+  static final int SIZE_OF_KEY_BYTES = 8;
+  static final int SIZE_OF_VALUE_BYTES = 8;
+  
   protected long theta_;
+  protected int numValues_;
+  protected boolean isEmpty_ = true;
+
+  public abstract int getRetainedEntries();
+  public abstract byte[] toByteArray();
+  public abstract double[][] getValues();
 
   public double getEstimate() {
     if (!isEstimationMode()) return getRetainedEntries();
@@ -23,25 +32,25 @@ public abstract class ArrayOfDoublesSketch {
     return Util.lowerBound(getEstimate(), getTheta(), numStdDev);
   }
 
-  public abstract boolean isEmpty();
+  public boolean isEmpty() {
+    return isEmpty_;
+  }
 
+  public int getNumValues() {
+    return numValues_;
+  }
+  
   public boolean isEstimationMode() {
     return ((theta_ < Long.MAX_VALUE) && !isEmpty());
   }
-
-  public abstract int getRetainedEntries();
 
   public double getTheta() {
     return theta_ / (double) Long.MAX_VALUE;
   }
 
-  public abstract double[][] getValues();
-
-  public abstract ByteBuffer serializeToByteBuffer();
-  // For deserialization there is a convention to have a constructor which takes ByteBuffer
-
   long getThetaLong() {
     return theta_;
   }
 
+  abstract ArrayOfDoublesSketchIterator iterator();
 }

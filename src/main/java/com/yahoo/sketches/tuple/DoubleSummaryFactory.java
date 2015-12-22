@@ -38,6 +38,7 @@ public class DoubleSummaryFactory implements SummaryFactory<DoubleSummary> {
     return new DoubleSummary(buffer);
   }
 
+  @Override
   public ByteBuffer serializeToByteBuffer() {
     return ByteBuffer.allocate(1).order(ByteOrder.nativeOrder()).put((byte)summaryMode_.ordinal());
   }

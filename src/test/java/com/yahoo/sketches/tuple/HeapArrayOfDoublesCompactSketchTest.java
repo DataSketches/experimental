@@ -4,46 +4,15 @@
  */
 package com.yahoo.sketches.tuple;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-public class ArrayOfDoublesCompactSketchTest {
-  //@Test
-  public void emptyFromNonPublicConstructorNullArray() {
-    ArrayOfDoublesCompactSketch sketch = new ArrayOfDoublesCompactSketch(null, null, Long.MAX_VALUE);
-    Assert.assertTrue(sketch.isEmpty());
-    Assert.assertFalse(sketch.isEstimationMode());
-    Assert.assertEquals(sketch.getEstimate(), 0.0);
-    Assert.assertEquals(sketch.getLowerBound(1), 0.0);
-    Assert.assertEquals(sketch.getUpperBound(1), 0.0);
-    Assert.assertEquals(sketch.getRetainedEntries(), 0);
-    Assert.assertEquals(sketch.getThetaLong(), Long.MAX_VALUE);
-    Assert.assertEquals(sketch.getTheta(), 1.0);
-    Assert.assertNull(sketch.getValues());
-  }
+import com.yahoo.sketches.memory.NativeMemory;
 
-  @Test
-  public void emptyFromNonPublicConstructor() {
-    long[] keys = new long[0];
-    double[][] values = new double[0][0];
-    ArrayOfDoublesCompactSketch sketch = new ArrayOfDoublesCompactSketch(keys, values, Long.MAX_VALUE);
-    Assert.assertTrue(sketch.isEmpty());
-    Assert.assertFalse(sketch.isEstimationMode());
-    Assert.assertEquals(sketch.getEstimate(), 0.0);
-    Assert.assertEquals(sketch.getLowerBound(1), 0.0);
-    Assert.assertEquals(sketch.getUpperBound(1), 0.0);
-    Assert.assertEquals(sketch.getRetainedEntries(), 0);
-    Assert.assertEquals(sketch.getThetaLong(), Long.MAX_VALUE);
-    Assert.assertEquals(sketch.getTheta(), 1.0);
-    Assert.assertNull(sketch.getValues());
-  }
-
+public class HeapArrayOfDoublesCompactSketchTest {
   @Test
   public void emptyFromQuickSelectSketch() {
-    UpdatableArrayOfDoublesQuickSelectSketch qss = new UpdatableArrayOfDoublesQuickSelectSketch(8, 1);
+    UpdatableArrayOfDoublesSketch qss = new HeapArrayOfDoublesQuickSelectSketch(8, 1);
     ArrayOfDoublesCompactSketch sketch = qss.compact();
     Assert.assertTrue(sketch.isEmpty());
     Assert.assertFalse(sketch.isEstimationMode());
@@ -53,12 +22,13 @@ public class ArrayOfDoublesCompactSketchTest {
     Assert.assertEquals(sketch.getRetainedEntries(), 0);
     Assert.assertEquals(sketch.getThetaLong(), Long.MAX_VALUE);
     Assert.assertEquals(sketch.getTheta(), 1.0);
-    Assert.assertNull(sketch.getValues());
+    Assert.assertNotNull(sketch.getValues());
+    Assert.assertEquals(sketch.getValues().length, 0);
   }
 
   @Test
   public void exactModeFromQuickSelectSketch() {
-    UpdatableArrayOfDoublesQuickSelectSketch qss = new UpdatableArrayOfDoublesQuickSelectSketch(8, 1);
+    UpdatableArrayOfDoublesSketch qss = new HeapArrayOfDoublesQuickSelectSketch(8, 1);
     qss.update(1, new double[] {1.0});
     qss.update(2, new double[] {1.0});
     qss.update(3, new double[] {1.0});
@@ -81,15 +51,12 @@ public class ArrayOfDoublesCompactSketchTest {
 
   @Test
   public void serializeDeserializeSmallExact() {
-    UpdatableArrayOfDoublesQuickSelectSketch qss = new UpdatableArrayOfDoublesQuickSelectSketch(32, 1);
+    UpdatableArrayOfDoublesSketch qss = new HeapArrayOfDoublesQuickSelectSketch(32, 1);
     qss.update("a", new double[] {1.0});
     qss.update("b", new double[] {1.0});
     qss.update("c", new double[] {1.0});
     ArrayOfDoublesCompactSketch sketch1 = qss.compact();
-    ByteBuffer buffer = sketch1.serializeToByteBuffer();
-    Assert.assertTrue(buffer.order().equals(ByteOrder.nativeOrder()));
-    buffer.rewind();
-    ArrayOfDoublesCompactSketch sketch2 = new ArrayOfDoublesCompactSketch(buffer);
+    ArrayOfDoublesCompactSketch sketch2 = new HeapArrayOfDoublesCompactSketch(new NativeMemory(sketch1.toByteArray()));
     Assert.assertFalse(sketch2.isEmpty());
     Assert.assertFalse(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate(), 3.0);
@@ -105,10 +72,10 @@ public class ArrayOfDoublesCompactSketchTest {
 
   @Test
   public void serializeDeserializeEstimation() {
-    UpdatableArrayOfDoublesQuickSelectSketch qss = new UpdatableArrayOfDoublesQuickSelectSketch(4096, 1);
+    UpdatableArrayOfDoublesSketch qss = new HeapArrayOfDoublesQuickSelectSketch(4096, 1);
     for (int i = 0; i < 8192; i++) qss.update(i, new double[] {1.0});
     ArrayOfDoublesCompactSketch sketch1 = qss.compact();
-    ArrayOfDoublesCompactSketch sketch2 = new ArrayOfDoublesCompactSketch((ByteBuffer)sketch1.serializeToByteBuffer().rewind());
+    ArrayOfDoublesCompactSketch sketch2 = new HeapArrayOfDoublesCompactSketch(new NativeMemory(sketch1.toByteArray()));
     Assert.assertFalse(sketch2.isEmpty());
     Assert.assertTrue(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate(), sketch1.getEstimate());

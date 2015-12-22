@@ -4,32 +4,34 @@
  */
 package com.yahoo.sketches.quantiles;
 
+//import static com.yahoo.sketches.quantiles.Util.*;
+//import static com.yahoo.sketches.quantiles.QuantilesSketch.*;
 import org.testng.annotations.Test;
-import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.*;
 
-@SuppressWarnings("cast")
+//@SuppressWarnings("cast")
 public class QuantilesSketchTest { 
 
   @Test
-    public void testAdjustedFindEpsForK () {
+    public void checkGetAdjustedEpsilon() {
     // note: there is a big fudge factor in these numbers, so they don't need to be computed exactly
     double absTol = 1e-14; // we just want to catch gross bugs
-    int [] kArr = {2,16,1024,1 << 30};
-    double [] epsArr = { // these were computed by an earlier ocaml version of the function
+    int[] kArr = {2,16,1024,1 << 30};
+    double[] epsArr = { // these were computed by an earlier ocaml version of the function
       0.821714930853465,
       0.12145410223356,
       0.00238930378957284,
       3.42875166500824e-09 };
     for (int i = 0; i < 4; i++) {
       assertEquals(epsArr[i], 
-                   QuantilesSketch.EpsilonFromK.adjustedFindEpsForK (kArr[i]),
+                   QuantilesSketch.EpsilonFromK.getAdjustedEpsilon(kArr[i]),
                    absTol,
                    "adjustedFindEpsForK() doesn't match precomputed value");
     }
     for (int i = 0; i < 3; i++) {
-      QuantilesSketch mq = new QuantilesSketch (kArr[i]);
+      QuantilesSketch mq = new QuantilesSketch(kArr[i]);
       assertEquals(epsArr[i], 
-                   mq.getNormalizedCountError(),
+                   mq.getNormalizedRankError(),
                    absTol,
                    "getNormalizedCountError() doesn't match precomputed value");
     }
@@ -39,90 +41,90 @@ public class QuantilesSketchTest {
   // The probability of failure could be reduced by increasing k.
   // Actually, setting the seed has now made it deterministic.
   @Test
-  public void endToEndTest6 () {
+  public void checkEndToEnd() {
 
-    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic
+    Util.rand.setSeed(917351); // arbitrary seed that makes this test deterministic
 
-    QuantilesSketch mq  = new QuantilesSketch (256);
-    QuantilesSketch mq2 = new QuantilesSketch (256);
+    QuantilesSketch qs  = new QuantilesSketch(256);
+    QuantilesSketch qs2 = new QuantilesSketch(256);
 
     for (int item = 1000000; item >= 1; item--) {
       if (item % 4 == 0) {
-        mq.update ((double) item);
+        qs.update(item);
       }
       else {
-        mq2.update ((double) item);
+        qs2.update(item);
       }
     }
 
-    QuantilesSketch.mergeInto (mq, mq2);
+    QuantilesSketch.mergeInto(qs2, qs);
 
     int numPhiValues = 99;
-    double [] phiArr = new double [numPhiValues];
+    double[] phiArr = new double[numPhiValues];
     for (int q = 1; q <= 99; q++) {
-      phiArr[q-1] = ((double) q) / 100.0;
+      phiArr[q-1] = q / 100.0;
     }
-    double [] splitPoints = mq.getQuantiles (phiArr);
+    double[] splitPoints = qs.getQuantiles(phiArr);
 
     /*
     for (int i = 0; i < 99; i++) {
-      System.out.printf ("%d\t%.6f\t%.6f\n", i, phiArr[i], splitPoints[i]);
+      System.out.printf("%d\t%.6f\t%.6f\n", i, phiArr[i], splitPoints[i]);
     }
     */
 
     for (int q = 1; q <= 99; q++) {
-      double nominal = 1e6 * ((double) q) / 100.0;
+      double nominal = 1e6 * q / 100.0;
       double reported = splitPoints[q-1];
       assert reported >= nominal - 10000.0;
       assert reported <= nominal + 10000.0;
     }
 
-    double [] pdfResult = mq.getPDF (splitPoints);
+    double[] pdfResult = qs.getPDF(splitPoints);
     double subtotal = 0.0;
     for (int q = 1; q <= 99; q++) {
-      double phi = ((double) q) / 100.0;
+      double phi = q / 100.0;
       subtotal += pdfResult[q-1];
       assert subtotal >= phi - 0.01;
       assert subtotal <= phi + 0.01;
     }
     // should probably assert that the pdf sums to 1.0
 
-    double [] cdfResult = mq.getCDF (splitPoints);
+    double[] cdfResult = qs.getCDF(splitPoints);
     for (int q = 1; q <= 99; q++) {
-      double phi = ((double) q) / 100.0;
+      double phi = q / 100.0;
       subtotal = cdfResult[q-1];
       assert subtotal >= phi - 0.01;
       assert subtotal <= phi + 0.01;
     }
     // should probably assert that the final cdf value is 1.0
 
-    //System.out.printf ("Passed: endToEndTest()\n");
+    //System.out.printf("Passed: endToEndTest()\n");
   }
 
 
   @Test
-  public void testConstructAuxiliary6 () {
+  public void checkConstructAuxiliary() {
     for (int k = 1; k <= 32; k+= 31) {
-      QuantilesSketch mq = new QuantilesSketch (k);
+      QuantilesSketch qs = new QuantilesSketch(k);
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
-        Auxiliary au = mq.constructAuxiliary ();
-        int numSamples = mq.numSamplesInSketch ();
-        double [] auxItems = au.auxSamplesArr_;
-        long [] auxAccum = au.auxCumWtsArr_;
+        Auxiliary au = qs.constructAuxiliary();
+        int numSamples = qs.numValidSamples();
+        double[] auxItems = au.auxSamplesArr_;
+        long[] auxAccum = au.auxCumWtsArr_;
 
-        assert mq.getK() == au.auxK_;
-        assert mq.getN() == au.auxN_;
+        assert qs.getK() == au.auxK_;
+        assert qs.getN() == au.auxN_;
         assert numItemsSoFar == au.auxN_;
 
         assert auxItems.length == numSamples;
         assert auxAccum.length == numSamples + 1;
 
-        double mqSumOfSamples = mq.sumOfSamplesInSketch ();
-        double auSumOfSamples = Util.sumOfDoublesInSubArray (auxItems, 0, numSamples);
+        double mqSumOfSamples = qs.sumOfSamplesInSketch();
+        double auSumOfSamples = Util.sumOfDoublesInSubArray(auxItems, 0, numSamples);
 
         // the following test might be able to detect errors in handling the samples
         // e.g. accidentally dropping or duplicating a sample
-        assert (Math.floor(0.5 + mqSumOfSamples)) == (Math.floor(0.5 + auSumOfSamples));
+        assert Math.floor(0.5 + mqSumOfSamples) == Math.floor(0.5 + auSumOfSamples);
 
         // the following test might be able to detect errors in handling the sample weights
         assert auxAccum[numSamples] == numItemsSoFar;
@@ -134,7 +136,7 @@ public class QuantilesSketchTest {
 
         // This is a better test when the items are inserted in reverse order
         // as follows, but the negation seems kind of awkward.
-        mq.update (-1.0 * ((double) (numItemsSoFar + 1)));
+        qs.update (-1.0 * (numItemsSoFar + 1) );
 
       } // end of loop over test stream
 
@@ -143,7 +145,7 @@ public class QuantilesSketchTest {
     //    System.out.printf ("Passed: testConstructAuxiliary6()\n");
   }
 
-  public void auxVersusAux6 () {
+  public void auxVersusAux6 () { //TODO Depends on both MQS and QS
     double phi_inverse = (Math.sqrt(5.0) - 1.0) / 2.0;
     double bouncy = phi_inverse;
 
@@ -186,14 +188,14 @@ public class QuantilesSketchTest {
   }
 
   @Test
-  public void bigTestMinMax6 () {
+  public void checkBigMinMax () {
     QuantilesSketch mq1  = new QuantilesSketch (32);
     QuantilesSketch mq2  = new QuantilesSketch (32);
     QuantilesSketch mq3  = new QuantilesSketch (32);
     for (int i = 999; i >= 1; i--) {
-      mq1.update ((double) i);
-      mq2.update ((double) (1000+i));
-      mq3.update ((double) i);
+      mq1.update(i);
+      mq2.update(1000+i);
+      mq3.update(i);
     }
     assert (mq1.getQuantile (0.0) == 1.0);
     assert (mq1.getQuantile (1.0) == 999.0);
@@ -204,36 +206,35 @@ public class QuantilesSketchTest {
     assert (mq3.getQuantile (0.0) == 1.0);
     assert (mq3.getQuantile (1.0) == 999.0);
 
-    double [] queries = {0.0, 1.0};
+    double[] queries = {0.0, 1.0};
 
-    double [] resultsA = mq1.getQuantiles(queries);
+    double[] resultsA = mq1.getQuantiles(queries);
     assert (resultsA[0] == 1.0);
     assert (resultsA[1] == 999.0);
 
-    QuantilesSketch.mergeInto (mq1, mq2);
-    QuantilesSketch.mergeInto (mq2, mq3);
+    QuantilesSketch.mergeInto (mq2, mq1);
+    QuantilesSketch.mergeInto (mq3, mq2);
 
-    double [] resultsB = mq1.getQuantiles(queries);
+    double[] resultsB = mq1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
     assert (resultsB[1] == 1999.0);
 
-    double [] resultsC = mq2.getQuantiles(queries);
+    double[] resultsC = mq2.getQuantiles(queries);
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 1999.0);
 
     //    System.out.printf ("Passed: bigTestMinMax6\n");
   }
 
-
   @Test
-  public void smallTestMinMax6 () {
+  public void checkSmallMinMax () {
     QuantilesSketch mq1  = new QuantilesSketch (32);
     QuantilesSketch mq2  = new QuantilesSketch (32);
     QuantilesSketch mq3  = new QuantilesSketch (32);
     for (int i = 8; i >= 1; i--) {
-      mq1.update ((double) i);
-      mq2.update ((double) (10+i));
-      mq3.update ((double) i);
+      mq1.update(i);
+      mq2.update(10+i);
+      mq3.update(i);
     }
     assert (mq1.getQuantile (0.0) == 1.0);
     assert (mq1.getQuantile (0.5) == 5.0);
@@ -247,28 +248,91 @@ public class QuantilesSketchTest {
     assert (mq3.getQuantile (0.5) == 5.0);
     assert (mq3.getQuantile (1.0) == 8.0);
 
-    double [] queries = {0.0, 0.5, 1.0};
+    double[] queries = {0.0, 0.5, 1.0};
 
-    double [] resultsA = mq1.getQuantiles(queries);
+    double[] resultsA = mq1.getQuantiles(queries);
     assert (resultsA[0] == 1.0);
     assert (resultsA[1] == 5.0);
     assert (resultsA[2] == 8.0);
 
-    QuantilesSketch.mergeInto (mq1, mq2);
-    QuantilesSketch.mergeInto (mq2, mq3);
+    QuantilesSketch.mergeInto (mq2, mq1);
+    QuantilesSketch.mergeInto (mq3, mq2);
 
-    double [] resultsB = mq1.getQuantiles(queries);
+    double[] resultsB = mq1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
     assert (resultsB[1] == 11.0);
     assert (resultsB[2] == 18.0);
 
-    double [] resultsC = mq2.getQuantiles(queries);
+    double[] resultsC = mq2.getQuantiles(queries);
     assert (resultsC[0] == 1.0);
     assert (resultsC[1] == 11.0);
     assert (resultsC[2] == 18.0);
 
     //    System.out.printf ("Passed: smallTestMinMax6\n");
   }
+  
+  @Test
+  public void checkToString() {
+    int k = 256;
+    QuantilesSketch qs = new QuantilesSketch(k);
+    
+    int n = 1000000;
+    for (int i=1; i<=n; i++) {
+      qs.update(i);
+    }
+    println(qs.toString(true, true));
+  }
+  
+  @Test
+  public void checkQuantilesSimple() {
+    int k = 256;
+    QuantilesSketch qs = new QuantilesSketch(k);
+    int n = 1000000;
+    int start = 0;
+    for (int i=0; i<n; i++) {
+      qs.update(start + i);
+    }
+    //println(qs.toString(true, true));
+    
+    double rankError = qs.getNormalizedRankError();
+    
+    double[] ranks = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    double[] values = qs.getQuantiles(ranks);
+    double maxV = qs.getMaxValue();
+    double minV = qs.getMinValue();
+    double delta = maxV - minV;
+    println("This prints the relative value errors for illustration.");
+    println("The sketch does not and can not guarantee relative value errors, period!");
+    for (int i=0; i<ranks.length; i++) {
+      double rank = ranks[i];
+      double value = values[i];
+      if (rank == 0.0) { assertEquals(value, minV, 0.0); }
+      else if (rank == 1.0) { assertEquals(value, maxV, 0.0); }
+      else {
+        double rankUB = rank + rankError;
+        double valueUB = minV + delta*rankUB;
+        double rankLB = Math.max(rank - rankError, 0.0);
+        double valueLB = minV + delta*rankLB;
+        assertTrue(value < valueUB);
+        assertTrue(value > valueLB);
 
-
+        double valRelPctErrUB = valueUB/ value -1.0;
+        double valRelPctErrLB = valueLB/ value -1.0;
+        println(valueLB+" <= "+value+" <= "+valueUB+", UBerr: "+ valRelPctErrUB+", LBer: "+valRelPctErrLB);
+      }
+    }
+  }
+  
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+  
+  /**
+   * @param s value to print 
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
+  
 }

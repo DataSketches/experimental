@@ -12,7 +12,7 @@ public class MergeableQuantileSketchTest {
   /* the cost of testing for k is k^2, */
  
   @Test
-  public void regressionTestMergeableQuantileSketchStructureAfterUpdates () {
+  public void regressionTestMergeableQuantileSketchStructureAfterUpdates() {
     for (int k = 1; k <= 100; k++) { // was 300
       long longK = (long) k;
       MergeableQuantileSketch mq = new MergeableQuantileSketch (k);
@@ -44,7 +44,7 @@ public class MergeableQuantileSketchTest {
             mq2.update (Math.random ());            
           }
 
-          MergeableQuantileSketch.mergeInto (mq1, mq2);
+          MergeableQuantileSketch.mergeInto (mq2, mq1);
 
           MergeableQuantileSketch.validateMergeableQuantileSketchStructure (mq1, k, n1 + n2);
 
@@ -119,7 +119,7 @@ public class MergeableQuantileSketchTest {
       }
     }
 
-    MergeableQuantileSketch.mergeInto (mq, mq2);
+    MergeableQuantileSketch.mergeInto (mq2, mq);
 
     int numPhiValues = 99;
     double [] phiArr = new double [numPhiValues];
@@ -188,8 +188,8 @@ public class MergeableQuantileSketchTest {
     assert (resultsA[0] == 1.0);
     assert (resultsA[1] == 999.0);
 
-    MergeableQuantileSketch.mergeInto (mq1, mq2);
-    MergeableQuantileSketch.mergeInto (mq2, mq3);
+    MergeableQuantileSketch.mergeInto (mq2, mq1);
+    MergeableQuantileSketch.mergeInto (mq3, mq2);
 
     double [] resultsB = mq1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
@@ -232,8 +232,8 @@ public class MergeableQuantileSketchTest {
     assert (resultsA[1] == 5.0);
     assert (resultsA[2] == 8.0);
 
-    MergeableQuantileSketch.mergeInto (mq1, mq2);
-    MergeableQuantileSketch.mergeInto (mq2, mq3);
+    MergeableQuantileSketch.mergeInto (mq2, mq1);
+    MergeableQuantileSketch.mergeInto (mq3, mq2);
 
     double [] resultsB = mq1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
@@ -258,10 +258,10 @@ public class MergeableQuantileSketchTest {
     mqst.endToEndTest ();
 
     QuantilesSketchTest mq6t = new QuantilesSketchTest();
-    mq6t.endToEndTest6 ();
-    mq6t.testConstructAuxiliary6 ();
-    mq6t.bigTestMinMax6 ();   
-    mq6t.smallTestMinMax6 ();   
+    mq6t.checkEndToEnd ();
+    mq6t.checkConstructAuxiliary ();
+    mq6t.checkBigMinMax ();   
+    mq6t.checkSmallMinMax ();   
     mq6t.auxVersusAux6 ();
 
     UtilTest utest = new UtilTest();

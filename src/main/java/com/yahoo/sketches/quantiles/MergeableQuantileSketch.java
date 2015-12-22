@@ -116,11 +116,10 @@ public class MergeableQuantileSketch {
 
  /**
   * Modifies the target sketch by merging the source sketch into it.
-  * @param mqTarget The target sketch
   * @param mqSource The source sketch
+  * @param mqTarget The target sketch
   */
-  //TODO the source and target order need to be reversed.
-  public static void mergeInto(MergeableQuantileSketch mqTarget, MergeableQuantileSketch mqSource) {  
+  public static void mergeInto(MergeableQuantileSketch mqSource, MergeableQuantileSketch mqTarget) {  
     if ( mqTarget.k_ != mqSource.k_) throw new IllegalArgumentException(
         "Given sketches must have the same value of k.");
 

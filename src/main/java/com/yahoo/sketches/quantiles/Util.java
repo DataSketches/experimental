@@ -18,6 +18,11 @@ import java.util.Random;
  */
 final class Util { 
 
+  /**
+   * The java line separator character as a String.
+   */
+  public static final String LS = System.getProperty("line.separator");
+  
   static Random rand = new Random();
   
   

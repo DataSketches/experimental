@@ -13,15 +13,19 @@ import java.util.Arrays;
  * journal version of the paper "Mergeable Summaries" by Agarwal, Cormode, Huang, Phillips, Wei, 
  * and Yi.
  * 
- * This algorithm intentionally inserts randomness into the process that selects the values that
- * ultimately get retained in the sketch. The consequence of this is that this algorithm is not 
- * deterministic. I.e., if the same exact stream with the same ordering is inserted into two 
- * different instances of this sketch, the answers obtained from the two sketches may not be 
- * exactly the same but both will be within the error tolerances for the sketch.
+ * <p>This algorithm intentionally inserts randomness into the sampling process for values that
+ * ultimately get retained in the sketch. The result is that this algorithm is not 
+ * deterministic. I.e., if the same stream is inserted into two different instances of this sketch, 
+ * the answers obtained from the two sketches may not be be identical, but both will be within the 
+ * error tolerances for the sketch.</p>
  * 
- * Similarly, there may be directional inconsistencies. For example, the resulting array of values
+ * <p>Similarly, there may be directional inconsistencies. For example, the resulting array of values
  * obtained from getQuantiles(fractions[]) input into the reverse directional query 
- * getPDF(splitPoints[]) may not result in the same fractional values.
+ * getPDF(splitPoints[]) may not result in the original fractional values.</p>
+ * 
+ * //TODO Discuss Error?
+ * 
+ * 
  * 
  * @author Kevin Lang
  * @author Lee Rhodes
@@ -53,7 +57,7 @@ public class QuantilesSketch {
   private double maxValue_;
 
   /**
-   * Number of samples currently in base buffer. Can be computed from K and N: 
+   * Number of samples currently in base buffer.
    * 
    * Count = N % (2*K)
    */
@@ -72,7 +76,7 @@ public class QuantilesSketch {
    * Also, in the off-heap version, combinedBuffer_ won't even be a java array,
    * so it won't know its own length.
    */
-  private int allocatedBufferSpace_;
+  private int combinedBufferAllocatedCount_;
 
   /**
    * This single array contains the base buffer plus all levels some of which are empty.
@@ -93,13 +97,27 @@ public class QuantilesSketch {
     if (k <= 0) throw new IllegalArgumentException("K must be greater than zero");
     k_ = k;
     n_ = 0;
-    allocatedBufferSpace_ = Math.min(MIN_BASE_BUF_SIZE,2*k); //the min is important
-    combinedBuffer_ = new double[allocatedBufferSpace_];
+    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k); //the min is important
+    combinedBuffer_ = new double[combinedBufferAllocatedCount_];
     baseBufferCount_ = 0;
+    bitPattern_ = 0;
     minValue_ = java.lang.Double.POSITIVE_INFINITY;
     maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
   }
 
+  /**
+   * Resets this sketch to all zeros, but retains the original value of k.
+   */
+  public void reset() {
+    n_ = 0;
+    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k_); //the min is important
+    combinedBuffer_ = new double[combinedBufferAllocatedCount_];
+    baseBufferCount_ = 0;
+    bitPattern_ = 0;
+    minValue_ = java.lang.Double.POSITIVE_INFINITY;
+    maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
+  }
+  
   /** 
    * Updates this sketch with the given double data item
    * @param dataItem an item from a stream of items.  NaNs are ignored.
@@ -111,7 +129,7 @@ public class QuantilesSketch {
     if (dataItem > maxValue_) { maxValue_ = dataItem; }   // benchmarks faster than Math.max()
     if (dataItem < minValue_) { minValue_ = dataItem; }
 
-    if (baseBufferCount_+1 > allocatedBufferSpace_) {
+    if (baseBufferCount_+1 > combinedBufferAllocatedCount_) {
       growBaseBuffer();
     } 
     combinedBuffer_[baseBufferCount_++] = dataItem;
@@ -121,6 +139,14 @@ public class QuantilesSketch {
     }
   }
 
+  /**
+   * Merges the given sketch into this one
+   * @param qsSource the given source sketch
+   */
+  public void merge(QuantilesSketch qsSource) {
+    mergeInto(qsSource, this);
+  }
+  
   // It is easy to prove that the following simplified code which launches 
   // multiple waves of carry propagation does exactly the same amount of merging work
   // (including the work of allocating fresh buffers) as the more complicated and 
@@ -134,12 +160,11 @@ public class QuantilesSketch {
   // merging work, which is identical in the two approaches.
 
  /**
-  * Modifies the target sketch by merging the source sketch into it.
-  * @param qsTarget The target sketch
+  * Modifies the source sketch into the target sketch.
   * @param qsSource The source sketch
+  * @param qsTarget The target sketch
   */
-  //TODO the source and target order need to be reversed.
-  public static void mergeInto(QuantilesSketch qsTarget, QuantilesSketch qsSource) {
+  public static void mergeInto(QuantilesSketch qsSource, QuantilesSketch qsTarget) {
     if ( qsTarget.k_ != qsSource.k_) 
       throw new IllegalArgumentException("Given sketches must have the same value of k.");
 
@@ -150,10 +175,10 @@ public class QuantilesSketch {
     long nFinal = qsTarget.getN() + qsSource.getN();
     
     for (int i = 0; i < qsSource.baseBufferCount_; i++) {
-      qsTarget.update (srcBaseBuffer[i]);
+      qsTarget.update(srcBaseBuffer[i]);
     }
 
-    qsTarget.maybeGrowLevels (nFinal); 
+    qsTarget.maybeGrowLevels(nFinal); 
 
     double[] scratchBuf = new double[2*tgtK];
 
@@ -161,7 +186,7 @@ public class QuantilesSketch {
     assert srcBits == qsSource.getN() / (2L * qsSource.getK());
     for (int srcLvl = 0; srcBits != 0L; srcLvl++, srcBits >>>= 1) {
       if ((srcBits & 1L) > 0L) {
-        qsTarget.inPlacePropagateCarry (srcLvl,
+        qsTarget.inPlacePropagateCarry(srcLvl,
                                    srcLevels, ((2+srcLvl) * tgtK),
                                    scratchBuf, 0,
                                    false);
@@ -207,8 +232,8 @@ public class QuantilesSketch {
     if      (fraction == 0.0) { return minValue_; }
     else if (fraction == 1.0) { return maxValue_; }
     else {
-      Auxiliary aux = this.constructAuxiliary ();
-      return (aux.getQuantile (fraction));
+      Auxiliary aux = this.constructAuxiliary();
+      return aux.getQuantile (fraction);
     }
   }
 
@@ -226,9 +251,9 @@ public class QuantilesSketch {
    * 
    * @return array of approximations to the given fractions in the same order as given fractions array. 
    */
-  public double[] getQuantiles(double [] fractions) {
+  public double[] getQuantiles(double[] fractions) {
     Auxiliary aux = null;
-    double [] answers = new double [fractions.length];
+    double[] answers = new double[fractions.length];
     for (int i = 0; i < fractions.length; i++) {
       double fraction = fractions[i];
       if ((fraction < 0.0) || (fraction > 1.0)) {
@@ -237,11 +262,11 @@ public class QuantilesSketch {
       if      (fraction == 0.0) { answers[i] = minValue_; }
       else if (fraction == 1.0) { answers[i] = maxValue_; }
       else {
-        if (aux == null) aux = this.constructAuxiliary ();
-        answers[i] = aux.getQuantile (fraction);
+        if (aux == null) aux = this.constructAuxiliary();
+        answers[i] = aux.getQuantile(fraction);
       }
     }
-    return (answers);
+    return answers;
   }
 
   /**
@@ -264,9 +289,9 @@ public class QuantilesSketch {
    * splitPoint.
    */
   public double[] getPDF(double[] splitPoints) {
-    long [] counters = internalBuildHistogram (splitPoints);
+    long[] counters = internalBuildHistogram(splitPoints);
     int numCounters = counters.length;
-    double [] result = new double [numCounters];
+    double[] result = new double[numCounters];
     double n = n_;
     long subtotal = 0;
     for (int j = 0; j < numCounters; j++) { 
@@ -274,7 +299,7 @@ public class QuantilesSketch {
       subtotal += count;
       result[j] = count / n;
     }
-    assert (subtotal == n); //internal consistency check
+    assert subtotal == n; //internal consistency check
     return result;
   }
 
@@ -291,9 +316,9 @@ public class QuantilesSketch {
    * @return an approximation to the CDF of the input stream given the splitPoints.
    */
   public double[] getCDF(double[] splitPoints) {
-    long [] counters = internalBuildHistogram (splitPoints);
+    long[] counters = internalBuildHistogram(splitPoints);
     int numCounters = counters.length;
-    double [] result = new double [numCounters];
+    double[] result = new double[numCounters];
     double n = n_;
     long subtotal = 0;
     for (int j = 0; j < numCounters; j++) { 
@@ -301,16 +326,16 @@ public class QuantilesSketch {
       subtotal += count;
       result[j] = subtotal / n;
     }
-    assert (subtotal == n); //internal consistency check
+    assert subtotal == n; //internal consistency check
     return result;
   }
   
   /**
-   * Get the count (or rank) error normalized as a fraction between zero and one.
-   * @return the count (or rank) error normalized as a fraction between zero and one.
+   * Get the rank error normalized as a fraction between zero and one.
+   * @return the rank error normalized as a fraction between zero and one.
    */
-  public double getNormalizedCountError() {
-    return EpsilonFromK.adjustedFindEpsForK(k_);
+  public double getNormalizedRankError() {
+    return EpsilonFromK.getAdjustedEpsilon(k_);
   }
 
   /**
@@ -319,6 +344,22 @@ public class QuantilesSketch {
    */
   public long getStreamLength() {
     return n_;
+  }
+  
+  /**
+   * Returns the min value of the stream
+   * @return the min value of the stream
+   */
+  public double getMinValue() {
+    return minValue_;
+  }
+  
+  /**
+   * Returns the max value of the stream
+   * @return the max value of the stream
+   */
+  public double getMaxValue() {
+    return maxValue_;
   }
   
   //Restricted
@@ -353,34 +394,34 @@ public class QuantilesSketch {
   }
 
   private void growBaseBuffer() {
-    double [] mqBaseBuffer = combinedBuffer_;
-    int oldSize = allocatedBufferSpace_;
-    assert (oldSize < 2 * k_);
-    int newSize = Math.max (Math.min (2*k_, 2*oldSize), 1);
-    allocatedBufferSpace_ = newSize;
-    double [] newBuf = Arrays.copyOf (mqBaseBuffer, newSize);
-    // just while debugging   //TODO confirm w/ Kevin
+    double[] mqBaseBuffer = combinedBuffer_;
+    int oldSize = combinedBufferAllocatedCount_;
+    assert oldSize < 2 * k_;
+    int newSize = Math.max(Math.min(2*k_, 2*oldSize), 1);
+    combinedBufferAllocatedCount_ = newSize;
+    double[] newBuf = Arrays.copyOf(mqBaseBuffer, newSize);
+    // just while debugging
     //for (int i = oldSize; i < newSize; i++) {newBuf[i] = DUMMY_VALUE;}
     combinedBuffer_ = newBuf;
   }
 
   private void maybeGrowLevels(long newN) {     // important: newN might not equal n_
-    int numLevelsNeeded = computeNumLevelsNeeded (k_, newN);
+    int numLevelsNeeded = computeNumLevelsNeeded(k_, newN);
     if (numLevelsNeeded == 0) {
       return; // don't need any levels yet, and might have small base buffer; this can happen during a merge
     }
     // from here on we need a full-size base buffer and at least one level
-    assert (newN >= 2L * k_);
-    assert (numLevelsNeeded > 0); 
+    assert newN >= 2L * k_;
+    assert numLevelsNeeded > 0; 
     int spaceNeeded = (2 + numLevelsNeeded) * k_;
-    if (spaceNeeded <= allocatedBufferSpace_) {
+    if (spaceNeeded <= combinedBufferAllocatedCount_) {
       return;
     }
-    double[] newCombinedBuffer = Arrays.copyOf (combinedBuffer_, spaceNeeded); // copies base buffer plus old levels
-    //    just while debugging   //TODO confirm w/ Kevin
-    //for (int i = allocatedBufferSpace_; i < spaceNeeded; i++) {newCombinedBuffer[i] = DUMMY_VALUE;}
+    double[] newCombinedBuffer = Arrays.copyOf(combinedBuffer_, spaceNeeded); // copies base buffer plus old levels
+    //    just while debugging
+    //for (int i = combinedBufferAllocatedCount_; i < spaceNeeded; i++) {newCombinedBuffer[i] = DUMMY_VALUE;}
 
-    allocatedBufferSpace_ = spaceNeeded;
+    combinedBufferAllocatedCount_ = spaceNeeded;
     combinedBuffer_ = newCombinedBuffer;
   }
 
@@ -439,7 +480,7 @@ public class QuantilesSketch {
 
     double[] mqLevels = combinedBuffer_;
 
-    int endingLevel = positionOfLowestZeroBitStartingAt (bitPattern_, startingLevel);
+    int endingLevel = positionOfLowestZeroBitStartingAt(bitPattern_, startingLevel);
     //    assert endingLevel < mqLevelsAllocated(); // was an internal consistency check
 
     if (doUpdateVersion) { // update version of computation
@@ -456,7 +497,7 @@ public class QuantilesSketch {
 
     for (int lvl = startingLevel; lvl < endingLevel; lvl++) {
 
-      assert (bitPattern_ & (((long) 1) << lvl)) > 0;  // internal consistency check
+      assert (bitPattern_ & (1L << lvl)) > 0;  // internal consistency check
 
       mergeTwoSizeKBuffers(mqLevels, ((2+lvl) * k_),
                                mqLevels, ((2+endingLevel) * k_),
@@ -466,7 +507,7 @@ public class QuantilesSketch {
       zipSize2KBuffer(size2KBuf, size2KStart,
                           mqLevels, ((2+endingLevel) * k_),
                           k_);
-      // just while debugging    //TODO confirm w/ Kevin
+      // just while debugging
       //Arrays.fill(mqLevels, ((2+lvl) * k_), ((2+lvl+1) * k_), DUMMY_VALUE);
 
     } // end of loop over lower levels
@@ -494,7 +535,7 @@ public class QuantilesSketch {
                           mqBaseBuffer, 0,
                           true);
     baseBufferCount_ = 0;
-    // just while debugging  //TODO confirm w/ Kevin
+    // just while debugging
     //Arrays.fill(mqBaseBuffer, 0, 2*k_, DUMMY_VALUE);
     assert n_ / (2*k_) == bitPattern_;  // internal consistency check
   }
@@ -506,22 +547,23 @@ public class QuantilesSketch {
    * that divide the real number line into <i>m+1</i> consecutive disjoint intervals.
    * @return the unnormalized, accumulated counts of <i>m + 1</i> intervals.
    */
-  private long[] internalBuildHistogram (double[] splitPoints) {
+  private long[] internalBuildHistogram(double[] splitPoints) {
     double[] mqLevels     = combinedBuffer_; // aliasing is a bit dangerous
     double[] mqBaseBuffer = combinedBuffer_; // aliasing is a bit dangerous
 
-    validateSplitPoints (splitPoints);
+    validateSplitPoints(splitPoints);
 
     int numSplitPoints = splitPoints.length;
     int numCounters = numSplitPoints + 1;
-    long[] counters = new long [numCounters];
+    long[] counters = new long[numCounters];
 
     for (int j = 0; j < numCounters; j++) { counters[j] = 0; } // already true, right?
 
     long weight = 1;
     if (numSplitPoints < 50) { // empirically determined crossover for K = 200
       // not worth it to sort when few split points
-      Util.quadraticTimeIncrementHistogramCounters(mqBaseBuffer, 0, baseBufferCount_, weight, splitPoints, counters);
+      Util.quadraticTimeIncrementHistogramCounters(
+          mqBaseBuffer, 0, baseBufferCount_, weight, splitPoints, counters);
     }
     else {
       Arrays.sort(mqBaseBuffer, 0, baseBufferCount_); // sort is worth it when many split points
@@ -546,7 +588,7 @@ public class QuantilesSketch {
    * not NaN.
    * @param splitPoints array
    */
-  private static void validateSplitPoints(double[] splitPoints) {
+  private static final void validateSplitPoints(double[] splitPoints) {
     for (int j = 0; j < splitPoints.length - 1; j++) {
       if (splitPoints[j] < splitPoints[j+1]) { continue; }
       throw new IllegalArgumentException(
@@ -560,66 +602,62 @@ public class QuantilesSketch {
    * @param n the total values presented to the sketch.
    * @return the number of levels needed.
    */
-  private static int computeNumLevelsNeeded(int k, long n) {
-    long long2k = ((long) 2 * k);
-    long quo = n / long2k;
-    if (quo == 0) return 0;
-    else return (1 + (hiBitPos (quo)));
+  static final int computeNumLevelsNeeded(int k, long n) {
+    long quo = n / (2L * k);
+    return (quo == 0)? 0 : 1 + hiBitPos(quo);
   }
   
   /**
-   * Computes the number of samples in the sketch given the base buffer count and the bit pattern.
+   * Computes the levels bit pattern given k, n.
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch.
+   * @return the levels bit pattern
+   */
+  static final long computeBitPattern(int k, long n) {
+    return n / (2L * k);
+  }
+  
+  /**
+   * Computes the base buffer count given k, n
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch
+   * @return the base buffer count
+   */
+  static final int computeBaseBufferCount(int k, long n) {
+    return (int) (n % (2L * k));
+  }
+  
+  /**
+   * Computes the number of samples in the sketch from the base buffer count and the bit pattern
    * @return the number of samples in the sketch
    */
-  int numSamplesInSketch() {
-    int count = baseBufferCount_;
-    long bits = bitPattern_;
-    assert bits == n_ / (2L * k_); // internal consistency check
-    for ( ; bits != 0L; bits >>>= 1) {
-      if ((bits & 1L) > 0L) {
-        count += k_;
-      }
-    }
-    return count;
+  int numValidSamples() {
+    return baseBufferCount_ + Long.bitCount(bitPattern_)*k_;
   }
-
+  
   /**
-   * Computes a checksum of all the samples in the sketch. Used in testing the Auxiliary.
+   * Computes the number of valid levels above the base buffer
+   * @return the number of valid levels above the base buffer
+   */
+  int numValidLevels() {
+    return Long.bitCount(bitPattern_);
+  }
+  
+  
+  /**
+   * Computes a checksum of all the samples in the sketch. Used in testing the Auxiliary
    * @return a checksum of all the samples in the sketch
    */
   double sumOfSamplesInSketch() {
-    double total = Util.sumOfDoublesInSubArray (combinedBuffer_, 0, baseBufferCount_);
+    double total = Util.sumOfDoublesInSubArray(combinedBuffer_, 0, baseBufferCount_);
     long bits = bitPattern_;
     assert bits == n_ / (2L * k_); // internal consistency check
     for (int lvl = 0; bits != 0L; lvl++, bits >>>= 1) {
       if ((bits & 1L) > 0L) {
-        total += Util.sumOfDoublesInSubArray (combinedBuffer_, ((2+lvl) * k_), k_);
+        total += Util.sumOfDoublesInSubArray(combinedBuffer_, ((2+lvl) * k_), k_);
       }
     }
     return total;
-  }
-
-  /**
-   * Pretty prints summary information about the sketch. Used for debugging
-   */
-  void show() {
-    double[] levelsArr     = combinedBuffer_;
-    double[] baseBuffer = combinedBuffer_;
-    int numLevels = computeNumLevelsNeeded (k_, n_);
-    System.out.printf ("showing: K=%d N=%d levels=%d combinedBufferLength=%d baseBufferCount=%d bitPattern=%d\n",
-                       k_, n_, numLevels, allocatedBufferSpace_, baseBufferCount_, bitPattern_);
-    for (int i = 0; i < baseBufferCount_; i++) {
-      System.out.printf (" %.1f", baseBuffer[i]);
-    }
-    System.out.printf ("\n");
-    System.out.printf ("Levels:\n");
-    for (int j = 2*k_; j < allocatedBufferSpace_; j++) {
-      if (j % k_ == 0) {
-        System.out.printf ("\n");
-      }
-      System.out.printf ("    %.1f", levelsArr[j]);
-    }
-    System.out.printf ("\n");
   }
 
   /**
@@ -653,15 +691,15 @@ public class QuantilesSketch {
     // ridiculously fine tolerance given the fudge factor; 1e-3 would probably suffice
     private static final double bracketedBinarySearchForEpsTol = 1e-15; 
 
-    private static double kOfEpsFormula (double eps) {
-      return ((1.0 / eps) * (Math.sqrt (Math.log (1.0 / (eps * deltaForEps)))));
+    private static double kOfEpsFormula(double eps) {
+      return (1.0 / eps) * (Math.sqrt(Math.log(1.0 / (eps * deltaForEps))));
     }
 
-    private static boolean epsForKPredicate (double eps, double kf) {
-      return (kOfEpsFormula(eps) >= kf);
+    private static boolean epsForKPredicate(double eps, double kf) {
+      return kOfEpsFormula(eps) >= kf;
     }
 
-    private static double bracketedBinarySearchForEps (double kf, double lo, double hi) {
+    private static double bracketedBinarySearchForEps(double kf, double lo, double hi) {
       assert lo < hi;
       assert epsForKPredicate(lo, kf);
       assert !epsForKPredicate(hi, kf);
@@ -672,42 +710,121 @@ public class QuantilesSketch {
       assert mid > lo;
       assert mid < hi;
       if (epsForKPredicate(mid, kf)) {
-        return (bracketedBinarySearchForEps (kf, mid, hi));
+        return bracketedBinarySearchForEps(kf, mid, hi);
       }
       else {
-        return (bracketedBinarySearchForEps (kf, lo, mid));
+        return bracketedBinarySearchForEps(kf, lo, mid);
       }
     }
 
     /**
-     * Finds the theoretical epsilon given K and a fudge factor >= 1.0
+     * Finds the theoretical epsilon given K and a fudge factor.
      * @param k The given value of k
-     * @param ff The given fudge factor that must be &ge; 1.0
+     * @param ff The given fudge factor. No fudge factor = 1.0. 
      * @return the resulting epsilon
      */
-    public static double findEpsForK (int k, double ff) {
+    public static double getTheoreticalEpsilon(int k, double ff) {
       double kf = k*ff;
-      assert (kf >= 2.15); // ensures that the bracketing succeeds
-      assert (kf < 1e12);  // ditto, but could actually be bigger
+      assert kf >= 2.15; // ensures that the bracketing succeeds
+      assert kf < 1e12;  // ditto, but could actually be bigger
       double lo = 1e-16;
       double hi = 1.0 - 1e-16;
       assert epsForKPredicate(lo, kf);
       assert !epsForKPredicate(hi, kf);
-      return (bracketedBinarySearchForEps (kf, lo, hi));
+      return bracketedBinarySearchForEps(kf, lo, hi);
     }
 
     //also used by test
     /**
      * From extensive empirical testing we recommend most users use this method for deriving 
-     * epsilon.
+     * epsilon. This uses a fudge factor of 4/3 times the theoretical calculation of epsilon.
      * @param k the given k
      * @return the resulting epsilon
      */
-    public static double adjustedFindEpsForK (int k) {
-      assert (k >= 2); // should actually raise invalid input
+    public static double getAdjustedEpsilon(int k) {
+      assert k >= 2; // should actually raise invalid input
       // don't need to check in the other direction because an int is very small
-      return findEpsForK (k, adjustKForEps);
+      return getTheoreticalEpsilon(k, adjustKForEps);
     }
   } //End of EpsilonFromK
+  
+  @Override
+  public String toString() {
+    return toString(true, false);
+  }
+  
+  /**
+   * Returns summary information about the sketch. Used for debugging
+   * @param sketchSummary if true includes sketch summary
+   * @param dataDetail if true includes data detail
+   * @return summary information about the sketch.
+   */
+  public String toString(boolean sketchSummary, boolean dataDetail ) {
+    StringBuilder sb = new StringBuilder();
+    String thisSimpleName = this.getClass().getSimpleName();
+    
+    if (dataDetail) {
+      sb.append(LS).append("### ").append(thisSimpleName).append(" DATA DETAIL: ").append(LS);
+      double[] levelsArr  = combinedBuffer_;
+      double[] baseBuffer = combinedBuffer_;
+      
+      //output the base buffer
+      sb.append("   BaseBuffer   : ");
+      if (baseBufferCount_ > 0) {
+        for (int i = 0; i < baseBufferCount_; i++) { 
+          sb.append(String.format("%10.1f", baseBuffer[i]));
+        }
+      }
+      sb.append(LS);
+      //output all the levels
+      
+      int items = combinedBufferAllocatedCount_;
+      if (items > 2*k_) {
+        sb.append("   Valid | Level");
+        for (int j = 2*k_; j < items; j++) { //output level data starting at 2K
+          if (j % k_ == 0) { //start output of new level
+            int levelNum = (j > 2*k_)? ((j-2*k_)/k_): 0;
+            String validLvl = (((1L << levelNum) & bitPattern_) > 0L)? "    T  " : "    F  "; 
+            String lvl = String.format("%5d",levelNum);
+            sb.append(LS).append("   ").append(validLvl).append(" ").append(lvl).append(": ");
+          }
+          sb.append(String.format("%10.1f", levelsArr[j]));
+        }
+        sb.append(LS);
+      }
+      sb.append("### END DATA DETAIL").append(LS);
+    }
+    
+    if (sketchSummary) {
+      
+      int numLevels = computeNumLevelsNeeded(k_, n_);
+      
+      int bufBytes = combinedBufferAllocatedCount_ * 8;
+      //includes k, n, min, max, preamble of 8.
+      int preBytes = 4 + 8 + 8 + 8 + 8;
+      double eps = EpsilonFromK.getAdjustedEpsilon(k_);
+      String epsPct = String.format("%.1f%%", eps * 100.0);
+      int numSamples = numValidSamples();
+      sb.append(LS).append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+      sb.append("   K                            : ").append(getK()).append(LS);
+      sb.append("   N                            : ").append(getN()).append(LS);
+      sb.append("   BaseBufferCount              : ").append(getBaseBufferCount()).append(LS);
+      sb.append("   CombinedBufferAllocatedCount : ").append(combinedBufferAllocatedCount_).append(LS);
+      sb.append("   Total Levels                 : ").append(numLevels).append(LS);
+      sb.append("   Valid Levels                 : ").append(numValidLevels()).append(LS);
+      sb.append("   Level Bit Pattern            : ").append(Long.toBinaryString(bitPattern_)).append(LS);
+      sb.append("   Valid Samples                : ").append(numSamples).append(LS);
+      sb.append("   Buffer Storage Bytes         : ").append(String.format("%,d", bufBytes)).append(LS);
+      sb.append("   Preamble Bytes               : ").append(preBytes).append(LS);
+      sb.append("   Normalized Rank Error        : ").append(epsPct).append(LS);
+      sb.append("   Min Value                    : ").append(getMinValue()).append(LS);
+      sb.append("   Max Value                    : ").append(getMaxValue()).append(LS);
+      sb.append("### END SKETCH SUMMARY").append(LS);
+    }
+    
+    return sb.toString();
+  }
+  
+  //static void println(String s) { System.out.println(s); }
   
 } // End of class QuantilesSketch

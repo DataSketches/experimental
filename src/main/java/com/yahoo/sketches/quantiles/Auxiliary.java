@@ -16,10 +16,10 @@ class Auxiliary {
   long[] auxCumWtsArr_;
 
   /**
-   * Constructs the Auxiliary structure from the QuantilesSketch
-   * @param qs a QuantilesSketch
+   * Constructs the Auxiliary structure from the HeapQuantilesSketch
+   * @param qs a HeapQuantilesSketch
    */
-  Auxiliary( QuantilesSketch qs ) {
+  Auxiliary( HeapQuantilesSketch qs ) {
     int k = qs.getK();
     long n = qs.getN();
     long bitPattern = qs.getBitPattern();
@@ -30,7 +30,7 @@ class Auxiliary {
     double[] itemsArr = new double[numSamples];
     long[] cumWtsArr = new long[numSamples + 1]; /* the extra slot is very important */
 
-    // Populate from QuantilesSketch:
+    // Populate from HeapQuantilesSketch:
     //  copy over the "levels" and then the base buffer, all with appropriate weights
     populateFromQuantilesSketch(k, n, bitPattern, combinedBuffer, baseBufferCount,
         numSamples, itemsArr, cumWtsArr);
@@ -57,7 +57,7 @@ class Auxiliary {
   }
   
   /**
-   * Populate the arrays and registers from a QuantilesSketch
+   * Populate the arrays and registers from a HeapQuantilesSketch
    * @param k K value of sketch
    * @param n The current size of the stream
    * @param bitPattern 

@@ -409,7 +409,7 @@ public class MergeableQuantileSketch {
     long weight = 1;
     if (numSplitPoints < 50) { // empirically determined crossover for K = 200
       // not worth it to sort when few split points
-      Util.quadraticTimeIncrementHistogramCounters(mq.baseBuffer_, 0, mq.baseBufferCount_, weight,
+      Util.bilinearTimeIncrementHistogramCounters(mq.baseBuffer_, 0, mq.baseBufferCount_, weight,
           splitPoints, counters);
     }
     else {

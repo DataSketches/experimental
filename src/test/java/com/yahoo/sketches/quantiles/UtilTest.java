@@ -67,7 +67,7 @@ public class UtilTest {
       double [] splitPoints = {0.25, 0.4};
       long counters [] = {0, 0, 0};
       long answers  [] = {200, 100, 200};
-      Util.quadraticTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      Util.bilinearTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
       for (int j = 0; j < counters.length; j++) {
         assert counters[j] == answers[j];
         // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
@@ -79,7 +79,7 @@ public class UtilTest {
       double [] splitPoints = {0.01, 0.02};
       long counters [] = {0, 0, 0};
       long answers  [] = {0, 0, 500};
-      Util.quadraticTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      Util.bilinearTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
       for (int j = 0; j < counters.length; j++) {
         assert counters[j] == answers[j];
         // System.out.printf ("counter[%d] = %d\n", j, counters[j]);
@@ -91,7 +91,7 @@ public class UtilTest {
       double [] splitPoints = {0.8, 0.9};
       long counters [] = {0, 0, 0};
       long answers  [] = {500, 0, 0};
-      Util.quadraticTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
+      Util.bilinearTimeIncrementHistogramCounters (samples, 0, 5, 100, splitPoints, counters);
       for (int j = 0; j < counters.length; j++) {
         assert counters[j] == answers[j];
         // System.out.printf ("counter[%d] = %d\n", j, counters[j]);

@@ -10,10 +10,11 @@ import java.util.Arrays;
 import java.util.Random;
 
 /**
- * This class contains a highly specialized sort called blockyTandemMergeSort ().
- *
- * It also contains a couple of subroutines that are used while building histograms and a 
- * few other minor things.
+ * Utility class for quantiles sketches.
+ * 
+ * <p>This class contains a highly specialized sort called blockyTandemMergeSort().
+ * It also contains methods that are used while building histograms and other common
+ * functions.</p>
  */
 final class Util { 
 
@@ -114,11 +115,11 @@ final class Util {
 
   // Performs two merges in tandem. One of them provides the sort keys
   // while the other one passively undergoes the same data motion.
-  private static void tandemMerge (double [] keySrc, long [] valSrc,
-                                    int arrStart1, int arrLen1,
-                                    int arrStart2, int arrLen2,
-                                    double [] keyDst, long [] valDst,
-                                    int arrStart3) {
+  private static void tandemMerge(double[] keySrc, long[] valSrc,
+                                  int arrStart1, int arrLen1,
+                                  int arrStart2, int arrLen2,
+                                  double[] keyDst, long[] valDst,
+                                  int arrStart3) {
     int arrStop1 = arrStart1 + arrLen1;
     int arrStop2 = arrStart2 + arrLen2;
 
@@ -155,8 +156,8 @@ final class Util {
   // it manages the buffer swapping that eliminates most copying.
   // It also maps the input's pre-sorted blocks into the subarrays 
   // that are processed by tandemMerge().
-  private static void blockyTandemMergeSortRecursion (double [] keySrc, long [] valSrc,
-      double [] keyDst, long [] valDst, int grpStart, int grpLen, /* indices of blocks */
+  private static void blockyTandemMergeSortRecursion(double[] keySrc, long[] valSrc,
+      double[] keyDst, long[] valDst, int grpStart, int grpLen, /* indices of blocks */
       int blkSize, int arrLim) {
     // Important note: grpStart and grpLen do NOT refer to positions in the underlying array.
     // Instead, they refer to the pre-sorted blocks, such as block 0, block 1, etc.
@@ -172,12 +173,12 @@ final class Util {
     int grpStart2 = grpStart + grpLen1;
 
     //swap roles of src and dst
-    blockyTandemMergeSortRecursion (keyDst, valDst,
+    blockyTandemMergeSortRecursion(keyDst, valDst,
                            keySrc, valSrc,
                            grpStart1, grpLen1, blkSize, arrLim);
 
     //swap roles of src and dst
-    blockyTandemMergeSortRecursion (keyDst, valDst,
+    blockyTandemMergeSortRecursion(keyDst, valDst,
                            keySrc, valSrc,
                            grpStart2, grpLen2, blkSize, arrLim);
 
@@ -190,11 +191,11 @@ final class Util {
     // special code for the final block which might be shorter than blkSize.
     if (arrStart2 + arrLen2 > arrLim) { arrLen2 = arrLim - arrStart2; } 
  
-    tandemMerge (keySrc, valSrc,
-                 arrStart1, arrLen1, 
-                 arrStart2, arrLen2,
-                 keyDst, valDst,
-                 arrStart1); // which will be arrStart3
+    tandemMerge(keySrc, valSrc,
+                arrStart1, arrLen1, 
+                arrStart2, arrLen2,
+                keyDst, valDst,
+                arrStart1); // which will be arrStart3
   }
 
   // blockyTandemMergeSort() is an implementation of top-down merge sort specialized
@@ -202,7 +203,7 @@ final class Util {
   // that have already been sorted, so that only the top part of the
   // merge tree remains to be executed. Also, two arrays are sorted in tandem,
   // as discussed above.
-  static void blockyTandemMergeSort (double [] keyArr, long [] valArr, int arrLen, int blkSize) {
+  static void blockyTandemMergeSort(double[] keyArr, long[] valArr, int arrLen, int blkSize) {
     assert blkSize >= 1;
     if (arrLen <= blkSize) return;
     int numblks = arrLen / blkSize;
@@ -210,13 +211,13 @@ final class Util {
     assert (numblks * blkSize >= arrLen);
 
     // duplicate the input is preparation for the "ping-pong" copy reduction strategy. 
-    double [] keyTmp = Arrays.copyOf (keyArr, arrLen);
-    long [] valTmp   = Arrays.copyOf (valArr, arrLen);
+    double[] keyTmp = Arrays.copyOf(keyArr, arrLen);
+    long[] valTmp   = Arrays.copyOf(valArr, arrLen);
 
-    blockyTandemMergeSortRecursion (keyTmp, valTmp,
-                                    keyArr, valArr,
-                                    0, numblks,
-                                    blkSize, arrLen);
+    blockyTandemMergeSortRecursion(keyTmp, valTmp,
+                                   keyArr, valArr,
+                                   0, numblks,
+                                   blkSize, arrLen);
 
     /* verify sorted order */
     for (int i = 0; i < arrLen-1; i++) {
@@ -224,25 +225,18 @@ final class Util {
     }
   }
 
-  // Now a couple of helper functions for histogram construction.
-
-  // Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, not quadratic.
-  // This method does NOT require the samples to be sorted.
   /**
-   * Because of the nested loop, cost is O(numSamples * numSplitPoints) which is actually bilinear, 
-   * not quadratic. This method does NOT require the samples to be sorted.
+   * Because of the nested loop, cost is O(numSamples * numSplitPoints), which is bilinear.
+   * This method does NOT require the samples to be sorted.
    * @param samples array of samples
    * @param offset into samples array
    * @param numSamples number of samples in samples array
    * @param weight of the samples
-   * @param splitPoints must be unique and sorted. Number of splitPoints +1 = counters.length.
+   * @param splitPoints must be unique and sorted. Number of splitPoints +1 == counters.length.
    * @param counters array of counters
    */
-  static void quadraticTimeIncrementHistogramCounters (double[] samples, int offset, 
-      int numSamples, long weight, double[] splitPoints, long[] counters) {
-    // samples must be sorted
-    // splitPoints must be unique and sorted
-    // question: what happens if they aren't unique?
+  static void bilinearTimeIncrementHistogramCounters(double[] samples, int offset, int numSamples, 
+      long weight, double[] splitPoints, long[] counters) {
     assert (splitPoints.length + 1 == counters.length);
     for (int i = 0; i < numSamples; i++) {
       double sample = samples[i+offset];
@@ -255,7 +249,7 @@ final class Util {
         }
       }
       assert j < counters.length;
-      // System.out.printf ("%.2f in bucket %d\n", sample, j);
+      // System.out.printf("%.2f in bucket %d\n", sample, j);
       counters[j] += weight;
     }
   }
@@ -263,7 +257,8 @@ final class Util {
   /**
    * This one does a linear time simultaneous walk of the samples and splitPoints. Because this
    * internal procedure is called multiple times, we require the caller to ensure these 3 properties:
-   * <ol><li>samples array must be sorted.</li>
+   * <ol>
+   * <li>samples array must be sorted.</li>
    * <li>splitPoints must be unique and sorted</li>
    * <li>number of SplitPoints + 1 == counters.length</li>
    * </ol>
@@ -274,9 +269,8 @@ final class Util {
    * @param splitPoints must be unique and sorted. Number of splitPoints +1 = counters.length.
    * @param counters array of counters
    */
-  static void linearTimeIncrementHistogramCounters (double[] samples, int offset, int numSamples, 
+  static void linearTimeIncrementHistogramCounters(double[] samples, int offset, int numSamples, 
       long weight, double[] splitPoints, long[] counters) {
-
     int numSplitPoints = splitPoints.length;
 
     int i = 0;
@@ -292,15 +286,13 @@ final class Util {
       }
     }
 
-    // now either i == numSamples (we are out of samples), or
-    // j == numSplitPoints (out of buckets, but there are more samples remaining)
+    // now either i == numSamples(we are out of samples), or
+    // j == numSplitPoints(out of buckets, but there are more samples remaining)
     // we only need to do something in the latter case.
     if (j == numSplitPoints) {
       counters[numSplitPoints] += (weight * (numSamples - i));
     }
   }
-
-  // several miscellaneous utility functions
 
   static double lg(double x) {
     return ( Math.log(x)) / (Math.log(2.0) );
@@ -340,6 +332,10 @@ final class Util {
       total += arr[i];
     }
     return total;
+  }
+  
+  static void checkK(int k) {
+    if (k < 2) throw new IllegalArgumentException("K must be greater than one: "+k);
   }
 
 //  public static void main(String[] args) {

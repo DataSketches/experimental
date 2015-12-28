@@ -179,9 +179,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     int offset = ENTRIES_START + SIZE_OF_KEY_BYTES * keys_.length;
     int sizeOfValues = SIZE_OF_VALUE_BYTES * numValues_;
     for (int i = 0; i < values_.length; i++) {
-      if (values_[i] == null) {
-        mem.fill(offset, sizeOfValues, (byte)0);
-      } else {
+      if (values_[i] != null) {
         mem.putDoubleArray(offset, values_[i], 0, numValues_);
       }
       offset += sizeOfValues;

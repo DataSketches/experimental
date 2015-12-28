@@ -66,7 +66,7 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     mem_.putFloat(SAMPLING_P_FLOAT, samplingProbability);
     keysOffset_ = ENTRIES_START;
     valuesOffset_ = keysOffset_ + SIZE_OF_KEY_BYTES * startingCapacity;
-    mem_.clear(keysOffset_, SIZE_OF_KEY_BYTES * startingCapacity + SIZE_OF_VALUE_BYTES * startingCapacity * numValues); // clear data area
+    mem_.clear(keysOffset_, SIZE_OF_KEY_BYTES * startingCapacity); // clear keys only
     mask_ = startingCapacity - 1;
     setRebuildThreshold();
   }

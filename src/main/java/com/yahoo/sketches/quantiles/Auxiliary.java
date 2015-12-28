@@ -19,7 +19,7 @@ class Auxiliary {
    * Constructs the Auxiliary structure from the HeapQuantilesSketch
    * @param qs a HeapQuantilesSketch
    */
-  Auxiliary( HeapQuantilesSketch qs ) {
+  Auxiliary(HeapQuantilesSketch qs ) {
     int k = qs.getK();
     long n = qs.getN();
     long bitPattern = qs.getBitPattern();
@@ -109,7 +109,7 @@ class Auxiliary {
    * ONLY used by MergeableQuantileSketch, could remove.
    * @param mq A MergeableQuantileSketch
    */
-  Auxiliary( MergeableQuantileSketch mq ) {
+  Auxiliary(MergeableQuantileSketch mq ) {
     int k = mq.getK();
     long n = mq.getN();
     double[][] levelsArr = mq.getLevelsArr();
@@ -295,7 +295,6 @@ class Auxiliary {
     return (pos);
   }
   
-  //Used by QuantileSketch
   double getQuantile(double phi) {
     assert 0.0 <= phi;
     assert phi <= 1.0;

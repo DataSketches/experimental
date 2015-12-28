@@ -70,9 +70,9 @@ public class HeapQuantilesSketch extends QuantilesSketch {
   private int combinedBufferAllocatedCount_;
 
   /**
-   * This single array contains the base buffer plus all levels some of which are empty.
-   * A level is of size K and is either full and sorted, or empty. An "empty" buffer may have
-   * garbage. Whether a level buffer is empty or not is indicated by the bitPattern_.
+   * This single array contains the base buffer plus all levels some of which are not used.
+   * A level is of size K and is either full and sorted, or not used. A "not used" buffer may have
+   * garbage. Whether a level buffer used or not is indicated by the bitPattern_.
    * The base buffer has length 2*K but might not be full and isn't necessarily sorted.
    * The base buffer precedes the level buffers. 
    * 
@@ -82,7 +82,8 @@ public class HeapQuantilesSketch extends QuantilesSketch {
 
   /**
    * Constructs a Mergeable Quantile Sketch of double elements.
-   * @param k Parameter that controls space usage of sketch and accuracy of estimates
+   * @param k Parameter that controls space usage of sketch and accuracy of estimates. 
+   * Must be greater than one.
    */
   public HeapQuantilesSketch(int k) {
     checkK(k);
@@ -224,7 +225,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     else if (fraction == 1.0) { return maxValue_; }
     else {
       Auxiliary aux = this.constructAuxiliary();
-      return aux.getQuantile (fraction);
+      return aux.getQuantile(fraction);
     }
   }
 

@@ -4,6 +4,11 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * Top level class for hash table based implementation, which uses quick select algorithm
+ * when the time comes to rebuild the hash table and throw away some entries.
+ */
+
 import com.yahoo.sketches.QuickSelect;
 
 public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDoublesSketch {
@@ -26,6 +31,8 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   protected static final int DEFAULT_LG_RESIZE_FACTOR = 3;
   protected static final double REBUILD_RATIO_AT_RESIZE = 0.5;
   protected static final double REBUILD_RATIO_AT_TARGET_SIZE = 15.0 / 16.0;
+
+  // these can be derived from other things, but are kept here for performance
   protected int rebuildThreshold_;
   protected int mask_;
 

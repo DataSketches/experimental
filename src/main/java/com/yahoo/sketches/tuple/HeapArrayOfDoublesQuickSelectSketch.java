@@ -4,6 +4,10 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * This is on-heap implementation
+ */
+
 import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
@@ -24,7 +28,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
    * @param numValues number of double values to keep for each key
    */
-  HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int numValues) {
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int numValues) {
     this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, numValues);
   }
 
@@ -34,7 +38,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability, <i>p</i></a>
    * @param numValues number of double values to keep for each key
    */
-  HeapArrayOfDoublesQuickSelectSketch(int nomEntries, float samplingProbability, int numValues) {
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, float samplingProbability, int numValues) {
     this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, numValues);
   }
 
@@ -48,7 +52,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * 3 - grow eight times (default)
    * @param numValues number of double values to keep for each key
    */
-  HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, int numValues) {
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, int numValues) {
     this(nomEntries, lgResizeRatio, 1f, numValues);
   }
 
@@ -63,7 +67,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param samplingProbability
    * @param numValues number of double values to keep for each key
    */
-  HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, int numValues) {
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, int numValues) {
     nomEntries_ = ceilingPowerOf2(nomEntries);
     lgResizeFactor_ = lgResizeRatio;
     samplingProbability_ = samplingProbability;

@@ -4,6 +4,10 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * Interface for iterating over ArrayOfDoublesSketch
+ */
+
 interface ArrayOfDoublesSketchIterator {
   boolean next();
   long getKey();

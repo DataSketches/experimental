@@ -4,6 +4,10 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * This is on-heap implementation
+ */
+
 public class HeapArrayOfDoublesUnion extends ArrayOfDoublesUnion {
 
   public HeapArrayOfDoublesUnion(int nomEntries, int numValues) {

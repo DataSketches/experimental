@@ -4,6 +4,10 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * The top level for updatable sketches
+ */
+
 import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
 
 import com.yahoo.sketches.hash.MurmurHash3;
@@ -80,12 +84,24 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
     insertOrIgnore(MurmurHash3.hash(key, DEFAULT_UPDATE_SEED)[0] >>> 1, values);
   }
 
+  /**
+   * Gets the configured nominal number of entries
+   * @return nominal number of entries
+   */
   public abstract int getNominalEntries();
 
+  /**
+   * Gets a compact representation of the sketch
+   * @return compact sketch
+   */
   public ArrayOfDoublesCompactSketch compact() {
     return new HeapArrayOfDoublesCompactSketch(this);
   }
 
+  /**
+   * Gets an off-heap compact representation of the sketch using the given memory
+   * @return compact sketch
+   */
   public ArrayOfDoublesCompactSketch compact(Memory dstMem) {
     return new DirectArrayOfDoublesCompactSketch(this, dstMem);
   }

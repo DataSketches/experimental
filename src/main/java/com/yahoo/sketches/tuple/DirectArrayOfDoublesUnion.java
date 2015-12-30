@@ -4,6 +4,11 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * This implementation keeps data in a given memory.
+ * The purpose is to avoid garbage collection.
+ */
+
 import com.yahoo.sketches.memory.Memory;
 
 public class DirectArrayOfDoublesUnion extends ArrayOfDoublesUnion {

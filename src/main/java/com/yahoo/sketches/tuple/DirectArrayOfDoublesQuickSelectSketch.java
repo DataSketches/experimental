@@ -4,6 +4,11 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * This implementation keeps the data in a given memory.
+ * It is generally slower than on-heap implementation, but allows to avoid garbage collection
+ */
+
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
 
 import java.nio.ByteOrder;

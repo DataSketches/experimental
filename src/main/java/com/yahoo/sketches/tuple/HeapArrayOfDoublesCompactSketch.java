@@ -10,14 +10,7 @@ import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
 
 /**
- * CompactSketches are never created directly. They are created as a result of
- * the compact() method of a QuickSelectSketch or as a result of the getResult()
- * method of a set operation like Union, Intersection or AnotB. CompactSketch
- * consists of a compact list (i.e. no intervening spaces) of hash values,
- * corresponding list of double values, and a value for theta. The lists may or may
- * not be ordered. CompactSketch is read-only.
- *
- * @param <S> Type of Summary
+ * This is on-heap implementation.
  */
 public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch {
 

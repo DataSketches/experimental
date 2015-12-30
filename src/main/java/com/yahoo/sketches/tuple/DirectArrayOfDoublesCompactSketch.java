@@ -4,6 +4,11 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * This implementation keeps the data in a given memory, which is owned by the user.
+ * The purpose is to avoid garbage collection.
+ */
+
 import java.nio.ByteOrder;
 
 import com.yahoo.sketches.memory.Memory;

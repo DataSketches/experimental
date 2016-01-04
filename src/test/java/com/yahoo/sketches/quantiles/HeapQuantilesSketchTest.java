@@ -99,7 +99,7 @@ public class HeapQuantilesSketchTest {
 
   @Test
   public void checkConstructAuxiliary() {
-    for (int k = 1; k <= 32; k+= 31) {
+    for (int k = 2; k <= 32; k+= 31) {
       HeapQuantilesSketch qs = new HeapQuantilesSketch(k);
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
         Auxiliary aux = qs.constructAuxiliary();

@@ -183,25 +183,19 @@ public class MasterFETester{
         long sum = 0;
         long max_error = 0;
         long error;
-        long distinct_count = 0;
         long max_freq = 0;
-        long max_error_key = 0;
-        long max_freq_key = 0;
         
         Collection<Long> keysCollection = realCounts.keys();
 
         for (long the_key : keysCollection) {
-          distinct_count++;
           if(realCounts.get(the_key) > max_freq) {
             max_freq = realCounts.get(the_key);
-            max_freq_key = the_key;
           }
           if(realCounts.get(the_key) > estimator.getEstimate(the_key)) {
             error = (realCounts.get(the_key) - estimator.getEstimate(the_key));
             if(error > max_error)
             {
               max_error = error;
-              max_error_key = the_key;
             }
             sum = sum + error;
           }
@@ -210,7 +204,6 @@ public class MasterFETester{
             if(error > max_error)
             {
               max_error = error;
-              max_error_key = the_key;
             }
             sum = sum + error;
           }
@@ -254,13 +247,11 @@ public class MasterFETester{
         long sum = 0;
         long max_error = 0;
         long error;
-        long distinct_count = 0;
         long max_freq = 0;
         
         Collection<Long> keysCollection = realCounts.keys();
 
         for (long the_key : keysCollection) {
-          distinct_count++;
           if(realCounts.get(the_key) > max_freq) {
             max_freq = realCounts.get(the_key);
           }
@@ -316,13 +307,11 @@ public class MasterFETester{
         long sum = 0;
         long max_error = 0;
         long error;
-        long distinct_count = 0;
         long max_freq = 0;
         
         Collection<Long> keysCollection = realCounts.keys();
 
         for (long the_key : keysCollection) {
-          distinct_count++;
           if(realCounts.get(the_key) > max_freq) {
             max_freq = realCounts.get(the_key);
           }

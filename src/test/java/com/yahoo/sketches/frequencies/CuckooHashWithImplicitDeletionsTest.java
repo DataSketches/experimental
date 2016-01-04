@@ -39,7 +39,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     }
   }
     
-  @Test
+  //@Test
   public void stressTestUpdateTime() {
     int n = 100000000;
     int maxSize = 1000000;  

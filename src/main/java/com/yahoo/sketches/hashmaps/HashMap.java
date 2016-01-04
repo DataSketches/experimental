@@ -21,6 +21,11 @@ public abstract class HashMap {
   
   public HashMap () {}
   
+  /**
+   * @param capacity
+   * Determines the number of (key, value) pairs the hashmap is expected to store.
+   * Constructor will create arrays of sizecapacity/LOAD_FACTOR, rounded up to a power of 2.
+   */
   public HashMap (int capacity) {
     if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
     this.capacity = capacity;

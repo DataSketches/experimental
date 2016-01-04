@@ -50,7 +50,7 @@ public class FrequentItemsLPWR extends FrequencyEstimator{
   public FrequentItemsLPWR(double errorParameter) {
     if (errorParameter <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
     this.maxSize = (int) (1/errorParameter)+1;
-    counters = new HashMapLinearProbingWithRebuilds(4*this.maxSize/3);
+    counters = new HashMapLinearProbingWithRebuilds(this.maxSize);
     this.offset = 0;
     if (this.maxSize < 100) 
       this.sample_size = this.maxSize;

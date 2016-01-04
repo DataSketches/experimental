@@ -39,7 +39,6 @@ public class FrequentItems extends FrequencyEstimator{
   private int streamLength=0;
   //sample_Size is maximum number of samples used to compute approximate median of counters when doing decrement
   private int sample_size;
-  private long[] samples;
   
   /**
    * @param errorParameter
@@ -50,13 +49,12 @@ public class FrequentItems extends FrequencyEstimator{
   public FrequentItems(double errorParameter) {
     if (errorParameter <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
     this.maxSize = (int) (1/errorParameter)+1;
-    counters = new HashMapReverseEfficient(4*this.maxSize/3);
+    counters = new HashMapReverseEfficient(this.maxSize);
     this.offset = 0;
     if (this.maxSize < 100) 
       this.sample_size = this.maxSize;
     else
       this.sample_size = 100;
-    samples = new long[sample_size];
   }
   
   /**
@@ -104,13 +102,12 @@ public class FrequentItems extends FrequencyEstimator{
    @Override
    public long getEstimateLowerBound(long key)
    {
-     if(getEstimate(key) == 0)
+     long estimate = getEstimate(key);
+            
+     if((estimate-offset-mergeError) <= 0)
        return 0;
        
-     if((getEstimate(key)-offset-mergeError) < 0)
-       return 0;
-       
-     return (getEstimate(key)-offset-mergeError);
+     return (estimate-offset-mergeError);
    }
 
   /**
@@ -159,6 +156,7 @@ public class FrequentItems extends FrequencyEstimator{
     long[] values = counters.ProtectedGetValues();
     int num_samples = 0;
     int i = 0;
+    long[] samples = new long[sample_size];
 
     while(num_samples < limit){
       if(counters.isActive(i)){
@@ -184,7 +182,7 @@ public class FrequentItems extends FrequencyEstimator{
     */
     @Override
    public FrequencyEstimator merge(FrequencyEstimator other) {
-     if (!(other instanceof FrequentItems)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
+     if (!(other instanceof FrequentItems)) throw new IllegalArgumentException("FrequentItems can only merge with other FrequentItems");
        FrequentItems otherCasted = (FrequentItems) other;
        
      this.streamLength += otherCasted.streamLength;

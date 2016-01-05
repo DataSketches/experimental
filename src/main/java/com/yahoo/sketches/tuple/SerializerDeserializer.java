@@ -28,6 +28,11 @@ public class SerializerDeserializer {
     return getSketchType(sketchTypeByte);
   }
 
+  public static SketchType getSketchTypeAbsolute(byte[] buffer) {
+    byte sketchTypeByte = buffer[TYPE_BYTE_OFFSET];
+    return getSketchType(sketchTypeByte);
+  }
+
   public static ByteBuffer serializeToByteBuffer(Object object) {
     try {
       String className = object.getClass().getName();

@@ -4,20 +4,20 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import static com.yahoo.sketches.quantiles.Util.*;
 import java.util.Arrays;
 
 /**
  * This is an implementation of the low-discrepancy mergeable quantile sketch using double 
- * valued elements. The basic algorithm concepts are described in section 3.2 of the 
- * journal version of the paper "Mergeable Summaries" by Agarwal, Cormode, Huang, Phillips, Wei, 
- * and Yi.
+ * valued elements. This is an implementation of the Low Discrepancy Mergeable Quantiles Sketch 
+ * described in section 3.2 of the journal version of the paper "Mergeable Summaries" 
+ * by Agarwal, Cormode, Huang, Phillips, Wei, and Yi.
  * 
  * <p>This algorithm intentionally inserts randomness into the sampling process for values that
  * ultimately get retained in the sketch. The result is that this algorithm is not 
  * deterministic. I.e., if the same stream is inserted into two different instances of this sketch, 
- * the answers obtained from the two sketches may not be be identical, but both will be within the 
- * error tolerances for the sketch.</p>
+ * the answers obtained from the two sketches may not be be identical.</p>
  * 
  * <p>Similarly, there may be directional inconsistencies. For example, the resulting array of values
  * obtained from getQuantiles(fractions[]) input into the reverse directional query 
@@ -89,7 +89,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     checkK(k);
     k_ = k;
     n_ = 0;
-    combinedBufferAllocatedCount_ = Math.min(QuantilesSketch.MIN_BASE_BUF_SIZE,2*k); //the min is important
+    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k); //the min is important
     combinedBuffer_ = new double[combinedBufferAllocatedCount_];
     baseBufferCount_ = 0;
     bitPattern_ = 0;
@@ -98,11 +98,11 @@ public class HeapQuantilesSketch extends QuantilesSketch {
   }
 
   /**
-   * Resets this sketch to all zeros, but retains the original value of k.
+   * Resets this sketch to a virgin state, but retains the original value of k.
    */
   public void reset() {
     n_ = 0;
-    combinedBufferAllocatedCount_ = Math.min(QuantilesSketch.MIN_BASE_BUF_SIZE,2*k_); //the min is important
+    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k_); //the min is important
     combinedBuffer_ = new double[combinedBufferAllocatedCount_];
     baseBufferCount_ = 0;
     bitPattern_ = 0;
@@ -266,7 +266,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
    * given a set of splitPoints (values).  
    * 
    * The resulting approximations have a probabilistic guarantee that be obtained from the 
-   * getNormalizedCountError() function. 
+   * getNormalizedRankError() function.
    * 
    * <p>
    * [1] Actually the name PMF (Probability Mass Function) might be a more precise name, 
@@ -327,7 +327,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
    * The error of this sketch is specified as a fraction of the normalized rank of the hypothetical 
    * sorted stream of items presented to the sketch. 
    * 
-   * <p>Suppose the sketch is presented with N values. The raw rank (1 to N) of an item 
+   * <p>Suppose the sketch is presented with N values. The raw rank (0 to N-1) of an item 
    * would be its index position in the sorted version of the input stream. If we divide the 
    * raw rank by N, it becomes the normalized rank, which is between 0 and 1.0.
    * 
@@ -426,28 +426,31 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     }
     
     if (sketchSummary) {
+      long n = getN();
+      String nStr = String.format("%,d", n);
       int numLevels = computeNumLevelsNeeded(k_, n_);
-      
       int bufBytes = combinedBufferAllocatedCount_ * 8;
+      String bufCntStr = String.format("%,d", combinedBufferAllocatedCount_);
       //includes k, n, min, max, preamble of 8.
       int preBytes = 4 + 8 + 8 + 8 + 8;
       double eps = Util.EpsilonFromK.getAdjustedEpsilon(k_);
       String epsPct = String.format("%.3f%%", eps * 100.0);
       int numSamples = numValidSamples();
+      String numSampStr = String.format("%,d", numSamples);
       sb.append(LS).append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
       sb.append("   K                            : ").append(getK()).append(LS);
-      sb.append("   N                            : ").append(getN()).append(LS);
+      sb.append("   N                            : ").append(nStr).append(LS);
       sb.append("   BaseBufferCount              : ").append(getBaseBufferCount()).append(LS);
-      sb.append("   CombinedBufferAllocatedCount : ").append(combinedBufferAllocatedCount_).append(LS);
+      sb.append("   CombinedBufferAllocatedCount : ").append(bufCntStr).append(LS);
       sb.append("   Total Levels                 : ").append(numLevels).append(LS);
       sb.append("   Valid Levels                 : ").append(numValidLevels()).append(LS);
       sb.append("   Level Bit Pattern            : ").append(Long.toBinaryString(bitPattern_)).append(LS);
-      sb.append("   Valid Samples                : ").append(numSamples).append(LS);
+      sb.append("   Valid Samples                : ").append(numSampStr).append(LS);
       sb.append("   Buffer Storage Bytes         : ").append(String.format("%,d", bufBytes)).append(LS);
       sb.append("   Preamble Bytes               : ").append(preBytes).append(LS);
       sb.append("   Normalized Rank Error        : ").append(epsPct).append(LS);
-      sb.append("   Min Value                    : ").append(getMinValue()).append(LS);
-      sb.append("   Max Value                    : ").append(getMaxValue()).append(LS);
+      sb.append("   Min Value                    : ").append(String.format("%,.3f", getMinValue())).append(LS);
+      sb.append("   Max Value                    : ").append(String.format("%,.3f", getMaxValue())).append(LS);
       sb.append("### END SKETCH SUMMARY").append(LS);
     }
     return sb.toString();
@@ -488,8 +491,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
    * @return the number of levels needed.
    */
   static final int computeNumLevelsNeeded(int k, long n) {
-    long quo = n / (2L * k);
-    return (quo == 0)? 0 : 1 + hiBitPos(quo);
+    return 1 + hiBitPos(n / (2L * k));
   }
 
   /**
@@ -499,7 +501,14 @@ public class HeapQuantilesSketch extends QuantilesSketch {
   final int numValidLevels() {
     return Long.bitCount(bitPattern_);
   }
-
+  
+  static int bufferElementCapacity(int k, long n) {
+    int maxLevels = computeNumLevelsNeeded(k, n);
+    int bbCnt = (maxLevels > 0)? 2*k : 
+      ceilingPowerOf2(computeBaseBufferCount(k, n));
+    return bbCnt + maxLevels*k;
+  }
+  
   /**
    * Computes the levels bit pattern given k, n.
    * This is computed as <i>n / (2*k)</i>.

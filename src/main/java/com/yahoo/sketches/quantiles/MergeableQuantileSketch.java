@@ -489,12 +489,8 @@ public class MergeableQuantileSketch {
     }
   }
   
-
   private static int computeNumLevelsNeeded(int k, long n) {
-    long long2k = ((long) 2 * k);
-    long quo = n / long2k;
-    if (quo == 0) return 0;
-    else return (1 + (hiBitPos (quo)));
+    return 1 + hiBitPos(n / (2L * k));
   }
   
   // Code leveraged during testing 

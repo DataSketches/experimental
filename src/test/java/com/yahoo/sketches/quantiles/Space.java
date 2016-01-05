@@ -4,7 +4,6 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static com.yahoo.sketches.quantiles.Util.lg;
 import static com.yahoo.sketches.Util.*;
 
 /**
@@ -25,18 +24,12 @@ public final class Space {
    * 
    * @param n The number of elements in the input stream
    * @return the maximum retained elements of a QuantileSketch
-   */
-  public static long upperBoundElementSpace(long k, long n) {
-    if (n < 2 * k) {
-      double ceilLgN = Math.ceil(lg(n));
-      return (long) (Math.pow(2.0, ceilLgN) );
-    }
-    else {
-      long nOver2K = n / (2 * k);
-      double lgNover2K = lg(nOver2K);
-      long floorLgNover2K = (long) Math.floor(lgNover2K);
-      return k * (2 + 1 + floorLgNover2K);
-    }
+   */  
+  public static int bufferElementCapacity(int k, long n) {
+    int maxLevels = HeapQuantilesSketch.computeNumLevelsNeeded(k, n);
+    int bbCnt = (maxLevels > 0)? 2*k : 
+      ceilingPowerOf2(HeapQuantilesSketch.computeBaseBufferCount(k, n));
+    return bbCnt + maxLevels*k;
   }
   
   /**
@@ -45,22 +38,24 @@ public final class Space {
    * @param elementSizeBytes the given element size in bytes
    * @return a pretty print string of a table of the maximum sizes of a QuantileSketch
    */
-  public static String spaceTable(long elementSizeBytes) {
+  public static String spaceTableGuide(int elementSizeBytes) {
     StringBuilder sb = new StringBuilder();
-    sb.append("Quantiles Size Table:").append(LS);
+    sb.append("Table Guide for Quantiles Size, Bytes:").append(LS);
     sb.append("      N : K => |");
     for (int kpow = 4; kpow <= 10; kpow++) {
-      long k = 1L << kpow;
+      int k = 1 << kpow;
       sb.append(String.format("%,8d", k));
     }
     sb.append(LS);
     sb.append("-------------------------------------------------------------------------\n");
     for (int npow = 2; npow <= 32; npow++) {
-      long n = 1L << npow;
+      long n = (1L << npow) -1L;
       sb.append(String.format("%,14d |", n));
       for (int kpow = 4; kpow <= 10; kpow++) {
-        long k = ((long) 1) << kpow;
-        sb.append(String.format("%,8d", (elementSizeBytes * (upperBoundElementSpace(k, n)))));
+        int k = 1 << kpow;
+        int ubSpace = bufferElementCapacity(k, n);
+        int ubBytes = ubSpace * elementSizeBytes;
+        sb.append(String.format("%,8d", ubBytes));
       }
       sb.append(LS);
     }
@@ -76,12 +71,13 @@ public final class Space {
    * @param args Not used.
    */
   public static void main(String[] args) {
-    println(spaceTable(8));
-    long n = 2047;
+    println(spaceTableGuide(8));
+    long n = (1L << 19) ;
     int k = 1024;
-    int bbCnt = HeapQuantilesSketch.computeBaseBufferCount(k, n);
     int maxLevels = HeapQuantilesSketch.computeNumLevelsNeeded(k, n);
+    int bbCnt = (maxLevels > 0)? 2*k : HeapQuantilesSketch.computeBaseBufferCount(k, n);
     int bytes = bbCnt*8 + maxLevels*k*8;
+    println("K: "+k);
     println("N: "+n);
     println("bbCnt: "+bbCnt);
     println("maxLvs: "+maxLevels);

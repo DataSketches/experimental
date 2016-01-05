@@ -316,7 +316,8 @@ public class HeapQuantilesSketchTest {
 
         double valRelPctErrUB = valueUB/ value -1.0;
         double valRelPctErrLB = valueLB/ value -1.0;
-        println(valueLB+" <= "+value+" <= "+valueUB+", UBerr: "+ valRelPctErrUB+", LBer: "+valRelPctErrLB);
+        println(valueLB+" <= "+value+" <= "+valueUB+", UBerr: "+ valRelPctErrUB+
+            ", LBerr: "+valRelPctErrLB);
       }
     }
   }
@@ -357,8 +358,8 @@ public class HeapQuantilesSketchTest {
     qs2.merge(qs1);
     double med1 = qs1.getQuantile(0.5);
     double med2 = qs2.getQuantile(0.5);
-    println(med1+","+med2);
-    
+    assertEquals(med1, med2, 0.0);
+    //println(med1+","+med2);
   }
   
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -399,7 +400,7 @@ public class HeapQuantilesSketchTest {
    * @param s value to print 
    */
   static void println(String s) {
-    //System.out.println(s); //disable here
+    System.out.println(s); //disable here
   }
   
 }

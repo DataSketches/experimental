@@ -264,15 +264,15 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
 
   @Test
   public void intersectionNotEmptyNoEntries() {
-    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, 0.5f, new DoubleSummaryFactory());
-    sketch1.setIsEmpty(false); // pretend that sketch has seen data, but rejected because of sampling
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, 0.01f, new DoubleSummaryFactory());
+    sketch1.update("a", 1.0); // this happens to get rejected because of sampling with low probability
     Intersection<DoubleSummary> intersection = new Intersection<DoubleSummary>(new DoubleSummaryFactory());
     intersection.update(sketch1);
     CompactSketch<DoubleSummary> result = intersection.getResult();
     Assert.assertEquals(result.getRetainedEntries(), 0);
     Assert.assertFalse(result.isEmpty());
     Assert.assertEquals(result.getEstimate(), 0.0);
-    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0, 0.0001);
     Assert.assertTrue(result.getUpperBound(1) > 0);
     Assert.assertNull(result.getSummaries());
   }

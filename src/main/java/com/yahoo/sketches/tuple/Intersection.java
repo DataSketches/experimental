@@ -8,6 +8,14 @@ import static java.lang.Math.min;
 
 import java.lang.reflect.Array;
 
+/**
+ * This is to compute an intersection of two or more tuple sketches.
+ * A new instance represents the Universal Set.
+ * Every update() computes an intersection with the internal set
+ * and can only reduce the internal set.
+ * @param <S> Type of Summary
+ */
+
 public class Intersection<S extends Summary> {
 
   private SummaryFactory<S> summaryFactory_;
@@ -16,6 +24,10 @@ public class Intersection<S extends Summary> {
   private long theta_;
   private boolean isFirstCall_;
 
+  /**
+   * Creates new instance
+   * @param summaryFactory
+   */
   public Intersection(SummaryFactory<S> summaryFactory) {
     summaryFactory_ = summaryFactory;
     isEmpty_ = false; // universal set at the start
@@ -23,7 +35,10 @@ public class Intersection<S extends Summary> {
     isFirstCall_ = true;
   }
 
-  // assumes that constructor of QuickSelectSketch bumps the requested size up to the nearest power of 2
+  /**
+   * Updates the internal set by intersecting it with the given sketch
+   * @param sketchIn input sketch to intersect with the internal set
+   */
   void update(Sketch<S> sketchIn) {
     boolean isFirstCall = isFirstCall_;
     isFirstCall_ = false;
@@ -35,6 +50,7 @@ public class Intersection<S extends Summary> {
     theta_ = min(theta_, sketchIn.getThetaLong());
     isEmpty_ |= sketchIn.isEmpty();
     if (sketchIn.getRetainedEntries() == 0) return;
+    // assumes that constructor of QuickSelectSketch bumps the requested size up to the nearest power of 2
     if (isFirstCall) {
       sketch_ = new QuickSelectSketch<S>(sketchIn.getRetainedEntries(), 0, summaryFactory_);
       for (int i = 0; i < sketchIn.keys_.length; i++) {
@@ -68,12 +84,19 @@ public class Intersection<S extends Summary> {
     }
   }
 
+  /**
+   * Gets the internal set as a CompactSketch
+   * @return result of the intersections so far
+   */
   CompactSketch<S> getResult() {
     if (isFirstCall_) throw new IllegalStateException("getResult() with no intervening intersections is not a legal result.");
     if (sketch_ == null) return new CompactSketch<S>(null, null, theta_, isEmpty_);
     return sketch_.compact();
   }
 
+  /**
+   * Resets the internal set to the initial state, which represents the Universal Set
+   */
   void reset() {
     isEmpty_ = false;
     theta_ = Long.MAX_VALUE;

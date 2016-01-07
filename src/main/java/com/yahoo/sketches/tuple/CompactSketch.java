@@ -45,6 +45,7 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     byte flags = buffer.get();
     boolean isBigEndian = (flags & (1 << Flags.IS_BIG_ENDIAN.ordinal())) > 0;
     if (isBigEndian ^ buffer.order().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
+    isEmpty_ = (flags & (1 << Flags.IS_EMPTY.ordinal())) > 0;
     int classNameLength = buffer.get();
     theta_ = Long.MAX_VALUE;
     boolean hasEntries = (flags & (1 << Flags.HAS_ENTRIES.ordinal())) > 0;
@@ -67,7 +68,7 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
 
   @Override
   public S[] getSummaries() {
-    if (keys_ == null) return null;
+    if (keys_ == null || keys_.length == 0) return null;
     @SuppressWarnings("unchecked")
     S[] summaries = (S[]) Array.newInstance(summaries_.getClass().getComponentType(), summaries_.length);
     for (int i = 0; i < summaries_.length; ++i) summaries[i] = summaries_[i].copy();
@@ -90,7 +91,7 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     + 4 // count
     + 8; // theta
 
-  private enum Flags { IS_BIG_ENDIAN, HAS_ENTRIES }
+  private enum Flags { IS_BIG_ENDIAN, IS_EMPTY, HAS_ENTRIES }
 
   /**
    * @return serialized representation of CompactSketch
@@ -120,7 +121,8 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     boolean isBigEndian = buffer.order().equals(ByteOrder.BIG_ENDIAN);
     buffer.put((byte)(
       ((isBigEndian ? 1 : 0) << Flags.IS_BIG_ENDIAN.ordinal()) |
-      ((isEmpty() ? 0 : 1) << Flags.HAS_ENTRIES.ordinal())
+      ((isEmpty_ ? 1 : 0) << Flags.IS_EMPTY.ordinal()) |
+      ((getRetainedEntries() > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
     ));
     buffer.put((byte)(summaryClassName == null ? 0 : summaryClassName.length()));
     if (!isEmpty()) {

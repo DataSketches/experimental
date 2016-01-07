@@ -25,7 +25,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   private int count_;
   private final SummaryFactory<S> summaryFactory_;
   private float samplingProbability_;
-  private boolean isEmpty_ = true;
   private int rebuildThreshold_;
 
   /**
@@ -140,11 +139,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   }
 
   @Override
-  public boolean isEmpty() {
-    return isEmpty_;
-  }
-
-  @Override
   public int getRetainedEntries() {
     return count_;
   }
@@ -172,7 +166,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
         i++;
       }
     }
-    return new CompactSketch<S>(keys, summaries, theta_);
+    return new CompactSketch<S>(keys, summaries, theta_, isEmpty_);
   }
 
   private enum Flags { IS_BIG_ENDIAN, IS_IN_SAMPLING_MODE, IS_EMPTY, HAS_ENTRIES }
@@ -300,6 +294,15 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return index;
   }
 
+  S find(long key) {
+    int index = getIndex(key);
+    while (summaries_[index] != null) {
+      if (keys_[index] == key) return summaries_[index];
+      index = (index + getStride(key)) & (keys_.length - 1);
+    }
+    return null;
+  }
+
   boolean rebuildIfNeeded() {
     if (count_ < rebuildThreshold_) return false;
     if (keys_.length > nomEntries_) {
@@ -315,7 +318,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     rebuild(keys_.length);
   }
 
-  private void insert(long key, S summary) {
+  void insert(long key, S summary) {
     int index = getIndex(key);
     while (summaries_[index] != null) {
       index = (index + getStride(key)) & (keys_.length - 1);

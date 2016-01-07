@@ -13,7 +13,7 @@ import org.testng.Assert;
 public class CompactSketchWithDoubleSummaryTest {
   //@Test
   public void emptyFromNonPublicConstructorNullArray() {
-    CompactSketch<DoubleSummary> sketch = new CompactSketch<DoubleSummary>(null, null, Long.MAX_VALUE);
+    CompactSketch<DoubleSummary> sketch = new CompactSketch<DoubleSummary>(null, null, Long.MAX_VALUE, true);
     Assert.assertTrue(sketch.isEmpty());
     Assert.assertFalse(sketch.isEstimationMode());
     Assert.assertEquals(sketch.getEstimate(), 0.0);
@@ -29,7 +29,7 @@ public class CompactSketchWithDoubleSummaryTest {
   public void emptyFromNonPublicConstructor() {
     long[] keys = new long[0];
     DoubleSummary[] summaries = (DoubleSummary[]) java.lang.reflect.Array.newInstance(DoubleSummary.class, 0);
-    CompactSketch<DoubleSummary> sketch = new CompactSketch<DoubleSummary>(keys, summaries, Long.MAX_VALUE);
+    CompactSketch<DoubleSummary> sketch = new CompactSketch<DoubleSummary>(keys, summaries, Long.MAX_VALUE, true);
     Assert.assertTrue(sketch.isEmpty());
     Assert.assertFalse(sketch.isEstimationMode());
     Assert.assertEquals(sketch.getEstimate(), 0.0);

@@ -24,7 +24,6 @@ public class DoubleSummarySetOperations implements SummarySetOperations<DoubleSu
 
   @Override
   public DoubleSummary intersection(DoubleSummary a, DoubleSummary b) {
-    // not implemented
-    return null;
+    return union(a, b);
   }
 }

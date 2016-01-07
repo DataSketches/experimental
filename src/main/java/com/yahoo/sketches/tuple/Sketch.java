@@ -11,6 +11,7 @@ public abstract class Sketch<S extends Summary> {
   protected long[] keys_;
   protected S[] summaries_;
   protected long theta_;
+  protected boolean isEmpty_ = true;
 
   public double getEstimate() {
     if (!isEstimationMode()) return getRetainedEntries();
@@ -27,7 +28,9 @@ public abstract class Sketch<S extends Summary> {
     return Util.lowerBound(getEstimate(), getTheta(), numStdDev);
   }
 
-  public abstract boolean isEmpty();
+  public boolean isEmpty() {
+    return isEmpty_;
+  }
 
   public boolean isEstimationMode() {
     return ((theta_ < Long.MAX_VALUE) && !isEmpty());

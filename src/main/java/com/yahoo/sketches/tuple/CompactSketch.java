@@ -26,10 +26,11 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     theta_ = Long.MAX_VALUE;
   }
 
-  CompactSketch(long[] keys, S[] summaries, long theta) {
+  CompactSketch(long[] keys, S[] summaries, long theta, boolean isEmpty) {
     keys_ = keys;
     summaries_ = summaries;
     theta_ = theta;
+    isEmpty_ = isEmpty;
   }
 
   /**
@@ -66,16 +67,11 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
 
   @Override
   public S[] getSummaries() {
-    if (isEmpty()) return null;
+    if (keys_ == null) return null;
     @SuppressWarnings("unchecked")
     S[] summaries = (S[]) Array.newInstance(summaries_.getClass().getComponentType(), summaries_.length);
     for (int i = 0; i < summaries_.length; ++i) summaries[i] = summaries_[i].copy();
     return summaries;
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return (keys_ == null || keys_.length == 0);
   }
 
   @Override

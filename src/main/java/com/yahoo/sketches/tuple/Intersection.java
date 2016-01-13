@@ -39,7 +39,7 @@ public class Intersection<S extends Summary> {
    * Updates the internal set by intersecting it with the given sketch
    * @param sketchIn input sketch to intersect with the internal set
    */
-  void update(Sketch<S> sketchIn) {
+  public void update(Sketch<S> sketchIn) {
     boolean isFirstCall = isFirstCall_;
     isFirstCall_ = false;
     if (sketchIn == null) {
@@ -88,7 +88,7 @@ public class Intersection<S extends Summary> {
    * Gets the internal set as a CompactSketch
    * @return result of the intersections so far
    */
-  CompactSketch<S> getResult() {
+  public CompactSketch<S> getResult() {
     if (isFirstCall_) throw new IllegalStateException("getResult() with no intervening intersections is not a legal result.");
     if (sketch_ == null) return new CompactSketch<S>(null, null, theta_, isEmpty_);
     return sketch_.compact();
@@ -97,7 +97,7 @@ public class Intersection<S extends Summary> {
   /**
    * Resets the internal set to the initial state, which represents the Universal Set
    */
-  void reset() {
+  public void reset() {
     isEmpty_ = false;
     theta_ = Long.MAX_VALUE;
     sketch_ = null;

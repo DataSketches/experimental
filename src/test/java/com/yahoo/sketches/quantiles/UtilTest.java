@@ -38,7 +38,7 @@ public class UtilTest {
   @Test
   public void checkSumOfDoublesInArrayPrefix() {
     double[] arr = {1, 2, 3, 4, 5, 6, 7, 8};
-    double sum = sumOfDoublesInArrayPrefix(arr, 4);
+    double sum = MergeableQuantileSketch.sumOfDoublesInArrayPrefix(arr, 4);
     assertEquals(sum, 10.0, 0.0);
   }
   

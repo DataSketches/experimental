@@ -5,7 +5,7 @@
 package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.Util.*;
-
+import static com.yahoo.sketches.quantiles.HeapQuantilesSketch.*;
 /**
  * Utility functions for computing space consumed by the MergeableQuantileSketch.
  * 
@@ -14,23 +14,6 @@ import static com.yahoo.sketches.Util.*;
 public final class Space {
   
   private Space() {}
-  
-  /**
-   * This is the upper bound element space of an updatable QuantileSketch data structure when 
-   * configured as a single array and given <i>k</i> and <i>n</i>.
-   * 
-   * @param k buffer size in elements. This determines the accuracy of the sketch and the 
-   * size of the updatable data structure, which is a function of k.
-   * 
-   * @param n The number of elements in the input stream
-   * @return the maximum retained elements of a QuantileSketch
-   */  
-  public static int bufferElementCapacity(int k, long n) {
-    int maxLevels = HeapQuantilesSketch.computeNumLevelsNeeded(k, n);
-    int bbCnt = (maxLevels > 0)? 2*k : 
-      ceilingPowerOf2(HeapQuantilesSketch.computeBaseBufferCount(k, n));
-    return bbCnt + maxLevels*k;
-  }
   
   /**
    * Returns a pretty print string of a table of the maximum sizes of a QuantileSketch 
@@ -74,8 +57,8 @@ public final class Space {
     println(spaceTableGuide(8));
     long n = (1L << 19) ;
     int k = 1024;
-    int maxLevels = HeapQuantilesSketch.computeNumLevelsNeeded(k, n);
-    int bbCnt = (maxLevels > 0)? 2*k : HeapQuantilesSketch.computeBaseBufferCount(k, n);
+    int maxLevels = Util.computeNumLevelsNeeded(k, n);
+    int bbCnt = (maxLevels > 0)? 2*k : Util.computeBaseBufferCount(k, n);
     int bytes = bbCnt*8 + maxLevels*k*8;
     println("K: "+k);
     println("N: "+n);

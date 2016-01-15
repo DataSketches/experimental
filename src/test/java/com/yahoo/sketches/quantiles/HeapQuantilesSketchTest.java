@@ -6,7 +6,7 @@ package com.yahoo.sketches.quantiles;
 
 import org.testng.annotations.Test;
 import static org.testng.Assert.*;
-import static com.yahoo.sketches.quantiles.HeapQuantilesSketch.*;
+//import static com.yahoo.sketches.quantiles.HeapQuantilesSketch.*;
 import static com.yahoo.sketches.quantiles.Util.*;
 import static java.lang.Math.*;
 
@@ -299,8 +299,17 @@ public class HeapQuantilesSketchTest {
     double maxV = qs.getMaxValue();
     double minV = qs.getMinValue();
     double delta = maxV - minV;
-    println("This prints the relative value errors for illustration.");
-    println("The sketch does not and can not guarantee relative value errors, period!");
+    println("Note: This prints the relative value errors for illustration.");
+    println("The quantiles sketch does not and can not guarantee relative value errors");
+    
+    StringBuilder sb = new StringBuilder();
+    sb.append(LS);
+    sb.append("N = ").append(n).append(LS);
+    sb.append("K = ").append(k).append(LS);
+    String formatStr1 = "%10s%15s%10s%15s%10s%10s";
+    String formatStr2 = "%10.1f%15.5f%10.0f%15.5f%10.5f%10.5f";
+    String hdr = String.format(formatStr1, "Rank", "ValueLB", "<= Value", "<= ValueUB", "RelErrLB", "RelErrUB");
+    sb.append(hdr).append(LS);
     for (int i=0; i<ranks.length; i++) {
       double rank = ranks[i];
       double value = values[i];
@@ -316,10 +325,11 @@ public class HeapQuantilesSketchTest {
 
         double valRelPctErrUB = valueUB/ value -1.0;
         double valRelPctErrLB = valueLB/ value -1.0;
-        println(valueLB+" <= "+value+" <= "+valueUB+", UBerr: "+ valRelPctErrUB+
-            ", LBerr: "+valRelPctErrLB);
+        String row = String.format(formatStr2,rank, valueLB, value, valueUB, valRelPctErrLB, valRelPctErrUB);
+        sb.append(row).append(LS);
       }
     }
+    println(sb.toString());
   }
   
   @Test
@@ -335,7 +345,7 @@ public class HeapQuantilesSketchTest {
   public void checkComputeBitPattern() {
     int n = 1 << 20;
     int k = 227;
-    long bitP = computeBitPattern(k, n);
+    long bitP = Util.computeBitPattern(k, n);
     assertEquals(bitP, n/(2L*k));
   }
   
@@ -387,7 +397,7 @@ public class HeapQuantilesSketchTest {
   public void checkComputeBaseBufferCount() {
     int n = 1 << 20;
     int k = 227;
-    long bbCnt = computeBaseBufferCount(k, n);
+    long bbCnt = Util.computeBaseBufferCount(k, n);
     assertEquals(bbCnt, n % (2L*k));
   }
   

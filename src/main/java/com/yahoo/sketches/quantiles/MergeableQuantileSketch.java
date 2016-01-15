@@ -489,10 +489,6 @@ public class MergeableQuantileSketch {
     }
   }
   
-  private static int computeNumLevelsNeeded(int k, long n) {
-    return 1 + hiBitPos(n / (2L * k));
-  }
-  
   // Code leveraged during testing 
   
   int numSamplesInSketch() {
@@ -504,15 +500,24 @@ public class MergeableQuantileSketch {
   }
 
   double sumOfSamplesInSketch() {
-    double total = Util.sumOfDoublesInArrayPrefix(this.baseBuffer_, this.baseBufferCount_);
+    double total = MergeableQuantileSketch.sumOfDoublesInArrayPrefix(this.baseBuffer_, this.baseBufferCount_);
     for (int lvl = 0; lvl < this.levelsArr_.length; lvl++) {
       if (this.levelsArr_[lvl] != null) { 
-        total += Util.sumOfDoublesInArrayPrefix(this.levelsArr_[lvl], this.k_);
+        total += MergeableQuantileSketch.sumOfDoublesInArrayPrefix(this.levelsArr_[lvl], this.k_);
       }
     }
     return total;
   }
 
+  static double sumOfDoublesInArrayPrefix(double[] arr, int prefixLength) {
+    double total = 0.0;
+    for (int i = 0; i < prefixLength; i++) {
+      total += arr[i];
+    }
+    return total;
+  }
+  
+  //only used in test
   static void validateMergeableQuantileSketchStructure(MergeableQuantileSketch mq, int k, long n) {
     long long2k = 2L * k;
     long quotient = n / long2k;         //the bit pattern

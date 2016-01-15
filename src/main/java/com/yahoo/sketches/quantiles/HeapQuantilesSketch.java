@@ -12,7 +12,8 @@ import java.util.Arrays;
  * This is an implementation of the low-discrepancy mergeable quantile sketch using double 
  * valued elements. This is an implementation of the Low Discrepancy Mergeable Quantiles Sketch 
  * described in section 3.2 of the journal version of the paper "Mergeable Summaries" 
- * by Agarwal, Cormode, Huang, Phillips, Wei, and Yi.
+ * by Agarwal, Cormode, Huang, Phillips, Wei, and Yi. 
+ * <a href="http://dblp.org/rec/html/journals/tods/AgarwalCHPWY13"></a>
  * 
  * <p>This algorithm intentionally inserts randomness into the sampling process for values that
  * ultimately get retained in the sketch. The result is that this algorithm is not 
@@ -443,7 +444,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
       sb.append("   BaseBufferCount              : ").append(getBaseBufferCount()).append(LS);
       sb.append("   CombinedBufferAllocatedCount : ").append(bufCntStr).append(LS);
       sb.append("   Total Levels                 : ").append(numLevels).append(LS);
-      sb.append("   Valid Levels                 : ").append(numValidLevels()).append(LS);
+      sb.append("   Valid Levels                 : ").append(Util.numValidLevels(bitPattern_)).append(LS);
       sb.append("   Level Bit Pattern            : ").append(Long.toBinaryString(bitPattern_)).append(LS);
       sb.append("   Valid Samples                : ").append(numSampStr).append(LS);
       sb.append("   Buffer Storage Bytes         : ").append(String.format("%,d", bufBytes)).append(LS);
@@ -484,64 +485,32 @@ public class HeapQuantilesSketch extends QuantilesSketch {
   }
 
   /**
-   * Computes the number of logarithmic levels needed given k and n.
-   * This is equivalent to max(floor(lg(n/k), 0).
-   * @param k the configured size of the sketch
-   * @param n the total values presented to the sketch.
-   * @return the number of levels needed.
+   * Returns the current element capacity of the combined data buffer given <i>k</i> and <i>n</i>.
+   * 
+   * @param k sketch parameter. This determines the accuracy of the sketch and the 
+   * size of the updatable data structure, which is a function of k.
+   * 
+   * @param n The number of elements in the input stream
+   * @return the current element capacity of the combined data buffer
    */
-  static final int computeNumLevelsNeeded(int k, long n) {
-    return 1 + hiBitPos(n / (2L * k));
-  }
-
-  /**
-   * Computes the number of valid levels above the base buffer
-   * @return the number of valid levels above the base buffer
-   */
-  final int numValidLevels() {
-    return Long.bitCount(bitPattern_);
-  }
-  
   static int bufferElementCapacity(int k, long n) {
     int maxLevels = computeNumLevelsNeeded(k, n);
-    int bbCnt = (maxLevels > 0)? 2*k : 
-      ceilingPowerOf2(computeBaseBufferCount(k, n));
+    int bbCnt = (maxLevels > 0)? 2*k : ceilingPowerOf2(computeBaseBufferCount(k, n));
     return bbCnt + maxLevels*k;
   }
   
-  /**
-   * Computes the levels bit pattern given k, n.
-   * This is computed as <i>n / (2*k)</i>.
-   * @param k the configured size of the sketch
-   * @param n the total values presented to the sketch.
-   * @return the levels bit pattern
-   */
-  static final long computeBitPattern(int k, long n) {
-    return n / (2L * k);
-  }
-
-  /**
-   * Computes the base buffer count given k, n
-   * @param k the configured size of the sketch
-   * @param n the total values presented to the sketch
-   * @return the base buffer count
-   */
-  static final int computeBaseBufferCount(int k, long n) {
-    return (int) (n % (2L * k));
-  }
-
   /**
    * Computes the number of samples in the sketch from the base buffer count and the bit pattern
    * @return the number of samples in the sketch
    */
   final int numValidSamples() {
-    return baseBufferCount_ + Long.bitCount(bitPattern_)*k_;
+    return baseBufferCount_ + numValidLevels(bitPattern_)*k_;
   }
 
   /**
    * Computes a checksum of all the samples in the sketch. Used in testing the Auxiliary
    * @return a checksum of all the samples in the sketch
-   */
+   */ //Used by test
   final double sumOfSamplesInSketch() {
     double total = Util.sumOfDoublesInSubArray(combinedBuffer_, 0, baseBufferCount_);
     long bits = bitPattern_;

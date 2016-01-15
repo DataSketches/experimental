@@ -17,145 +17,206 @@ import java.util.Random;
  * functions.</p>
  */
 final class Util { 
-
   /**
    * The java line separator character as a String.
    */
-  public static final String LS = System.getProperty("line.separator");
-
+  public static String LS = System.getProperty("line.separator");
   static Random rand = new Random();
+  
+  /**
+   * Computes the number of valid levels above the base buffer
+   * @return the number of valid levels above the base buffer
+   */
+  static int numValidLevels(long bitPattern) {
+    return Long.bitCount(bitPattern);
+  }
 
   /**
-   * Computes epsilon from K. The following table are examples.
-   * <code><pre>
-   *           eps      eps from inverted
-   *     K   empirical  adjusted formula
-   *  -------------------------------------
-   *    16   0.121094   0.121454102233560
-   *    32   0.063477   0.063586601346532
-   *    64   0.033081   0.033169048393679
-   *   128   0.017120   0.017248096847308
-   *   256   0.008804   0.008944835012965
-   *   512   0.004509   0.004627803568920
-   *  1024   0.002303   0.002389303789572
-   *
-   *  these could be used in a unit test
-   *  2   0.821714930853465
-   *  16   0.12145410223356
-   *  1024   0.00238930378957284
-   *  1073741824   3.42875166500824e-09
-   * </pre></code>
+   * Computes the base buffer count given k, n
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch
+   * @return the base buffer count
    */
-  public static class EpsilonFromK {
-    // the following delta was used while crunching down the empirical results
-    private static final double deltaForEps = 0.01;  
+  static int computeBaseBufferCount(int k, long n) {
+    return (int) (n % (2L * k));
+  }
 
-    // this is a heuristic fudge factor that causes the inverted formula to better match the empirical
-    private static final double adjustKForEps = 4.0 / 3.0;  // fudge factor
+  /**
+   * Computes the levels bit pattern given k, n.
+   * This is computed as <i>n / (2*k)</i>.
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch.
+   * @return the levels bit pattern
+   */
+  static long computeBitPattern(int k, long n) {
+    return n / (2L * k);
+  }
 
-    // ridiculously fine tolerance given the fudge factor; 1e-3 would probably suffice
-    private static final double bracketedBinarySearchForEpsTol = 1e-15; 
+  //used by HeapQS
+  static double lg(double x) {
+    return ( Math.log(x)) / (Math.log(2.0) );
+  }
+  
+  /**
+   * Computes the number of logarithmic levels needed given k and n.
+   * This is equivalent to max(floor(lg(n/k), 0).
+   * @param k the configured size of the sketch
+   * @param n the total values presented to the sketch.
+   * @return the number of levels needed.
+   */
+  static int computeNumLevelsNeeded(int k, long n) {
+    return 1 + hiBitPos(n / (2L * k));
+  }
+  
+  /**
+   * Zero based position of the highest one-bit of the given long
+   * @param num the given long
+   * @return Zero based position of the highest one-bit of the given long
+   */
+  static int hiBitPos(long num) {
+    return 63 - Long.numberOfLeadingZeros(num);
+  }
 
-    private static double kOfEpsFormula(double eps) {
-      return (1.0 / eps) * (Math.sqrt(Math.log(1.0 / (eps * deltaForEps))));
+  //used by HeapQS
+  static int positionOfLowestZeroBitStartingAt(long numIn, int startingPos) {
+    long num = numIn >>> startingPos;
+    int pos = 0;
+    while ((num & 1L) != 0) {
+      num = num >>> 1;
+      pos++;
     }
+    return (pos + startingPos);
+  }
 
-    private static boolean epsForKPredicate(double eps, double kf) {
-      return kOfEpsFormula(eps) >= kf;
+  //Used by HeapQS
+  static double sumOfDoublesInSubArray(double[] arr, int subArrayStart, int subArrayLength) {
+    double total = 0.0;
+    int subArrayStop = subArrayStart + subArrayLength;
+    for (int i = subArrayStart; i < subArrayStop; i++) {
+      total += arr[i];
     }
+    return total;
+  }
+  
+  static void checkK(int k) {
+    if (k < 2) throw new IllegalArgumentException("K must be greater than one: "+k);
+  }
+  
+  /**
+   * Because of the nested loop, cost is O(numSamples * numSplitPoints), which is bilinear.
+   * This method does NOT require the samples to be sorted.
+   * @param samples array of samples
+   * @param offset into samples array
+   * @param numSamples number of samples in samples array
+   * @param weight of the samples
+   * @param splitPoints must be unique and sorted. Number of splitPoints +1 == counters.length.
+   * @param counters array of counters
+   */ //used by HeapQS and MQS
+  static void bilinearTimeIncrementHistogramCounters(double[] samples, int offset, int numSamples, 
+      long weight, double[] splitPoints, long[] counters) {
+    assert (splitPoints.length + 1 == counters.length);
+    for (int i = 0; i < numSamples; i++) {
+      double sample = samples[i+offset];
+      int j = 0;
 
-    private static double bracketedBinarySearchForEps(double kf, double lo, double hi) {
-      assert lo < hi;
-      assert epsForKPredicate(lo, kf);
-      assert !epsForKPredicate(hi, kf);
-      if ((hi - lo) / lo < bracketedBinarySearchForEpsTol) {
-        return lo;
+      for (j = 0; j < splitPoints.length; j++) {
+        double splitpoint = splitPoints[j];
+        if (sample < splitpoint) { 
+          break;
+        }
       }
-      double mid = (lo + hi) / 2.0;
-      assert mid > lo;
-      assert mid < hi;
-      if (epsForKPredicate(mid, kf)) {
-        return bracketedBinarySearchForEps(kf, mid, hi);
-      }
-      else {
-        return bracketedBinarySearchForEps(kf, lo, mid);
-      }
-    }
-
-    /**
-     * Finds the theoretical epsilon given K and a fudge factor.
-     * @param k The given value of k
-     * @param ff The given fudge factor. No fudge factor = 1.0. 
-     * @return the resulting epsilon
-     */
-    public static double getTheoreticalEpsilon(int k, double ff) {
-      if (k < 2) throw new IllegalArgumentException("K must be greater than one.");
-      // don't need to check in the other direction because an int is very small
-      double kf = k*ff;
-      assert kf >= 2.15; // ensures that the bracketing succeeds
-      assert kf < 1e12;  // ditto, but could actually be bigger
-      double lo = 1e-16;
-      double hi = 1.0 - 1e-16;
-      assert epsForKPredicate(lo, kf);
-      assert !epsForKPredicate(hi, kf);
-      return bracketedBinarySearchForEps(kf, lo, hi);
-    }
-
-    //also used by test
-    /**
-     * From extensive empirical testing we recommend most users use this method for deriving 
-     * epsilon. This uses a fudge factor of 4/3 times the theoretical calculation of epsilon.
-     * @param k the given k that must be greater than one.
-     * @return the resulting epsilon
-     */
-    public static double getAdjustedEpsilon(int k) {
-      return getTheoreticalEpsilon(k, adjustKForEps);
-    }
-  } //End of EpsilonFromK
-
-  // Performs two merges in tandem. One of them provides the sort keys
-  // while the other one passively undergoes the same data motion.
-  private static void tandemMerge(double[] keySrc, long[] valSrc,
-                                  int arrStart1, int arrLen1,
-                                  int arrStart2, int arrLen2,
-                                  double[] keyDst, long[] valDst,
-                                  int arrStart3) {
-    int arrStop1 = arrStart1 + arrLen1;
-    int arrStop2 = arrStart2 + arrLen2;
-
-    int i1 = arrStart1;
-    int i2 = arrStart2;
-    int i3 = arrStart3;
-
-    while (i1 < arrStop1 && i2 < arrStop2) {
-      if (keySrc[i2] < keySrc[i1]) { 
-        keyDst[i3] = keySrc[i2];
-        valDst[i3] = valSrc[i2];
-        i3++; i2++;
-      }     
-      else { 
-        keyDst[i3] = keySrc[i1];
-        valDst[i3] = valSrc[i1];
-        i3++; i1++;
-      } 
-    }
-
-    if (i1 < arrStop1) {
-      arraycopy(keySrc, i1, keyDst, i3, arrStop1 - i1);
-      arraycopy(valSrc, i1, valDst, i3, arrStop1 - i1);
-    }
-    else {
-      assert i2 < arrStop2;
-      arraycopy(keySrc, i2, keyDst, i3, arrStop2 - i2);
-      arraycopy(valSrc, i2, valDst, i3, arrStop2 - i2);
+      assert j < counters.length;
+      // System.out.printf("%.2f in bucket %d\n", sample, j);
+      counters[j] += weight;
     }
   }
 
-  // blockyTandemMergeSortRecursion() is called by blockyTandemMergeSort()
-  // In addition to performing the algorithm's top down recursion,
-  // it manages the buffer swapping that eliminates most copying.
-  // It also maps the input's pre-sorted blocks into the subarrays 
-  // that are processed by tandemMerge().
+  /**
+   * This one does a linear time simultaneous walk of the samples and splitPoints. Because this
+   * internal procedure is called multiple times, we require the caller to ensure these 3 properties:
+   * <ol>
+   * <li>samples array must be sorted.</li>
+   * <li>splitPoints must be unique and sorted</li>
+   * <li>number of SplitPoints + 1 == counters.length</li>
+   * </ol>
+   * @param samples sorted array of samples
+   * @param offset into samples array
+   * @param numSamples number of samples in samples array
+   * @param weight of the samples
+   * @param splitPoints must be unique and sorted. Number of splitPoints +1 = counters.length.
+   * @param counters array of counters
+   */ //used by HeapQS and MQS
+  static void linearTimeIncrementHistogramCounters(double[] samples, int offset, int numSamples, 
+      long weight, double[] splitPoints, long[] counters) {
+    int numSplitPoints = splitPoints.length;
+
+    int i = 0;
+    int j = 0;
+
+    while (i < numSamples && j < numSplitPoints) {
+      if (samples[i+offset] < splitPoints[j]) {
+        counters[j] += weight; // this sample goes into this bucket
+        i++; // move on to next sample and see whether it also goes into this bucket
+      }
+      else {
+        j++; // no more samples for this bucket. move on the next bucket.
+      }
+    }
+
+    // now either i == numSamples(we are out of samples), or
+    // j == numSplitPoints(out of buckets, but there are more samples remaining)
+    // we only need to do something in the latter case.
+    if (j == numSplitPoints) {
+      counters[numSplitPoints] += (weight * (numSamples - i));
+    }
+  }
+  
+  //****************************************************
+  /**
+   * blockyTandemMergeSort() is an implementation of top-down merge sort specialized
+   * for the case where the input contains successive equal-length blocks
+   * that have already been sorted, so that only the top part of the
+   * merge tree remains to be executed. Also, two arrays are sorted in tandem,
+   * as discussed above.
+   * Used by Aux constructors for both Heap QS and MQS
+   */
+  static void blockyTandemMergeSort(double[] keyArr, long[] valArr, int arrLen, int blkSize) {
+    assert blkSize >= 1;
+    if (arrLen <= blkSize) return;
+    int numblks = arrLen / blkSize;
+    if (numblks * blkSize < arrLen) numblks += 1;
+    assert (numblks * blkSize >= arrLen);
+
+    // duplicate the input is preparation for the "ping-pong" copy reduction strategy. 
+    double[] keyTmp = Arrays.copyOf(keyArr, arrLen);
+    long[] valTmp   = Arrays.copyOf(valArr, arrLen);
+
+    blockyTandemMergeSortRecursion(keyTmp, valTmp,
+                                   keyArr, valArr,
+                                   0, numblks,
+                                   blkSize, arrLen);
+
+    /* verify sorted order */
+    for (int i = 0; i < arrLen-1; i++) {
+      assert keyArr[i] <= keyArr[i+1];
+    }
+  }
+
+  /**
+   *  blockyTandemMergeSortRecursion() is called by blockyTandemMergeSort().
+   *  In addition to performing the algorithm's top down recursion,
+   *  it manages the buffer swapping that eliminates most copying.
+   *  It also maps the input's pre-sorted blocks into the subarrays 
+   *  that are processed by tandemMerge().
+   * @param keySrc key source
+   * @param valSrc value source
+   * @param keyDst key destination
+   * @param valDst value destination
+   * @param grpStart group start, refers to pre-sorted blocks such as block 0, block 1, etc.
+   * @param grpLen group length, refers to pre-sorted blocks such as block 0, block 1, etc.
+   * @param blkSize block size
+   * @param arrLim array limit
+   */
   private static void blockyTandemMergeSortRecursion(double[] keySrc, long[] valSrc,
       double[] keyDst, long[] valDst, int grpStart, int grpLen, /* indices of blocks */
       int blkSize, int arrLim) {
@@ -197,146 +258,154 @@ final class Util {
                 keyDst, valDst,
                 arrStart1); // which will be arrStart3
   }
-
-  // blockyTandemMergeSort() is an implementation of top-down merge sort specialized
-  // for the case where the input contains successive equal-length blocks
-  // that have already been sorted, so that only the top part of the
-  // merge tree remains to be executed. Also, two arrays are sorted in tandem,
-  // as discussed above.
-  static void blockyTandemMergeSort(double[] keyArr, long[] valArr, int arrLen, int blkSize) {
-    assert blkSize >= 1;
-    if (arrLen <= blkSize) return;
-    int numblks = arrLen / blkSize;
-    if (numblks * blkSize < arrLen) numblks += 1;
-    assert (numblks * blkSize >= arrLen);
-
-    // duplicate the input is preparation for the "ping-pong" copy reduction strategy. 
-    double[] keyTmp = Arrays.copyOf(keyArr, arrLen);
-    long[] valTmp   = Arrays.copyOf(valArr, arrLen);
-
-    blockyTandemMergeSortRecursion(keyTmp, valTmp,
-                                   keyArr, valArr,
-                                   0, numblks,
-                                   blkSize, arrLen);
-
-    /* verify sorted order */
-    for (int i = 0; i < arrLen-1; i++) {
-      assert keyArr[i] <= keyArr[i+1];
-    }
-  }
-
+  
   /**
-   * Because of the nested loop, cost is O(numSamples * numSplitPoints), which is bilinear.
-   * This method does NOT require the samples to be sorted.
-   * @param samples array of samples
-   * @param offset into samples array
-   * @param numSamples number of samples in samples array
-   * @param weight of the samples
-   * @param splitPoints must be unique and sorted. Number of splitPoints +1 == counters.length.
-   * @param counters array of counters
+   *  Performs two merges in tandem. One of them provides the sort keys
+   *  while the other one passively undergoes the same data motion.
+   * @param keySrc key source
+   * @param valSrc value source
+   * @param arrStart1 Array 1 start offset
+   * @param arrLen1 Array 1 length
+   * @param arrStart2 Array 2 start offset
+   * @param arrLen2 Array 2 length
+   * @param keyDst key destination
+   * @param valDst value destination
+   * @param arrStart3 Array 3 start offset
    */
-  static void bilinearTimeIncrementHistogramCounters(double[] samples, int offset, int numSamples, 
-      long weight, double[] splitPoints, long[] counters) {
-    assert (splitPoints.length + 1 == counters.length);
-    for (int i = 0; i < numSamples; i++) {
-      double sample = samples[i+offset];
-      int j = 0;
+  private static void tandemMerge(double[] keySrc, long[] valSrc,
+                                  int arrStart1, int arrLen1,
+                                  int arrStart2, int arrLen2,
+                                  double[] keyDst, long[] valDst,
+                                  int arrStart3) {
+    int arrStop1 = arrStart1 + arrLen1;
+    int arrStop2 = arrStart2 + arrLen2;
 
-      for (j = 0; j < splitPoints.length; j++) {
-        double splitpoint = splitPoints[j];
-        if (sample < splitpoint) { 
-          break;
-        }
-      }
-      assert j < counters.length;
-      // System.out.printf("%.2f in bucket %d\n", sample, j);
-      counters[j] += weight;
-    }
-  }
+    int i1 = arrStart1;
+    int i2 = arrStart2;
+    int i3 = arrStart3;
 
-  /**
-   * This one does a linear time simultaneous walk of the samples and splitPoints. Because this
-   * internal procedure is called multiple times, we require the caller to ensure these 3 properties:
-   * <ol>
-   * <li>samples array must be sorted.</li>
-   * <li>splitPoints must be unique and sorted</li>
-   * <li>number of SplitPoints + 1 == counters.length</li>
-   * </ol>
-   * @param samples sorted array of samples
-   * @param offset into samples array
-   * @param numSamples number of samples in samples array
-   * @param weight of the samples
-   * @param splitPoints must be unique and sorted. Number of splitPoints +1 = counters.length.
-   * @param counters array of counters
-   */
-  static void linearTimeIncrementHistogramCounters(double[] samples, int offset, int numSamples, 
-      long weight, double[] splitPoints, long[] counters) {
-    int numSplitPoints = splitPoints.length;
-
-    int i = 0;
-    int j = 0;
-
-    while (i < numSamples && j < numSplitPoints) {
-      if (samples[i+offset] < splitPoints[j]) {
-        counters[j] += weight; // this sample goes into this bucket
-        i++; // move on to next sample and see whether it also goes into this bucket
-      }
-      else {
-        j++; // no more samples for this bucket. move on the next bucket.
-      }
+    while (i1 < arrStop1 && i2 < arrStop2) {
+      if (keySrc[i2] < keySrc[i1]) { 
+        keyDst[i3] = keySrc[i2];
+        valDst[i3] = valSrc[i2];
+        i3++; i2++;
+      }     
+      else { 
+        keyDst[i3] = keySrc[i1];
+        valDst[i3] = valSrc[i1];
+        i3++; i1++;
+      } 
     }
 
-    // now either i == numSamples(we are out of samples), or
-    // j == numSplitPoints(out of buckets, but there are more samples remaining)
-    // we only need to do something in the latter case.
-    if (j == numSplitPoints) {
-      counters[numSplitPoints] += (weight * (numSamples - i));
+    if (i1 < arrStop1) {
+      arraycopy(keySrc, i1, keyDst, i3, arrStop1 - i1);
+      arraycopy(valSrc, i1, valDst, i3, arrStop1 - i1);
     }
-  }
-
-  static double lg(double x) {
-    return ( Math.log(x)) / (Math.log(2.0) );
-  }
-
-  /**
-   * Zero based position of the highest one-bit of the given long
-   * @param num the given long
-   * @return Zero based position of the highest one-bit of the given long
-   */
-  static int hiBitPos(long num) {
-    return 63 - Long.numberOfLeadingZeros(num);
-  }
-
-  static int positionOfLowestZeroBitStartingAt(long numIn, int startingPos) {
-    long num = numIn >>> startingPos;
-    int pos = 0;
-    while ((num & 1L) != 0) {
-      num = num >>> 1;
-      pos++;
+    else {
+      assert i2 < arrStop2;
+      arraycopy(keySrc, i2, keyDst, i3, arrStop2 - i2);
+      arraycopy(valSrc, i2, valDst, i3, arrStop2 - i2);
     }
-    return (pos + startingPos);
-  }
-
-  static double sumOfDoublesInArrayPrefix(double[] arr, int prefixLength) {
-    double total = 0.0;
-    for (int i = 0; i < prefixLength; i++) {
-      total += arr[i];
-    }
-    return total;
-  }
-
-  static double sumOfDoublesInSubArray(double[] arr, int subArrayStart, int subArrayLength) {
-    double total = 0.0;
-    int subArrayStop = subArrayStart + subArrayLength;
-    for (int i = subArrayStart; i < subArrayStop; i++) {
-      total += arr[i];
-    }
-    return total;
   }
   
-  static void checkK(int k) {
-    if (k < 2) throw new IllegalArgumentException("K must be greater than one: "+k);
-  }
+  //************************************************************
+  /**
+   * Computes epsilon from K. The following table are examples.
+   * <code><pre>
+   *           eps      eps from inverted
+   *     K   empirical  adjusted formula
+   *  -------------------------------------
+   *    16   0.121094   0.121454102233560
+   *    32   0.063477   0.063586601346532
+   *    64   0.033081   0.033169048393679
+   *   128   0.017120   0.017248096847308
+   *   256   0.008804   0.008944835012965
+   *   512   0.004509   0.004627803568920
+   *  1024   0.002303   0.002389303789572
+   *
+   *  these could be used in a unit test
+   *  2   0.821714930853465
+   *  16   0.12145410223356
+   *  1024   0.00238930378957284
+   *  1073741824   3.42875166500824e-09
+   * </pre></code>
+   */ //used by Heap QS
+  public static class EpsilonFromK {
+    /**
+     *  Used while crunching down the empirical results.  If this value is changed the adjustKForEps
+     *  value will be incorrect and must also be recomputed.  Don't touch this!
+     */
+    private static final double deltaForEps = 0.01;  
+
+    /**
+     *  A heuristic fudge factor that causes the inverted formula to better match the empirical.
+     *  The value of 4/3 is directly associated with the deltaForEps value of 0.01. Don't touch this!
+     */
+    private static final double adjustKForEps = 4.0 / 3.0;  // fudge factor
+
+    /**
+     *  Ridiculously fine tolerance given the fudge factor; 1e-3 would probably suffice
+     */
+    private static final double bracketedBinarySearchForEpsTol = 1e-15; 
+
+    /**
+     * From extensive empirical testing we recommend most users use this method for deriving 
+     * epsilon. This uses a fudge factor of 4/3 times the theoretical calculation of epsilon.
+     * @param k the given k that must be greater than one.
+     * @return the resulting epsilon
+     */ //used by HeapQS
+    public static double getAdjustedEpsilon(int k) {
+      return getTheoreticalEpsilon(k, adjustKForEps);
+    }
+    
+    /**
+     * Finds the epsilon given K and a fudge factor.
+     * See Cormode's Mergeable Summaries paper, Journal version, Theorem 3.6. 
+     * This has a good fit between values of k between 16 and 1024. 
+     * Beyond that has not been empirically tested.
+     * @param k The given value of k
+     * @param ff The given fudge factor. No fudge factor = 1.0. 
+     * @return the resulting epsilon
+     */ //used only by getAdjustedEpsilon()
+    private static double getTheoreticalEpsilon(int k, double ff) {
+      if (k < 2) throw new IllegalArgumentException("K must be greater than one.");
+      // don't need to check in the other direction because an int is very small
+      double kf = k*ff;
+      assert kf >= 2.15; // ensures that the bracketing succeeds
+      assert kf < 1e12;  // ditto, but could actually be bigger
+      double lo = 1e-16;
+      double hi = 1.0 - 1e-16;
+      assert epsForKPredicate(lo, kf);
+      assert !epsForKPredicate(hi, kf);
+      return bracketedBinarySearchForEps(kf, lo, hi);
+    }
+    
+    private static double kOfEpsFormula(double eps) {
+      return (1.0 / eps) * (Math.sqrt(Math.log(1.0 / (eps * deltaForEps))));
+    }
+
+    private static boolean epsForKPredicate(double eps, double kf) {
+      return kOfEpsFormula(eps) >= kf;
+    }
+
+    private static double bracketedBinarySearchForEps(double kf, double lo, double hi) {
+      assert lo < hi;
+      assert epsForKPredicate(lo, kf);
+      assert !epsForKPredicate(hi, kf);
+      if ((hi - lo) / lo < bracketedBinarySearchForEpsTol) {
+        return lo;
+      }
+      double mid = (lo + hi) / 2.0;
+      assert mid > lo;
+      assert mid < hi;
+      if (epsForKPredicate(mid, kf)) {
+        return bracketedBinarySearchForEps(kf, mid, hi);
+      }
+      else {
+        return bracketedBinarySearchForEps(kf, lo, mid);
+      }
+    }
+  } //End of EpsilonFromK
 
 //  public static void main(String[] args) {
 //    long v = 1;

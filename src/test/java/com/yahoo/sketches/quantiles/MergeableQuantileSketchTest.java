@@ -69,7 +69,7 @@ public class MergeableQuantileSketchTest {
         assert auxAccum.length == numSamples + 1;
 
         double mqSumOfSamples = mq.sumOfSamplesInSketch ();
-        double auSumOfSamples = Util.sumOfDoublesInArrayPrefix (auxItems, numSamples);
+        double auSumOfSamples = MergeableQuantileSketch.sumOfDoublesInArrayPrefix (auxItems, numSamples);
 
         // the following test might be able to detect errors in handling the samples
         // e.g. accidentally dropping or duplicating a sample

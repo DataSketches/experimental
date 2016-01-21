@@ -91,18 +91,20 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
   public abstract int getNominalEntries();
 
   /**
-   * Gets a compact representation of the sketch
+   * Gets an on-heap compact representation of the sketch
    * @return compact sketch
    */
   public ArrayOfDoublesCompactSketch compact() {
-    return new HeapArrayOfDoublesCompactSketch(this);
+    return compact(null);
   }
 
   /**
    * Gets an off-heap compact representation of the sketch using the given memory
-   * @return compact sketch
+   * @param dstMem memory for the compact sketch (can be null)
+   * @return compact sketch (off-heap if memory is provided)
    */
   public ArrayOfDoublesCompactSketch compact(Memory dstMem) {
+    if (dstMem == null) return new HeapArrayOfDoublesCompactSketch(this);
     return new DirectArrayOfDoublesCompactSketch(this, dstMem);
   }
 

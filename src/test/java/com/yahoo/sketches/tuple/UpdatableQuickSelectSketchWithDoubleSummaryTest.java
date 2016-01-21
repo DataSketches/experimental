@@ -346,4 +346,131 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
     DoubleSummary[] summaries = sketch2.getSummaries();
     for (DoubleSummary summary: summaries) Assert.assertEquals(summary.getValue(), 1.0);
   }
+
+  @Test
+  public void aNotBEmpty() {
+    AnotB<DoubleSummary> aNotB = new AnotB<DoubleSummary>();
+    // calling getResult() before calling update() should yield an empty set
+    CompactSketch<DoubleSummary> result = aNotB.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertNull(result.getSummaries());
+
+    aNotB.update(null, null);
+    result = aNotB.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertNull(result.getSummaries());
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    aNotB.update(sketch, sketch);
+    result = aNotB.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertNull(result.getSummaries());
+  }
+
+  @Test
+  public void aNotBEmptyA() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchA = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchB = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketchB.update(1, 1.0);
+    sketchB.update(2, 1.0);
+
+    AnotB<DoubleSummary> aNotB = new AnotB<DoubleSummary>();
+    aNotB.update(sketchA, sketchB);
+    CompactSketch<DoubleSummary> result = aNotB.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertNull(result.getSummaries());
+  }
+
+  @Test
+  public void aNotBEmptyB() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchA = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketchA.update(1, 1.0);
+    sketchA.update(2, 1.0);
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchB = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+
+    AnotB<DoubleSummary> aNotB = new AnotB<DoubleSummary>();
+    aNotB.update(sketchA, sketchB);
+    CompactSketch<DoubleSummary> result = aNotB.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 2);
+    Assert.assertFalse(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 2.0);
+    Assert.assertEquals(result.getLowerBound(1), 2.0);
+    Assert.assertEquals(result.getUpperBound(1), 2.0);
+  }
+
+  @Test
+  public void aNotBExactMode() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchA = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketchA.update(1, 1.0);
+    sketchA.update(1, 1.0);
+    sketchA.update(2, 1.0);
+    sketchA.update(2, 1.0);
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchB = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketchB.update(2, 1.0);
+    sketchB.update(2, 1.0);
+    sketchB.update(3, 1.0);
+    sketchB.update(3, 1.0);
+
+    AnotB<DoubleSummary> aNotB = new AnotB<DoubleSummary>();
+    aNotB.update(sketchA, sketchB);
+    CompactSketch<DoubleSummary> result = aNotB.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 1);
+    Assert.assertFalse(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 1.0);
+    Assert.assertEquals(result.getLowerBound(1), 1.0);
+    Assert.assertEquals(result.getUpperBound(1), 1.0);
+    DoubleSummary[] summaries = result.getSummaries();
+    Assert.assertEquals(summaries[0].getValue(), 2.0);
+  }
+
+  @Test
+  public void aNotBEstimationMode() {
+    int key = 0;
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchA = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    for (int i = 0; i < 8192; i++) sketchA.update(key++, 1.0);
+
+    key -= 4096; // overlap half of the entries
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketchB = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    for (int i = 0; i < 8192; i++) sketchB.update(key++, 1.0);
+
+    AnotB<DoubleSummary> aNotB = new AnotB<DoubleSummary>();
+    aNotB.update(sketchA, sketchB);
+    CompactSketch<DoubleSummary> result = aNotB.getResult();
+    Assert.assertFalse(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 4096.0, 4096 * 0.03); // crude estimate of RSE(95%) = 2 / sqrt(result.getRetainedEntries())
+    Assert.assertTrue(result.getLowerBound(1) <= result.getEstimate());
+    Assert.assertTrue(result.getUpperBound(1) > result.getEstimate());
+    DoubleSummary[] summaries = sketchB.getSummaries();
+    for (DoubleSummary summary: summaries) Assert.assertEquals(summary.getValue(), 1.0);
+
+    // same thing, but compact sketches
+    aNotB.update(sketchA.compact(), sketchB.compact());
+    result = aNotB.getResult();
+    Assert.assertFalse(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 4096.0, 4096 * 0.03); // crude estimate of RSE(95%) = 2 / sqrt(result.getRetainedEntries())
+    Assert.assertTrue(result.getLowerBound(1) <= result.getEstimate());
+    Assert.assertTrue(result.getUpperBound(1) > result.getEstimate());
+    summaries = sketchB.getSummaries();
+    for (DoubleSummary summary: summaries) Assert.assertEquals(summary.getValue(), 1.0);
+}
+
 }

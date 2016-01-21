@@ -222,4 +222,31 @@ public class DirectArrayOfDoublesQuickSelectSketchTest {
     Assert.assertEquals(result.getLowerBound(1), 0.0);
     Assert.assertEquals(result.getTheta(), 1.0);
   }
+
+  @Test
+  public void unionEstimationMode() {
+    int key = 0;
+    DirectArrayOfDoublesQuickSelectSketch sketch1 = new DirectArrayOfDoublesQuickSelectSketch(4096, 1, new NativeMemory(new byte[1000000]));
+    for (int i = 0; i < 8192; i++) sketch1.update(key++, new double[] {1.0});
+
+    key -= 4096; // overlap half of the entries
+    DirectArrayOfDoublesQuickSelectSketch sketch2 = new DirectArrayOfDoublesQuickSelectSketch(4096, 1, new NativeMemory(new byte[1000000]));
+    for (int i = 0; i < 8192; i++) sketch2.update(key++, new double[] {1.0});
+
+    ArrayOfDoublesUnion union = new HeapArrayOfDoublesUnion(4096, 1);
+    union.update(sketch1);
+    union.update(sketch2);
+    ArrayOfDoublesCompactSketch result = union.getResult();
+    Assert.assertEquals(result.getEstimate(), 12288.0, 12288 * 0.01);
+  
+    union.reset();
+    result = union.getResult();
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertFalse(result.isEstimationMode());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getTheta(), 1.0);
+  }
+
 }

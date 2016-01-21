@@ -11,6 +11,8 @@ package com.yahoo.sketches.tuple;
 import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
+
+import com.yahoo.sketches.HashOperations;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
 
@@ -80,8 +82,9 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     );
     keys_ = new long[startingCapacity];
     values_ = new double[startingCapacity][];
-    setRebuildThreshold();
     mask_ = startingCapacity - 1;
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(startingCapacity);
+    setRebuildThreshold();
   }
 
   /**
@@ -116,6 +119,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
       offset += sizeOfValues;
     }
     setRebuildThreshold();
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(currentCapacity);
   }
 
   @Override
@@ -238,10 +242,21 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     values_ = new double[newCapacity][];
     count_ = 0;
     mask_ = newCapacity - 1;
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(newCapacity);
     for (int i = 0; i < oldKeys.length; i++) {
       if (oldKeys[i] != 0 && oldKeys[i] < theta_) insert(oldKeys[i], oldValues[i]);
     }
     setRebuildThreshold();
+  }
+
+  @Override
+  protected int insertKey(long key) {
+    return HashOperations.hashInsertOnly(keys_, lgCurrentCapacity_, key);
+  }
+
+  @Override
+  protected int findOrInsertKey(long key) {
+    return HashOperations.hashSearchOrInsert(keys_, lgCurrentCapacity_, key);
   }
 
   @Override

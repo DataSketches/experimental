@@ -11,37 +11,30 @@ package com.yahoo.sketches.tuple;
 
 import com.yahoo.sketches.QuickSelect;
 
+import static com.yahoo.sketches.Util.RESIZE_THRESHOLD;
+import static com.yahoo.sketches.Util.REBUILD_THRESHOLD;
+import static com.yahoo.sketches.Util.ceilingPowerOf2;
+
 public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDoublesSketch {
 
   public static final byte serialVersionUID = 1;
 
-  static final int SERIAL_VERSION_BYTE = 0;
-  static final int SKETCH_TYPE_BYTE = 1;
-  static final int FLAGS_BYTE = 2;
-  static final int LG_NOM_ENTRIES_BYTE = 3;
-  static final int LG_CUR_CAPACITY_BYTE = 4;
-  static final int LG_RESIZE_FACTOR_BYTE = 5;
-  static final int NUM_VALUES_BYTE = 6;
-  static final int RETAINED_ENTRIES_INT = 7;
-  static final int THETA_LONG = 11;
-  static final int SAMPLING_P_FLOAT = 19;
-  static final int ENTRIES_START = 23;
+  static final int LG_NOM_ENTRIES_BYTE = 4;
+  static final int LG_CUR_CAPACITY_BYTE = 5;
+  static final int LG_RESIZE_FACTOR_BYTE = 6;
+  // one byte of padding for alignment
+  static final int RETAINED_ENTRIES_INT = 8;
+  static final int SAMPLING_P_FLOAT = 12;
+  static final int THETA_LONG = 16;
+  static final int ENTRIES_START = 24;
 
   protected static final int MIN_NOM_ENTRIES = 32;
   protected static final int DEFAULT_LG_RESIZE_FACTOR = 3;
-  protected static final double REBUILD_RATIO_AT_RESIZE = 0.5;
-  protected static final double REBUILD_RATIO_AT_TARGET_SIZE = 15.0 / 16.0;
 
   // these can be derived from other things, but are kept here for performance
   protected int rebuildThreshold_;
   protected int mask_;
-
-  // 7 bits, last zero to make even
-  private static final int STRIDE_MASK = 0xfe;
-  protected static final int getStride(long key) {
-    // make odd and independent of index assuming that lower 32 bits are used for index
-    return ((int) ((key >> 32) & STRIDE_MASK)) + 1;
-  }
+  protected int lgCurrentCapacity_;
 
   protected abstract void updateValues(int index, double[] values);
   protected abstract void setNotEmpty();
@@ -54,6 +47,8 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   protected abstract void setValues(int index, double[] values, boolean isCopyRequired);
   protected abstract void incrementCount();
   protected abstract void setThetaLong(long theta);
+  protected abstract int insertKey(long key);
+  protected abstract int findOrInsertKey(long key);
 
   /*
    * Rebuilds reducing the actual number of entries to the nominal number of entries if needed
@@ -65,6 +60,13 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
     }
   }
 
+  /**
+   * @return maximum required storage bytes given nomEntries and numValues
+   */
+  public static int getMaxBytes(int nomEntries, int numValues) {
+    return ENTRIES_START + (SIZE_OF_KEY_BYTES + SIZE_OF_VALUE_BYTES * numValues) * ceilingPowerOf2(nomEntries) * 2;
+  }
+
   // non-public methods below
 
   // this is a special back door insert for merging
@@ -72,12 +74,12 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   void merge(long key, double[] values) {
     setNotEmpty();
     if (key < theta_) {
-      int countBefore = getRetainedEntries();
-      int index = findOrInsert(key);
-      if (getRetainedEntries() == countBefore) {
-        updateValues(index, values);
+      int index = findOrInsertKey(key);
+      if (index < 0) {
+        incrementCount();
+        setValues(~index, values, true);
       } else {
-        setValues(index, values, true);
+        updateValues(index, values);
       }
       rebuildIfNeeded();
     }
@@ -98,20 +100,16 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   }
 
   protected void insert(long key, double[] values) {
-    int index = (int) key & mask_;
-    while (getKey(index) != 0) {
-      index = (index + getStride(key)) & mask_;
-    }
-    setKey(index, key);
+    int index = insertKey(key);
     setValues(index, values, false);
     incrementCount();
   }
 
   protected void setRebuildThreshold() {
     if (getCurrentCapacity() > getNominalEntries()) {
-      rebuildThreshold_ = (int) (getCurrentCapacity() * REBUILD_RATIO_AT_TARGET_SIZE);
+      rebuildThreshold_ = (int) (getCurrentCapacity() * REBUILD_THRESHOLD);
     } else {
-      rebuildThreshold_ = (int) (getCurrentCapacity() * REBUILD_RATIO_AT_RESIZE);
+      rebuildThreshold_ = (int) (getCurrentCapacity() * RESIZE_THRESHOLD);
     }
   }
 
@@ -120,26 +118,14 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
     if (values.length != getNumValues()) throw new IllegalArgumentException("input array of values must have " + getNumValues() + " elements, but has " + values.length);
     setNotEmpty();
     if (key == 0 || key >= theta_) return;
-    int countBefore = getRetainedEntries();
-    int index = findOrInsert(key);
-    if (getRetainedEntries() > countBefore) {
-      setValues(index, values, true);
+    int index = findOrInsertKey(key);
+    if (index < 0) {
+      incrementCount();
+      setValues(~index, values, true);
     } else {
       updateValues(index, values);
     }
     rebuildIfNeeded();
-  }
-
-  protected int findOrInsert(long key) {
-    int index = (int) key & mask_;
-    long keyAtIndex;
-    while ((keyAtIndex = getKey(index)) != 0) {
-      if (keyAtIndex == key) return index;
-      index = (index + getStride(key)) & mask_;
-    }
-    setKey(index, key);
-    incrementCount();
-    return index;
   }
 
   protected void updateTheta() {
@@ -151,4 +137,5 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
     }
     setThetaLong(QuickSelect.select(keys, 0, getRetainedEntries() - 1, getNominalEntries()));
   }
+
 }

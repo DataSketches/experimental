@@ -143,9 +143,9 @@ public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extend
   private void insertOrIgnore(long key, U value) {
     setIsEmpty(false);
     if (key >= getThetaLong()) return;
-    int countBefore = getRetainedEntries();
     int index = findOrInsert(key);
-    if (getRetainedEntries() > countBefore) {
+    if (index < 0) {
+      index = ~index;
       summaries_[index] = getSummaryFactory().newSummary();
     }
     summaries_[index].update(value);

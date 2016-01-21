@@ -14,6 +14,7 @@ import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import com.yahoo.sketches.HashOperations;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.MemoryUtil;
 import com.yahoo.sketches.memory.NativeMemory;
@@ -73,6 +74,7 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     valuesOffset_ = keysOffset_ + SIZE_OF_KEY_BYTES * startingCapacity;
     mem_.clear(keysOffset_, SIZE_OF_KEY_BYTES * startingCapacity); // clear keys only
     mask_ = startingCapacity - 1;
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(startingCapacity);
     setRebuildThreshold();
   }
 
@@ -90,6 +92,7 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     // to do: make parent take care of its own parts
     numValues_ = mem_.getByte(NUM_VALUES_BYTE);
     mask_ = getCurrentCapacity() - 1;
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(getCurrentCapacity());
     theta_ = mem_.getLong(THETA_LONG);
     isEmpty_ = mem_.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
     setRebuildThreshold();
@@ -213,12 +216,23 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     mem_.putByte(LG_CUR_CAPACITY_BYTE, (byte)Integer.numberOfTrailingZeros(newCapacity));
     valuesOffset_ = keysOffset_ + SIZE_OF_KEY_BYTES * newCapacity;
     mask_ = newCapacity - 1;
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(newCapacity);
     for (int i = 0; i < keys.length; i++) {
       if (keys[i] != 0 && keys[i] < theta_) {
         insert(keys[i], Arrays.copyOfRange(values, i * numValues, (i + 1) * numValues));
       }
     }
     setRebuildThreshold();
+  }
+
+  @Override
+  protected int insertKey(long key) {
+    return HashOperations.hashInsertOnly(mem_, lgCurrentCapacity_, key, ENTRIES_START);
+  }
+
+  @Override
+  protected int findOrInsertKey(long key) {
+    return HashOperations.hashSearchOrInsert(mem_, lgCurrentCapacity_, key, ENTRIES_START);
   }
 
   @Override

@@ -9,6 +9,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
+import static com.yahoo.sketches.HashOperations.hashSearch;
+import static com.yahoo.sketches.HashOperations.hashSearchOrInsert;
+import static com.yahoo.sketches.HashOperations.hashInsertOnly;
 
 import com.yahoo.sketches.QuickSelect;
 
@@ -16,11 +19,12 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
   public static final byte serialVersionUID = 2;
 
-  private static final int MIN_NOM_ENTRIES = 32;
+  static final int MIN_NOM_ENTRIES = 32;
   private static final int DEFAULT_LG_RESIZE_RATIO = 3;
   private static final double REBUILD_RATIO_AT_RESIZE = 0.5;
-  private static final double REBUILD_RATIO_AT_TARGET_SIZE = 15.0 / 16.0;
+  static final double REBUILD_RATIO_AT_TARGET_SIZE = 15.0 / 16.0;
   private int nomEntries_;
+  private int lgCurrentCapacity_;
   private int lgResizeRatio_;
   private int count_;
   private final SummaryFactory<S> summaryFactory_;
@@ -73,16 +77,17 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    */
   @SuppressWarnings("unchecked")
   QuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, SummaryFactory<S> summaryFactory) {
-    this.nomEntries_ = ceilingPowerOf2(nomEntries);
-    this.lgResizeRatio_ = lgResizeRatio;
-    this.samplingProbability_ = samplingProbability;
-    this.summaryFactory_ = summaryFactory;
-    this.theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
+    nomEntries_ = ceilingPowerOf2(nomEntries);
+    lgResizeRatio_ = lgResizeRatio;
+    samplingProbability_ = samplingProbability;
+    summaryFactory_ = summaryFactory;
+    theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
     int startingSize = 1 << Util.startingSubMultiple(
       Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
       lgResizeRatio,
       Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
     );
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(startingSize);
     keys_ = new long[startingSize];
     summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), startingSize);
     setRebuildThreshold();
@@ -101,7 +106,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     boolean isBigEndian = (flags & (1 << Flags.IS_BIG_ENDIAN.ordinal())) > 0;
     if (isBigEndian ^ buffer.order().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     nomEntries_ = 1 << buffer.get();
-    int currentCapacity = 1 << buffer.get();
+    lgCurrentCapacity_ = buffer.get();
     lgResizeRatio_ = buffer.get();
     int count = 0;
     Long thetaLong = null;
@@ -115,6 +120,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     if (isInSamplingMode) samplingProbability_ = buffer.getFloat();
     summaryFactory_ = (SummaryFactory<S>) SerializerDeserializer.deserializeFromByteBuffer(buffer);
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability_);
+    int currentCapacity = 1 << lgCurrentCapacity_;
     keys_ = new long[currentCapacity];
     summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), currentCapacity);
     for (int i = 0; i < count; i++) {
@@ -154,7 +160,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   }
 
   public CompactSketch<S> compact() {
-    trim();
     long[] keys = new long[getRetainedEntries()];
     @SuppressWarnings("unchecked")
     S[] summaries = (S[]) Array.newInstance(summaries_.getClass().getComponentType(), getRetainedEntries());
@@ -216,7 +221,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
       ((count_ > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
     ));
     buffer.put((byte)Integer.numberOfTrailingZeros(nomEntries_));
-    buffer.put((byte)Integer.numberOfTrailingZeros(keys_.length));
+    buffer.put((byte)lgCurrentCapacity_);
     buffer.put((byte)lgResizeRatio_);
     if (count_ > 0) {
       buffer.putInt(count_);
@@ -244,12 +249,11 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   void merge(long key, S summary) {
     isEmpty_ = false;
     if (key < theta_) {
-      int countBefore = count_;
       int index = findOrInsert(key);
-      if (count_ == countBefore) {
-        summaries_[index] =  summaryFactory_.getSummarySetOperations().union(summaries_[index], summary);
+      if (index < 0) {
+        summaries_[~index] = summary.copy();
       } else {
-        summaries_[index] = summary.copy();
+        summaries_[index] = summaryFactory_.getSummarySetOperations().union(summaries_[index], summary);
       }
       rebuildIfNeeded();
     }
@@ -271,36 +275,16 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return summaryFactory_;
   }
 
-  // assumes that table.length is power of 2
-  private int getIndex(long key) {
-    return (int) (key & (keys_.length - 1));
-  }
-
-  // 7 bits, last zero to make even
-  private static final int STRIDE_MASK = 0xfe;
-  private static final int getStride(long key) {
-    // make odd and independent of index assuming that lower 32 bits are used for index
-    return ((int) ((key >> 32) & STRIDE_MASK)) + 1;
-  }
-
   int findOrInsert(long key) {
-    int index = getIndex(key);
-    while (summaries_[index] != null) {
-      if (keys_[index] == key) return index;
-      index = (index + getStride(key)) & (keys_.length - 1);
-    }
-    keys_[index] = key;
-    count_++;
+    int index = hashSearchOrInsert(keys_, lgCurrentCapacity_, key);
+    if (index < 0) count_++;
     return index;
   }
 
   S find(long key) {
-    int index = getIndex(key);
-    while (summaries_[index] != null) {
-      if (keys_[index] == key) return summaries_[index];
-      index = (index + getStride(key)) & (keys_.length - 1);
-    }
-    return null;
+    int index = hashSearch(keys_, lgCurrentCapacity_, key);
+    if (index == -1) return null;
+    return summaries_[index];
   }
 
   boolean rebuildIfNeeded() {
@@ -319,11 +303,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   }
 
   void insert(long key, S summary) {
-    int index = getIndex(key);
-    while (summaries_[index] != null) {
-      index = (index + getStride(key)) & (keys_.length - 1);
-    }
-    keys_[index] = key;
+    int index = hashInsertOnly(keys_, lgCurrentCapacity_, key);
     summaries_[index] = summary;
     count_++;
   }
@@ -343,6 +323,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     S[] oldSummaries = summaries_;
     keys_ = new long[newSize];
     summaries_ = (S[]) Array.newInstance(oldSummaries.getClass().getComponentType(), newSize);
+    lgCurrentCapacity_ = Integer.numberOfTrailingZeros(newSize);
     count_ = 0;
     for (int i = 0; i < oldKeys.length; i++) {
       if (oldSummaries[i] != null && oldKeys[i] < theta_) insert(oldKeys[i], oldSummaries[i]);

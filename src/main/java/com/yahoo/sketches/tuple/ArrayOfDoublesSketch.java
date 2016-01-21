@@ -4,6 +4,8 @@
  */
 package com.yahoo.sketches.tuple;
 
+import com.yahoo.sketches.memory.Memory;
+
 /**
  * This is a base class for a specialized version of a tuple sketch, where an array of double values is associated with each key.
  * A primitive array is used here, as opposed to a generic Summary object, for performance reasons.
@@ -18,6 +20,12 @@ public abstract class ArrayOfDoublesSketch {
   static final int SIZE_OF_KEY_BYTES = 8;
   static final int SIZE_OF_VALUE_BYTES = 8;
   
+  // common part of serialized layout
+  static final int SERIAL_VERSION_BYTE = 0;
+  static final int SKETCH_TYPE_BYTE = 1;
+  static final int FLAGS_BYTE = 2;
+  static final int NUM_VALUES_BYTE = 3;
+
   protected long theta_;
   protected int numValues_;
   protected boolean isEmpty_ = true;
@@ -101,4 +109,5 @@ public abstract class ArrayOfDoublesSketch {
    * @return iterator over the sketch
    */
   abstract ArrayOfDoublesSketchIterator iterator();
+
 }

@@ -55,7 +55,7 @@ public class DirectArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSket
    * Wraps the given Memory.
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
-  DirectArrayOfDoublesCompactSketch(Memory mem) {
+  public DirectArrayOfDoublesCompactSketch(Memory mem) {
     mem_ = mem;
     SerializerDeserializer.validateType(mem_.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesCompactSketch);
     byte version = mem_.getByte(SERIAL_VERSION_BYTE);

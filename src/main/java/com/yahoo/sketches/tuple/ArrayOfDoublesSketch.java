@@ -4,8 +4,6 @@
  */
 package com.yahoo.sketches.tuple;
 
-import com.yahoo.sketches.memory.Memory;
-
 /**
  * This is a base class for a specialized version of a tuple sketch, where an array of double values is associated with each key.
  * A primitive array is used here, as opposed to a generic Summary object, for performance reasons.

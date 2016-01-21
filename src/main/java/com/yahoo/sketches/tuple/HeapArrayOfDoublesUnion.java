@@ -4,6 +4,8 @@
  */
 package com.yahoo.sketches.tuple;
 
+import com.yahoo.sketches.memory.Memory;
+
 /**
  * This is on-heap implementation
  */
@@ -17,8 +19,17 @@ public class HeapArrayOfDoublesUnion extends ArrayOfDoublesUnion {
     theta_ = sketch_.getThetaLong();
   }
 
+  public HeapArrayOfDoublesUnion(Memory mem) {
+    sketch_ = new HeapArrayOfDoublesQuickSelectSketch(mem);
+    nomEntries_ = sketch_.getNominalEntries();
+    numValues_ = sketch_.getNumValues();
+    theta_ = sketch_.getThetaLong();
+  }
+
   @Override
   public void reset() {
     sketch_ = new HeapArrayOfDoublesQuickSelectSketch(nomEntries_, numValues_);
+    theta_ = sketch_.getThetaLong();
   }
+
 }

@@ -22,8 +22,19 @@ public class DirectArrayOfDoublesUnion extends ArrayOfDoublesUnion {
     mem_ = dstMem;
   }
 
+  public DirectArrayOfDoublesUnion(Memory mem) {
+    mem_ = mem;
+    sketch_ = new DirectArrayOfDoublesQuickSelectSketch(mem);
+    nomEntries_ = sketch_.getNominalEntries();
+    numValues_ = sketch_.getNumValues();
+    theta_ = sketch_.getThetaLong();
+    mem_ = mem;
+  }
+
   @Override
   public void reset() {
     sketch_ = new DirectArrayOfDoublesQuickSelectSketch(nomEntries_, numValues_, mem_);
+    theta_ = sketch_.getThetaLong();
   }
+
 }

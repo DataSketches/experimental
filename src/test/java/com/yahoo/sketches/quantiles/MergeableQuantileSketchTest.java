@@ -245,7 +245,7 @@ public class MergeableQuantileSketchTest {
     }
 
     Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
-    HeapQuantilesSketch mq6 = new HeapQuantilesSketch(16);
+    HeapQuantilesSketch mq6 = HeapQuantilesSketch.getInstance(16);
     bouncy = phi_inverse;
     for (int i = 0; i < 1357; i++) {
       mq6.update (bouncy);

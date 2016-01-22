@@ -71,7 +71,7 @@ final class PreambleUtil {
   static final int READ_ONLY_FLAG_MASK        = 2;
   static final int EMPTY_FLAG_MASK            = 4;
   static final int COMPACT_FLAG_MASK          = 8;
-  static final int ORDERED_FLAG_MASK          = 16;
+  static final int ORDERED_FLAG_MASK          = 16;  //not sure we need this
   
   static final boolean NATIVE_ORDER_IS_BIG_ENDIAN  = 
       (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN);
@@ -88,7 +88,7 @@ final class PreambleUtil {
     Memory mem = new NativeMemory(byteArr);
     return toString(mem);
   }
-
+  
   /**
    * Returns a human readable string summary of the internal state of the given Memory. 
    * Used primarily in testing.
@@ -156,4 +156,72 @@ final class PreambleUtil {
   }
   
 //@formatter:on
+  
+  static int extractPreLongs(final long long0) {
+    long mask = 0XFFL;
+    return (int) (long0 & mask);
+  }
+  
+  static int extractSerVer(final long long0) {
+    int shift = SER_VER_BYTE << 3;
+    long mask = 0XFFL;
+    return (int) ((long0 >>> shift) & mask);
+  }
+  
+  static int extractFamilyID(final long long0) {
+    int shift = FAMILY_BYTE << 3;
+    long mask = 0XFFL;
+    return (int) ((long0 >>> shift) & mask);
+  }
+  
+  static int extractFlags(final long long0) {
+    int shift = FLAGS_BYTE << 3;
+    long mask = 0XFFL;
+    return (int) ((long0 >>> shift) & mask);
+  }
+  
+  static int extractK(final long long1) {
+    int shift = 32;
+    return (int) (long1 >>> shift);
+  }
+  
+  static int extractBufAlloc(final long long1) {
+    long mask = 0XFFFFFFFFL;
+    return (int) (long1 & mask);
+  }
+  
+  static long insertPreLongs(final int preLongs, final long long0) {
+    long mask = 0XFFL;
+    return (preLongs & mask) | (~mask & long0);
+  }
+  
+  static long insertSerVer(final int serVer, final long long0) {
+    int shift = SER_VER_BYTE << 3;
+    long mask = 0XFFL;
+    return ((serVer & mask) << shift) | (~(mask << shift) & long0);
+  }
+  
+  static long insertFamilyID(final int familyID, final long long0) {
+    int shift = FAMILY_BYTE << 3;
+    long mask = 0XFFL;
+    return ((familyID & mask) << shift) | (~(mask << shift) & long0);
+  }
+  
+  static long insertFlags(final int flags, final long long0) {
+    int shift = FLAGS_BYTE << 3;
+    long mask = 0XFFL;
+    return ((flags & mask) << shift) | (~(mask << shift) & long0);
+  }
+  
+  static long insertK(final int k, final long long1) {
+    int shift = 32;
+    long mask = 0XFFFFFFFFL;
+    return ((k & mask) << shift) | (~(mask << shift) & long1);
+  }
+  
+  static long insertBufAlloc(final int bufAlloc, final long long4) {
+    long mask = 0XFFFFFFFFL;
+    return (bufAlloc & mask) | (~mask & long4);
+  }
+  
 }

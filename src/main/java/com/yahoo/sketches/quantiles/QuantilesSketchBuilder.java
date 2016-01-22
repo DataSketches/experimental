@@ -38,9 +38,9 @@ public class QuantilesSketchBuilder {
   public QuantilesSketch build() {
     QuantilesSketch sketch = null;
     if (bDstMem == null) {
-      sketch = new HeapQuantilesSketch(bK);
+      sketch = HeapQuantilesSketch.getInstance(bK);
     } else {
-      //sketch = new DirectQuantilesSketch(bK, bDstMem);
+      //sketch = HeapQuantilesSketch.getInstance(bDstMem);
     }
     return sketch;
   }

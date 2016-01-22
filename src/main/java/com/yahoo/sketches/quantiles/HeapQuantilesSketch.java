@@ -6,6 +6,11 @@ package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import static com.yahoo.sketches.quantiles.Util.*;
+import static com.yahoo.sketches.quantiles.PreambleUtil.*;
+
+import com.yahoo.sketches.Family;
+import com.yahoo.sketches.memory.Memory;
+import com.yahoo.sketches.memory.NativeMemory;
 import java.util.Arrays;
 
 /**
@@ -27,7 +32,7 @@ import java.util.Arrays;
  * @author Kevin Lang
  * @author Lee Rhodes
  */
-public class HeapQuantilesSketch extends QuantilesSketch {
+class HeapQuantilesSketch extends QuantilesSketch {
   /**
    * Parameter that controls space usage of sketch and accuracy of estimates.
    */
@@ -81,40 +86,115 @@ public class HeapQuantilesSketch extends QuantilesSketch {
    */
   private double[] combinedBuffer_;
 
+  //**CONSTRUCTORS**********************************************************
+  
+  private HeapQuantilesSketch(int k) {
+    super();
+    checkK(k);
+    k_ = k;
+  }
+  
   /**
-   * Constructs a Mergeable Quantile Sketch of double elements.
+   * Obtains an instance of a QuantileSketch of double elements.
+   * 
    * @param k Parameter that controls space usage of sketch and accuracy of estimates. 
    * Must be greater than one.
    */
-  public HeapQuantilesSketch(int k) {
-    checkK(k);
-    k_ = k;
-    n_ = 0;
-    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k); //the min is important
-    combinedBuffer_ = new double[combinedBufferAllocatedCount_];
-    baseBufferCount_ = 0;
-    bitPattern_ = 0;
-    minValue_ = java.lang.Double.POSITIVE_INFINITY;
-    maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
+  static HeapQuantilesSketch getInstance(int k) {
+    
+    HeapQuantilesSketch hqs = new HeapQuantilesSketch(k);
+    int bufAlloc = Math.min(MIN_BASE_BUF_SIZE, 2*k); //the min is important
+    hqs.n_ = 0;
+    hqs.combinedBufferAllocatedCount_ = bufAlloc;
+    hqs.combinedBuffer_ = new double[bufAlloc];
+    hqs.baseBufferCount_ = 0;
+    hqs.bitPattern_ = 0;
+    hqs.minValue_ = java.lang.Double.POSITIVE_INFINITY;
+    hqs.maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
+    return hqs;
   }
-
+  
   /**
-   * Resets this sketch to a virgin state, but retains the original value of k.
+   * Heapifies the given srcMem, which must be a Memory image of a QuantilesSketch
+   * @param srcMem
+   * @return a QuantilesSketch on the Java heap.
    */
-  public void reset() {
-    n_ = 0;
-    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k_); //the min is important
-    combinedBuffer_ = new double[combinedBufferAllocatedCount_];
-    baseBufferCount_ = 0;
-    bitPattern_ = 0;
-    minValue_ = java.lang.Double.POSITIVE_INFINITY;
-    maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
+  static HeapQuantilesSketch getInstance(Memory srcMem) {
+    long memCapBytes = srcMem.getCapacity();
+    if (memCapBytes < 8) {
+      throw new IllegalArgumentException("Memory too small: "+memCapBytes);
+    }
+    long pre0 = srcMem.getLong(0);
+    int preambleLongs = extractPreLongs(pre0);
+    int serVer = extractSerVer(pre0);
+    int familyID = extractFamilyID(pre0);
+    int flags = extractFlags(pre0);
+    boolean empty = (flags & EMPTY_FLAG_MASK) > 0;
+    int k = extractK(pre0);
+    
+    Family family = Family.idToFamily(familyID);
+    if (!family.equals(Family.QUANTILES)) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Invalid Family: " + family.toString());
+    }
+    boolean valid = ((preambleLongs == 1) && empty) || ((preambleLongs == 5) && !empty);
+    if (!valid) {
+      throw new IllegalArgumentException(
+          "Possible corruption: PreambleLongs inconsistent with empty state: " +preambleLongs);
+    }
+    
+    if (serVer != SER_VER) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Invalid Serialization Version: "+serVer);
+    }
+    
+    int flagsMask = ORDERED_FLAG_MASK | COMPACT_FLAG_MASK | READ_ONLY_FLAG_MASK | BIG_ENDIAN_FLAG_MASK;
+    if ((flags & flagsMask) > 0) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Input srcMem cannot be: big-endian, compact, ordered, or read-only");
+    }
+    
+    if (empty) return new HeapQuantilesSketch(k);
+    
+    if (memCapBytes < 40) {
+      throw new IllegalArgumentException("Memory too small: "+memCapBytes);
+    }
+    long[] preArr = new long[5];
+    srcMem.getLongArray(0, preArr, 0, 5);
+    long n = preArr[1];
+    double minValue = Double.longBitsToDouble(preArr[2]);
+    double maxValue = Double.longBitsToDouble(preArr[3]);
+    int bufAlloc = (int) preArr[4];
+    
+    int bufBytes = bufferElementCapacity(k, n) << 3;
+    if (memCapBytes < (40 + bufBytes)) {
+      throw new IllegalArgumentException("Memory too small: "+memCapBytes);
+    }
+    
+    HeapQuantilesSketch hqs = new HeapQuantilesSketch(k);
+    hqs.n_ = n;
+    hqs.minValue_ = minValue;
+    hqs.maxValue_ = maxValue;
+    hqs.baseBufferCount_ = (int)(n % (2*k));
+    hqs.bitPattern_ = n / (2 * k);
+    hqs.combinedBufferAllocatedCount_ = bufAlloc;
+    hqs.combinedBuffer_ = new double[bufAlloc];
+    srcMem.getDoubleArray(40, hqs.combinedBuffer_, 0, bufAlloc);
+    return hqs;
+  }
+  
+  /**
+   * Returns a new builder
+   *
+   * @return a new builder
+   */
+  public static final QuantilesSketchBuilder builder() {
+    return new QuantilesSketchBuilder();
   }
 
-  /** 
-   * Updates this sketch with the given double data item
-   * @param dataItem an item from a stream of items.  NaNs are ignored.
-   */
+
+
+  @Override
   public void update(double dataItem) {
     // this method is only directly using the base buffer part of the combined buffer
     if (Double.isNaN(dataItem)) return;
@@ -132,92 +212,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     }
   }
 
-  /**
-   * Merges the given sketch into this one
-   * @param qsSource the given source sketch
-   */
-  public void merge(HeapQuantilesSketch qsSource) {
-    mergeInto(qsSource, this);
-  }
-
-  // It is easy to prove that the following simplified code which launches 
-  // multiple waves of carry propagation does exactly the same amount of merging work
-  // (including the work of allocating fresh buffers) as the more complicated and 
-  // seemingly more efficient approach that tracks a single carry propagation wave
-  // through both sketches.
-
-  // This simplified code probably does do slightly more "outer loop" work,
-  // but I am pretty sure that even that is within a constant factor
-  // of the more complicated code, plus the total amount of "outer loop"
-  // work is at least a factor of K smaller than the total amount of 
-  // merging work, which is identical in the two approaches.
-
- /**
-  * Modifies the source sketch into the target sketch.
-  * @param qsSource The source sketch
-  * @param qsTarget The target sketch
-  */
-  public static void mergeInto(HeapQuantilesSketch qsSource, HeapQuantilesSketch qsTarget) {
-    if ( qsTarget.k_ != qsSource.k_) 
-      throw new IllegalArgumentException("Given sketches must have the same value of k.");
-
-    double[] srcLevels     = qsSource.combinedBuffer_; // aliasing is a bit dangerous
-    double[] srcBaseBuffer = qsSource.combinedBuffer_; // aliasing is a bit dangerous
-
-    int tgtK = qsTarget.getK();
-    long nFinal = qsTarget.getN() + qsSource.getN();
-
-    for (int i = 0; i < qsSource.baseBufferCount_; i++) {
-      qsTarget.update(srcBaseBuffer[i]);
-    }
-
-    qsTarget.maybeGrowLevels(nFinal); 
-
-    double[] scratchBuf = new double[2*tgtK];
-
-    long srcBits = qsSource.bitPattern_;
-    assert srcBits == qsSource.getN() / (2L * qsSource.getK());
-    for (int srcLvl = 0; srcBits != 0L; srcLvl++, srcBits >>>= 1) {
-      if ((srcBits & 1L) > 0L) {
-        qsTarget.inPlacePropagateCarry(srcLvl,
-                                   srcLevels, ((2+srcLvl) * tgtK),
-                                   scratchBuf, 0,
-                                   false);
-        // won't update qsTarget.n_ until the very end
-      }
-    }
-
-    qsTarget.n_ = nFinal;
-    
-    assert qsTarget.getN() / (2*tgtK) == qsTarget.bitPattern_; // internal consistency check
-
-    if (qsSource.maxValue_ > qsTarget.maxValue_) { qsTarget.maxValue_ = qsSource.maxValue_; }
-    if (qsSource.minValue_ < qsTarget.minValue_) { qsTarget.minValue_ = qsSource.minValue_; }
-  }
-
-  /*
-    Note: a two-way merge that doesn't modify either of its
-    two inputs could be implemented by making a deep copy of
-    the larger sketch and then merging the smaller one into it.
-    However, it was decided not to do this.
-  */
-
-  /**
-   * This returns an approximation to the value of the data item
-   * that would be preceded by the given fraction of a hypothetical sorted
-   * version of the input stream so far.
-   * 
-   * <p>
-   * We note that this method has a fairly large overhead (microseconds instead of nanoseconds)
-   * so it should not be called multiple times to get different quantiles from the same
-   * sketch. Instead use getQuantiles(). which pays the overhead only once.
-   * 
-   * @param fraction the specified fractional position in the hypothetical sorted stream.
-   * If fraction = 0.0, the true minimum value of the stream is returned. 
-   * If fraction = 1.0, the true maximum value of the stream is returned. 
-   * 
-   * @return the approximation to the value at the above fraction
-   */
+  @Override
   public double getQuantile(double fraction) {
     if ((fraction < 0.0) || (fraction > 1.0)) {
       throw new IllegalArgumentException("Fraction cannot be less than zero or greater than 1.0");
@@ -230,20 +225,8 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     }
   }
 
-  /**
-   * This is a more efficent multiple-query version of getQuantile().
-   * <p>
-   * This returns an array that could have been generated by
-   * mapping getQuantile() over the given array of fractions.
-   * However, the computational overhead of getQuantile() is shared
-   * amongst the multiple queries. Therefore, we strongly recommend this method
-   * instead of multiple calls to getQuantile().
-   * 
-   * @param fractions given array of fractional positions in the hypothetical sorted stream. 
-   * It is recommended that these be in increasing order.
-   * 
-   * @return array of approximations to the given fractions in the same order as given fractions array. 
-   */
+
+  @Override
   public double[] getQuantiles(double[] fractions) {
     Auxiliary aux = null; //
     double[] answers = new double[fractions.length];
@@ -262,25 +245,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     return answers;
   }
 
-  /**
-   * Returns an approximation to the Probability Density Function (PDF)[1] of the input stream 
-   * given a set of splitPoints (values).  
-   * 
-   * The resulting approximations have a probabilistic guarantee that be obtained from the 
-   * getNormalizedRankError() function.
-   * 
-   * <p>
-   * [1] Actually the name PMF (Probability Mass Function) might be a more precise name, 
-   * but is less well known.
-   * 
-   * @param splitPoints an array of <i>m</i> unique, monotonically increasing doubles
-   * that divide the real number line into <i>m+1</i> consecutive disjoint intervals.
-   * 
-   * @return an array of m+1 doubles each of which is an approximation
-   * to the fraction of the input stream values that fell into one of those intervals.
-   * The definition of an "interval" is inclusive of the left splitPoint and exclusive of the right
-   * splitPoint.
-   */
+  @Override
   public double[] getPDF(double[] splitPoints) {
     long[] counters = internalBuildHistogram(splitPoints);
     int numCounters = counters.length;
@@ -296,18 +261,7 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     return result;
   }
 
-  /**
-   * Returns an approximation to the Cumulative Distribution Function (CDF), which is the 
-   * cumulative analog of the PDF, of the input stream given a set of splitPoint (values).
-   * <p>
-   * More specifically, the value at array position j of the CDF is the
-   * sum of the values in positions 0 through j of the PDF.
-   * 
-   * @param splitPoints an array of <i>m</i> unique, monotonically increasing doubles
-   * that divide the real number line into <i>m+1</i> consecutive disjoint intervals.
-   * 
-   * @return an approximation to the CDF of the input stream given the splitPoints.
-   */
+  @Override
   public double[] getCDF(double[] splitPoints) {
     long[] counters = internalBuildHistogram(splitPoints);
     int numCounters = counters.length;
@@ -323,74 +277,103 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     return result;
   }
 
-  /**
-   * Get the rank error normalized as a fraction between zero and one. 
-   * The error of this sketch is specified as a fraction of the normalized rank of the hypothetical 
-   * sorted stream of items presented to the sketch. 
-   * 
-   * <p>Suppose the sketch is presented with N values. The raw rank (0 to N-1) of an item 
-   * would be its index position in the sorted version of the input stream. If we divide the 
-   * raw rank by N, it becomes the normalized rank, which is between 0 and 1.0.
-   * 
-   * <p>For example, choosing a K of 227 yields a normalized rank error of about 1%. 
-   * The upper bound on the median value obtained by getQuantile(0.5) would be the value in the 
-   * hypothetical ordered stream of values at the normalized rank of 0.51. 
-   * The lower bound would be the value in the hypothetical ordered stream of values at the 
-   * normalized rank of 0.49.
-   * 
-   * <p>The error of this sketch cannot be translated into an error (relative or absolute) of the 
-   * returned quantile values. 
-   * 
-   * @return the rank error normalized as a fraction between zero and one.
-   */
+  @Override
   public double getNormalizedRankError() {
     return Util.EpsilonFromK.getAdjustedEpsilon(k_);
   }
 
-  /**
-   * Returns the length of the input stream so far.
-   * @return the length of the input stream so far
-   */
+  @Override
   public long getStreamLength() {
     return n_;
   }
 
-  /**
-   * Returns the configured value of K
-   * @return the configured value of K
-   */
+  @Override
   public int getK() { 
     return k_; 
   }
 
-  /**
-   * Returns the min value of the stream
-   * @return the min value of the stream
-   */
+  @Override
   public double getMinValue() {
     return minValue_;
   }
 
-  /**
-   * Returns the max value of the stream
-   * @return the max value of the stream
-   */
+  @Override
   public double getMaxValue() {
     return maxValue_;
   }
 
   @Override
+  public boolean isDirect() {
+    return false;
+  }
+  
+  @Override
+  public boolean isEmpty() {
+    return (n_ == 0);
+  }
+  
+  @Override
+  public void reset() {
+    n_ = 0;
+    combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k_); //the min is important
+    combinedBuffer_ = new double[combinedBufferAllocatedCount_];
+    baseBufferCount_ = 0;
+    bitPattern_ = 0;
+    minValue_ = java.lang.Double.POSITIVE_INFINITY;
+    maxValue_ = java.lang.Double.NEGATIVE_INFINITY;
+  }
+  
+  @Override
+  public byte[] toByteArray() {
+    int preLongs, arrLongs, flags;
+    boolean empty = isEmpty();
+    
+    if (empty) {
+      preLongs = 1;
+      arrLongs = 1;
+      flags = EMPTY_FLAG_MASK;
+    }
+    else {
+      preLongs = 5;
+      arrLongs = preLongs + combinedBuffer_.length;
+      flags = 0;
+    }
+    byte[] outArr = new byte[arrLongs << 3];
+    NativeMemory mem = new NativeMemory(outArr);
+    
+    //build first prelong
+    long pre0 = 0L;
+    pre0 = insertPreLongs(preLongs, pre0);
+    pre0 = insertSerVer(SER_VER, pre0);
+    pre0 = insertFamilyID(Family.QUANTILES.getID(), pre0);
+    //other flags: bigEndian = readOnly = compact = ordered = false
+    pre0 = insertFlags(flags, pre0);
+    pre0 = insertK(k_, pre0);
+    
+    if (empty) {
+      mem.putLong(0, pre0);
+      //return outArr
+    }
+    else {
+      long[] preArr = new long[5];
+      preArr[0] = pre0;
+      preArr[1] = n_;
+      preArr[2] = Double.doubleToLongBits(minValue_);
+      preArr[3] = Double.doubleToLongBits(maxValue_);
+      preArr[4] = combinedBufferAllocatedCount_;
+      mem.putLongArray(0, preArr, 0, 5);
+      mem.putDoubleArray(40, combinedBuffer_, 0, combinedBuffer_.length);
+    }
+    return outArr;
+  }
+  
+  @Override
   public String toString() {
     return toString(true, false);
   }
-
-  /**
-   * Returns summary information about the sketch. Used for debugging
-   * @param sketchSummary if true includes sketch summary
-   * @param dataDetail if true includes data detail
-   * @return summary information about the sketch.
-   */
-  public String toString(boolean sketchSummary, boolean dataDetail ) {
+  
+  @Override
+  public String toString(boolean sketchSummary, boolean dataDetail) {
     StringBuilder sb = new StringBuilder();
     String thisSimpleName = this.getClass().getSimpleName();
     
@@ -457,8 +440,83 @@ public class HeapQuantilesSketch extends QuantilesSketch {
     return sb.toString();
   }
 
+  /**
+   * Merges the given sketch into this one
+   * @param qsSource the given source sketch
+   */
+  public void merge(HeapQuantilesSketch qsSource) {
+    mergeInto(qsSource, this);
+  }
+
+  // It is easy to prove that the following simplified code which launches 
+  // multiple waves of carry propagation does exactly the same amount of merging work
+  // (including the work of allocating fresh buffers) as the more complicated and 
+  // seemingly more efficient approach that tracks a single carry propagation wave
+  // through both sketches.
+
+  // This simplified code probably does do slightly more "outer loop" work,
+  // but I am pretty sure that even that is within a constant factor
+  // of the more complicated code, plus the total amount of "outer loop"
+  // work is at least a factor of K smaller than the total amount of 
+  // merging work, which is identical in the two approaches.
+
+  // Note: a two-way merge that doesn't modify either of its
+  // two inputs could be implemented by making a deep copy of
+  // the larger sketch and then merging the smaller one into it.
+  // However, it was decided not to do this.
+
+  
+ /**
+  * Modifies the source sketch into the target sketch.
+  * @param qsSource The source sketch
+  * @param qsTarget The target sketch
+  */
+  public static void mergeInto(HeapQuantilesSketch qsSource, HeapQuantilesSketch qsTarget) {
+    if ( qsTarget.k_ != qsSource.k_) 
+      throw new IllegalArgumentException("Given sketches must have the same value of k.");
+
+    double[] srcLevels     = qsSource.combinedBuffer_; // aliasing is a bit dangerous
+    double[] srcBaseBuffer = qsSource.combinedBuffer_; // aliasing is a bit dangerous
+
+    int tgtK = qsTarget.getK();
+    long nFinal = qsTarget.getN() + qsSource.getN();
+
+    for (int i = 0; i < qsSource.baseBufferCount_; i++) {
+      qsTarget.update(srcBaseBuffer[i]);
+    }
+
+    qsTarget.maybeGrowLevels(nFinal); 
+
+    double[] scratchBuf = new double[2*tgtK];
+
+    long srcBits = qsSource.bitPattern_;
+    assert srcBits == qsSource.getN() / (2L * qsSource.getK());
+    for (int srcLvl = 0; srcBits != 0L; srcLvl++, srcBits >>>= 1) {
+      if ((srcBits & 1L) > 0L) {
+        qsTarget.inPlacePropagateCarry(srcLvl,
+                                   srcLevels, ((2+srcLvl) * tgtK),
+                                   scratchBuf, 0,
+                                   false);
+        // won't update qsTarget.n_ until the very end
+      }
+    }
+
+    qsTarget.n_ = nFinal;
+    
+    assert qsTarget.getN() / (2*tgtK) == qsTarget.bitPattern_; // internal consistency check
+
+    if (qsSource.maxValue_ > qsTarget.maxValue_) { qsTarget.maxValue_ = qsSource.maxValue_; }
+    if (qsSource.minValue_ < qsTarget.minValue_) { qsTarget.minValue_ = qsSource.minValue_; }
+  }
+
+  
   //Restricted
 
+  /**
+   * Returns the Auxiliary data structure which is only used for getQuantile() and getQuantiles() 
+   * queries.
+   * @return the Auxiliary data structure
+   */
   Auxiliary constructAuxiliary() {
     return new Auxiliary( this );
         //k_, n_, bitPattern_, combinedBuffer_, baseBufferCount_, numSamplesInSketch());

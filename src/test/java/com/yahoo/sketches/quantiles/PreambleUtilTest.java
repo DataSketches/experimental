@@ -7,8 +7,6 @@ package com.yahoo.sketches.quantiles;
 import static com.yahoo.sketches.quantiles.PreambleUtil.*;
 import static org.testng.Assert.*;
 
-import com.yahoo.sketches.memory.Memory;
-import com.yahoo.sketches.memory.NativeMemory;
 import com.yahoo.sketches.quantiles.QuantilesSketch;
 
 import org.testng.annotations.Test;

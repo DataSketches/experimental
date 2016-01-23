@@ -5,7 +5,6 @@
 package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.Util.*;
-import static com.yahoo.sketches.quantiles.HeapQuantilesSketch.*;
 /**
  * Utility functions for computing space consumed by the MergeableQuantileSketch.
  * 
@@ -36,7 +35,7 @@ public final class Space {
       sb.append(String.format("%,14d |", n));
       for (int kpow = 4; kpow <= 10; kpow++) {
         int k = 1 << kpow;
-        int ubSpace = bufferElementCapacity(k, n);
+        int ubSpace = Util.bufferElementCapacity(k, n);
         int ubBytes = ubSpace * elementSizeBytes;
         sb.append(String.format("%,8d", ubBytes));
       }

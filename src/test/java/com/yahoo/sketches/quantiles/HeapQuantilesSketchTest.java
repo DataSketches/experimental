@@ -4,14 +4,15 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static org.testng.Assert.*;
+import static com.yahoo.sketches.quantiles.Util.*;
+import static com.yahoo.sketches.quantiles.PreambleUtil.*;
+import static java.lang.Math.*;
+
 import org.testng.annotations.Test;
 
+import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
-
-import static org.testng.Assert.*;
-//import static com.yahoo.sketches.quantiles.HeapQuantilesSketch.*;
-import static com.yahoo.sketches.quantiles.Util.*;
-import static java.lang.Math.*;
 
 public class HeapQuantilesSketchTest { 
 
@@ -32,24 +33,25 @@ public class HeapQuantilesSketchTest {
                    "adjustedFindEpsForK() doesn't match precomputed value");
     }
     for (int i = 0; i < 3; i++) {
-      HeapQuantilesSketch mq = HeapQuantilesSketch.getInstance(kArr[i]);
+      QuantilesSketch qs = QuantilesSketch.builder().build(kArr[i]);
       assertEquals(epsArr[i], 
-                   mq.getNormalizedRankError(),
+                   qs.getNormalizedRankError(),
                    absTol,
                    "getNormalizedCountError() doesn't match precomputed value");
     }
   }
 
-  // Please note that this is a randomized test that CAN fail.
-  // The probability of failure could be reduced by increasing k.
-  // Actually, setting the seed has now made it deterministic.
+  // Please note that this is a randomized test that could probabilistically fail 
+  // if we didn't set the seed. (The probability of failure could be reduced by increasing k.)
+  // Setting the seed has now made it deterministic.
   @Test
   public void checkEndToEnd() {
     Util.rand.setSeed(917351); // arbitrary seed that makes this test deterministic
-    HeapQuantilesSketch qs  = HeapQuantilesSketch.getInstance(256);
-    HeapQuantilesSketch qs2 = HeapQuantilesSketch.getInstance(256);
-
-    for (int item = 1000000; item >= 1; item--) {
+    
+    QuantilesSketch qs = QuantilesSketch.builder().build(256);
+    QuantilesSketch qs2 = QuantilesSketch.builder().build(256);
+    int n = 1000000;
+    for (int item = n; item >= 1; item--) {
       if (item % 4 == 0) {
         qs.update(item);
       }
@@ -57,8 +59,8 @@ public class HeapQuantilesSketchTest {
         qs2.update(item);
       }
     }
-
-    HeapQuantilesSketch.mergeInto(qs2, qs);
+    assertEquals(qs.getN()+qs2.getN(), n);
+    qs.merge(qs2);
 
     int numPhiValues = 99;
     double[] phiArr = new double[numPhiValues];
@@ -164,8 +166,8 @@ public class HeapQuantilesSketchTest {
     assert (resultsA[0] == 1.0);
     assert (resultsA[1] == 999.0);
 
-    HeapQuantilesSketch.mergeInto (qs2, qs1);
-    HeapQuantilesSketch.mergeInto (qs3, qs2);
+    qs1.merge(qs2);
+    qs2.merge(qs3);
 
     double[] resultsB = qs1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
@@ -205,8 +207,8 @@ public class HeapQuantilesSketchTest {
     assert (resultsA[1] == 5.0);
     assert (resultsA[2] == 8.0);
 
-    HeapQuantilesSketch.mergeInto (qs2, qs1);
-    HeapQuantilesSketch.mergeInto (qs3, qs2);
+    qs1.merge(qs2);
+    qs2.merge(qs3);
 
     double[] resultsB = qs1.getQuantiles(queries);
     assert (resultsB[0] == 1.0);
@@ -220,38 +222,31 @@ public class HeapQuantilesSketchTest {
   }
   
   @Test
-  public void checkToStringDetail() {
+  public void checkMisc() {
     int k = 227;
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
-    
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs.update(i);
-    }
-    println(qs.toString());
-    println(qs.toString(false, true));
-    
-    int n2 = (int)qs.getStreamLength();
+    HeapQuantilesSketch qs = buildHQS(k, n, 0);
+
+    int n2 = (int)qs.getN();
     assertEquals(n2, n);
     qs.update(Double.NaN);
     qs.reset();
-    assertEquals(qs.getStreamLength(), 0);
+    assertEquals(qs.getN(), 0);
   }
   
   @Test
-  public void checkMisc() {
+  public void checkToStringDetail() {
     int k = 227;
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
-    
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs.update(i);
-    }
-    int n2 = (int)qs.getStreamLength();
+    HeapQuantilesSketch qs = buildHQS(k, n, 0);
+    println(qs.toString());
+    println(qs.toString(false, true));
+    
+    int n2 = (int)qs.getN();
     assertEquals(n2, n);
-    qs.update(Double.NaN);
+    qs.update(Double.NaN); //ignore
     qs.reset();
-    assertEquals(qs.getStreamLength(), 0);
+    assertEquals(qs.getN(), 0);
   }
   
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -263,80 +258,26 @@ public class HeapQuantilesSketchTest {
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void checkGetQuantiles() {
     int k = 227;
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
-    
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs.update(i);
-    }
-    double[] frac = {-0.5};
+    HeapQuantilesSketch qs = buildHQS(k, n, 0);
+    double[] frac = {-0.5}; //an array
     qs.getQuantiles(frac);
   }
   
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void checkGetQuantile() {
     int k = 227;
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
-    
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs.update(i);
-    }
-    double frac = -0.5;
+    HeapQuantilesSketch qs = buildHQS(k, n, 0);
+    double frac = -0.5; //negative not allowed
     qs.getQuantile(frac);
   }
   
-  static HeapQuantilesSketch buildHQS(int k, int n, int startV) {
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
-    for (int i=0; i<n; i++) {
-      qs.update(startV + i);
-    }
-    return qs;
-  }
-  
-  static String getRanksTable(HeapQuantilesSketch qs, double[] ranks) {
-    double rankError = qs.getNormalizedRankError();
-    double[] values = qs.getQuantiles(ranks);
-    double maxV = qs.getMaxValue();
-    double minV = qs.getMinValue();
-    double delta = maxV - minV;
-    println("Note: This prints the relative value errors for illustration.");
-    println("The quantiles sketch does not and can not guarantee relative value errors");
-    
-    StringBuilder sb = new StringBuilder();
-    sb.append(LS);
-    sb.append("N = ").append(qs.getN()).append(LS);
-    sb.append("K = ").append(qs.getK()).append(LS);
-    String formatStr1 = "%10s%15s%10s%15s%10s%10s";
-    String formatStr2 = "%10.1f%15.5f%10.0f%15.5f%10.5f%10.5f";
-    String hdr = String.format(formatStr1, "Rank", "ValueLB", "<= Value", "<= ValueUB", "RelErrLB", "RelErrUB");
-    sb.append(hdr).append(LS);
-    for (int i=0; i<ranks.length; i++) {
-      double rank = ranks[i];
-      double value = values[i];
-      if (rank == 0.0) { assertEquals(value, minV, 0.0); }
-      else if (rank == 1.0) { assertEquals(value, maxV, 0.0); }
-      else {
-        double rankUB = rank + rankError;
-        double valueUB = minV + delta*rankUB;
-        double rankLB = Math.max(rank - rankError, 0.0);
-        double valueLB = minV + delta*rankLB;
-        assertTrue(value < valueUB);
-        assertTrue(value > valueLB);
-
-        double valRelPctErrUB = valueUB/ value -1.0;
-        double valRelPctErrLB = valueLB/ value -1.0;
-        String row = String.format(formatStr2,rank, valueLB, value, valueUB, valRelPctErrLB, valRelPctErrUB);
-        sb.append(row).append(LS);
-      }
-    }
-    return sb.toString();
-  }
-  
-  
   @Test
   public void quantilesCheckViaMemory() {
-    HeapQuantilesSketch qs = buildHQS(256, 1000000, 0);
+    int k = 256;
+    long n = 1000000;
+    HeapQuantilesSketch qs = buildHQS(k, n, 0);
     double[] ranks = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
     println(getRanksTable(qs, ranks));
     println("");
@@ -386,13 +327,9 @@ public class HeapQuantilesSketchTest {
   @Test
   public void checkMerge() {
     int k = 227;
-    HeapQuantilesSketch qs1 = HeapQuantilesSketch.getInstance(k);
-    HeapQuantilesSketch qs2 = HeapQuantilesSketch.getInstance(k);
-    
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs1.update(i);
-    }
+    HeapQuantilesSketch qs1 = buildHQS(k,n,0);
+    HeapQuantilesSketch qs2 = buildHQS(k,0,0);
     qs2.merge(qs1);
     double med1 = qs1.getQuantile(0.5);
     double med2 = qs2.getQuantile(0.5);
@@ -403,24 +340,20 @@ public class HeapQuantilesSketchTest {
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void checkMergeException() {
     int k = 227;
-    HeapQuantilesSketch qs1 = HeapQuantilesSketch.getInstance(k);
-    HeapQuantilesSketch qs2 = HeapQuantilesSketch.getInstance(2*k);
+    HeapQuantilesSketch qs1 = buildHQS(k,0,0);
+    HeapQuantilesSketch qs2 = buildHQS(2*k,0,0);
     qs2.merge(qs1);
   }
   
   @Test
   public void checkInternalBuildHistogram() {
     int k = 227;
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs.update(i);
-    }
+    HeapQuantilesSketch qs = buildHQS(k,n,0);
     double[] spts = {100000, 500000, 900000};
     qs.getPDF(spts);
     
   }
-  
   
   @Test
   public void checkComputeBaseBufferCount() {
@@ -433,14 +366,88 @@ public class HeapQuantilesSketchTest {
   @Test
   public void checkToFromByteArray() {
     int k = 227;
-    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
     int n = 1000000;
-    for (int i=1; i<=n; i++) {
-      qs.update(i);
-    }
+    HeapQuantilesSketch qs = buildHQS(k,n,0);
     
+    byte[] byteArr = qs.toByteArray();
+    Memory mem = new NativeMemory(byteArr);
+    HeapQuantilesSketch qs2 = HeapQuantilesSketch.getInstance(mem);
+    for (double f = 0.1; f < 0.95; f += 0.1) {
+      assertEquals(qs.getQuantile(f), qs2.getQuantile(f), 0.0);
+    }
   }
   
+  @Test
+  public void checkEmpty() {
+    int k = 227;
+    HeapQuantilesSketch qs1 = buildHQS(k, 0, 0);
+    byte[] byteArr = qs1.toByteArray();
+    Memory mem = new NativeMemory(byteArr);
+    HeapQuantilesSketch qs2 = HeapQuantilesSketch.getInstance(mem);
+    assertTrue(qs2.isEmpty());
+    assertEquals(byteArr.length, 8);
+    println(qs1.toString(true, true));
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkTooSmall1() {
+    Memory mem = new NativeMemory(new byte[7]);
+    @SuppressWarnings("unused")
+    HeapQuantilesSketch qs2 = HeapQuantilesSketch.getInstance(mem);
+  }
+  
+  //Corruption tests
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkSerVer() {
+    QuantilesSketch.checkSerVer(0);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkFamilyID() {
+    QuantilesSketch.checkFamilyID(3);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkBufAllocAndCap() {
+    int k = 227;
+    long n = 1000;
+    int computedBufAlloc = bufferElementCapacity(k, n);
+    int memAlloc = computedBufAlloc -1; //corrupt
+    int memCap = (computedBufAlloc + 5) << 3;
+    QuantilesSketch.checkBufAllocAndCap(k, n, memAlloc, memCap);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkBufAllocAndCap2() {
+    int k = 227;
+    long n = 1000;
+    int computedBufAlloc = bufferElementCapacity(k, n);
+    int memAlloc = computedBufAlloc; //corrupt
+    int memCap = (computedBufAlloc + 5) << 3;
+    QuantilesSketch.checkBufAllocAndCap(k, n, memAlloc, memCap-1);
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkPreLongsFlagsCap() {
+    int preLongs = 5;
+    int flags = EMPTY_FLAG_MASK;
+    int memCap = 8;
+    QuantilesSketch.checkPreLongsFlagsCap(preLongs, flags,  memCap); //corrupt
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkPreLongsFlagsCap2() {
+    int preLongs = 5;
+    int flags = 0;
+    int memCap = 8;
+    QuantilesSketch.checkPreLongsFlagsCap(preLongs, flags,  memCap); //corrupt
+  }
+  
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkFlags() {
+    int flags = 1;
+    QuantilesSketch.checkFlags(flags);
+  }
   
   @Test
   public void printlnTest() {
@@ -454,4 +461,50 @@ public class HeapQuantilesSketchTest {
     System.out.println(s); //disable here
   }
   
+  static HeapQuantilesSketch buildHQS(int k, long n, int startV) {
+    HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k);
+    for (int i=0; i<n; i++) {
+      qs.update(startV + i);
+    }
+    return qs;
+  }
+  
+  static String getRanksTable(HeapQuantilesSketch qs, double[] ranks) {
+    double rankError = qs.getNormalizedRankError();
+    double[] values = qs.getQuantiles(ranks);
+    double maxV = qs.getMaxValue();
+    double minV = qs.getMinValue();
+    double delta = maxV - minV;
+    println("Note: This prints the relative value errors for illustration.");
+    println("The quantiles sketch does not and can not guarantee relative value errors");
+    
+    StringBuilder sb = new StringBuilder();
+    sb.append(LS);
+    sb.append("N = ").append(qs.getN()).append(LS);
+    sb.append("K = ").append(qs.getK()).append(LS);
+    String formatStr1 = "%10s%15s%10s%15s%10s%10s";
+    String formatStr2 = "%10.1f%15.5f%10.0f%15.5f%10.5f%10.5f";
+    String hdr = String.format(formatStr1, "Rank", "ValueLB", "<= Value", "<= ValueUB", "RelErrLB", "RelErrUB");
+    sb.append(hdr).append(LS);
+    for (int i=0; i<ranks.length; i++) {
+      double rank = ranks[i];
+      double value = values[i];
+      if (rank == 0.0) { assertEquals(value, minV, 0.0); }
+      else if (rank == 1.0) { assertEquals(value, maxV, 0.0); }
+      else {
+        double rankUB = rank + rankError;
+        double valueUB = minV + delta*rankUB;
+        double rankLB = Math.max(rank - rankError, 0.0);
+        double valueLB = minV + delta*rankLB;
+        assertTrue(value < valueUB);
+        assertTrue(value > valueLB);
+
+        double valRelPctErrUB = valueUB/ value -1.0;
+        double valRelPctErrLB = valueLB/ value -1.0;
+        String row = String.format(formatStr2,rank, valueLB, value, valueUB, valRelPctErrLB, valRelPctErrUB);
+        sb.append(row).append(LS);
+      }
+    }
+    return sb.toString();
+  }
 }

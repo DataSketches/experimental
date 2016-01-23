@@ -6,7 +6,7 @@ package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.Util.LS;
 import static com.yahoo.sketches.Util.TAB;
-import static com.yahoo.sketches.quantiles.Util.*;
+import static com.yahoo.sketches.quantiles.QuantilesSketch.*;
 
 import com.yahoo.sketches.memory.Memory;
 
@@ -16,8 +16,8 @@ import com.yahoo.sketches.memory.Memory;
  * @author Lee Rhodes 
  */
 public class QuantilesSketchBuilder {
-  private int bK;
-  private Memory bDstMem;
+  private int bK = MIN_BASE_BUF_SIZE/2;
+  private Memory bDstMem = null;
   
   public QuantilesSketchBuilder() {
     bK = 227; //default for ~1% rank accuracy
@@ -25,7 +25,7 @@ public class QuantilesSketchBuilder {
   }
   
   public QuantilesSketchBuilder setK(int k) {
-    checkK(k);
+    QuantilesSketch.checkK(k);
     bK = k;
     return this;
   }
@@ -40,9 +40,22 @@ public class QuantilesSketchBuilder {
     if (bDstMem == null) {
       sketch = HeapQuantilesSketch.getInstance(bK);
     } else {
-      //sketch = HeapQuantilesSketch.getInstance(bDstMem);
+      //sketch = DirectQuantilesSketch.getInstance(bK, bDstMem);
     }
     return sketch;
+  }
+  
+  public QuantilesSketch build(int k) {
+    bK = k;
+    return build();
+  }
+  
+  public int getK() {
+    return bK;
+  }
+  
+  public Memory getMemory() {
+    return bDstMem;
   }
   
   @Override

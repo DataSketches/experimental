@@ -185,9 +185,9 @@ final class PreambleUtil {
     return (int) (long1 >>> shift);
   }
   
-  static int extractBufAlloc(final long long1) {
+  static int extractBufAlloc(final long long4) {
     long mask = 0XFFFFFFFFL;
-    return (int) (long1 & mask);
+    return (int) (long4 & mask);
   }
   
   static long insertPreLongs(final int preLongs, final long long0) {

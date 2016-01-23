@@ -4,6 +4,7 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import static java.lang.System.*;
 
 import java.util.Arrays;
@@ -23,6 +24,21 @@ final class Util {
   public static String LS = System.getProperty("line.separator");
   static Random rand = new Random();
   
+  /**
+   * Returns the current element capacity of the combined data buffer given <i>k</i> and <i>n</i>.
+   * 
+   * @param k sketch parameter. This determines the accuracy of the sketch and the 
+   * size of the updatable data structure, which is a function of k.
+   * 
+   * @param n The number of elements in the input stream
+   * @return the current element capacity of the combined data buffer
+   */
+  static int bufferElementCapacity(int k, long n) {
+    int maxLevels = computeNumLevelsNeeded(k, n);
+    int bbCnt = (maxLevels > 0)? 2*k : ceilingPowerOf2(computeBaseBufferCount(k, n));
+    return bbCnt + maxLevels*k;
+  }
+
   /**
    * Computes the number of valid levels above the base buffer
    * @return the number of valid levels above the base buffer
@@ -96,10 +112,6 @@ final class Util {
       total += arr[i];
     }
     return total;
-  }
-  
-  static void checkK(int k) {
-    if (k < 2) throw new IllegalArgumentException("K must be greater than one: "+k);
   }
   
   /**

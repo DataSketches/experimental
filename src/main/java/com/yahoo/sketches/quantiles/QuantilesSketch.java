@@ -4,10 +4,28 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static com.yahoo.sketches.quantiles.PreambleUtil.BIG_ENDIAN_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.COMPACT_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.EMPTY_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.ORDERED_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.READ_ONLY_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.SER_VER;
+import static com.yahoo.sketches.quantiles.Util.*;
+
+import com.yahoo.sketches.Family;
+
 public abstract class QuantilesSketch {
   static final int MIN_BASE_BUF_SIZE = 4; //This is somewhat arbitrary
   @SuppressWarnings("unused")
   static final double DUMMY_VALUE = -99.0;  // just for debugging
+  
+  /**
+   * Returns a new builder
+   * @return a new builder
+   */
+  public static final QuantilesSketchBuilder builder() {
+    return new QuantilesSketchBuilder();
+  }
   
   /** 
    * Updates this sketch with the given double data item
@@ -108,12 +126,6 @@ public abstract class QuantilesSketch {
   public abstract double[] getCDF(double[] splitPoints);
   
   /**
-   * Returns the length of the input stream so far.
-   * @return the length of the input stream so far
-   */
-  public abstract long getStreamLength();
-  
-  /**
    * Returns the configured value of K
    * @return the configured value of K
    */
@@ -163,28 +175,115 @@ public abstract class QuantilesSketch {
    */
   public abstract String toString(boolean sketchSummary, boolean dataDetail);
   
-  
-  
-  
   /**
    * Merges the given sketch into this one
    * @param qsSource the given source sketch
    */
-  public void merge(QuantilesSketch qsSource) {
-    if (qsSource instanceof HeapQuantilesSketch) {
-      //mergeInto((HeapQuantilesSketch)qsSource);
-    }
-  }
+  public abstract void merge(QuantilesSketch qsSource);
   
   /**
    * Modifies the source sketch into the target sketch.
    * @param qsSource The source sketch
    * @param qsTarget The target sketch
    */
-   //public void mergeInto(HeapQuantilesSketch qsSource, HeapQuantilesSketch qsTarget);
+   public abstract void mergeInto(QuantilesSketch qsSource, QuantilesSketch qsTarget);
   
   
   //restricted
+  
+   /**
+    * Returns the length of the input stream so far.
+    * @return the length of the input stream so far
+    */
+   public abstract long getN();
+   
+   /**
+    * Returns the combined buffer
+    * @return the commbined buffer
+    */
+   abstract double[] getCombinedBuffer();
+   
+   /**
+    * Returns the base buffer count
+    * @return the base buffer count
+    */
+   abstract int getBaseBufferCount();
+   
+   /**
+    * Returns the bit pattern for valid log levels
+    * @return the bit pattern for valid log levels
+    */
+   abstract long getBitPattern();
+   
+   /**
+    * Computes the number of samples in the sketch from the base buffer count and the bit pattern
+    * @return the number of samples in the sketch
+    */
+   abstract int numValidSamples();
+   
+  /**
+   * Checks the validity of the given value k
+   * @param k must be greater than or equal to 2.
+   */
+  static void checkK(int k) {
+    if (k < MIN_BASE_BUF_SIZE/2) {
+      throw new IllegalArgumentException("K must be >= "+(MIN_BASE_BUF_SIZE/2));
+    }
+  }
+
+  static void checkSerVer(int serVer) {
+    if (serVer != SER_VER) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Invalid Serialization Version: "+serVer);
+    }
+  }
+  
+  static void checkFamilyID(int familyID) {
+    Family family = Family.idToFamily(familyID);
+    if (!family.equals(Family.QUANTILES)) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Invalid Family: " + family.toString());
+    }
+  }
+  
+  static void checkBufAllocAndCap(int k, long n, int memBufAlloc, long memCapBytes) {
+    int computedBufAlloc = bufferElementCapacity(k, n);
+    if (memBufAlloc != computedBufAlloc) {
+      throw new IllegalArgumentException("Possible corruption: Invalid Buffer Allocated Count: "
+          + memBufAlloc +" != " +computedBufAlloc);
+    }
+    int maxPre = Family.QUANTILES.getMaxPreLongs();
+    int reqBufBytes = (maxPre + memBufAlloc) << 3;
+    if (memCapBytes < reqBufBytes) {
+      throw new IllegalArgumentException("Possible corruption: Memory capacity too small: "+ 
+          memCapBytes + " < "+ reqBufBytes);
+    }
+  }
+  
+  static boolean checkPreLongsFlagsCap(int preambleLongs, int flags, long memCapBytes) {
+    boolean empty = (flags & EMPTY_FLAG_MASK) > 0;
+    int minPre = Family.QUANTILES.getMinPreLongs();
+    int maxPre = Family.QUANTILES.getMaxPreLongs();
+    boolean valid = ((preambleLongs == minPre) && empty) || ((preambleLongs == maxPre) && !empty);
+    if (!valid) {
+      throw new IllegalArgumentException(
+          "Possible corruption: PreambleLongs inconsistent with empty state: " +preambleLongs);
+    }
+    checkFlags(flags);
+    if (!empty && (memCapBytes < (maxPre<<3))) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Insufficient capacity for preamble: " +memCapBytes);
+    }
+    return empty;
+  }
+  
+  static void checkFlags(int flags) {
+    int flagsMask = ORDERED_FLAG_MASK | COMPACT_FLAG_MASK | READ_ONLY_FLAG_MASK | BIG_ENDIAN_FLAG_MASK;
+    if ((flags & flagsMask) > 0) {
+      throw new IllegalArgumentException(
+          "Possible corruption: Input srcMem cannot be: big-endian, compact, ordered, or read-only");
+    }
+  }
   
   /**
    * Checks the validity of the split points. They must be unique, monotonically increasing and

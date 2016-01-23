@@ -22,27 +22,26 @@ import com.yahoo.sketches.memory.NativeMemory;
  * multi-byte integers (<i>int</i> and <i>long</i>) are stored in native byte order. The
  * <i>byte</i> values are treated as unsigned.</p>
  * 
- * <p>An Empty virgin sketch may only have the first 8 bytes.  A non-sketch-estimating sampling
- * sketch may only have the first 16 bytes. All others will have all 24 bytes.</p> 
+ * <p>An empty QuantilesSketch only requires 8 bytes. All others require 40 bytes of preamble.</p> 
  * 
  * <pre>
  * Long || Start Byte Adr:
  * Adr: 
- *      ||  7 |   6   |     5    |   4   |   3   |    2   |    1   |     0              |
- *  0   || -------------K--------------- | Flags | FamID  | SerVer |  Preamble_Longs    |
+ *      ||    7   |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
+ *  0   ||------Seed-------|--------K--------|  Flags | FamID  | SerVer | Preamble_Longs |
  *  
- *      || 15 |  14   |    13    |  12   |  11   |   10   |    9   |     8              |
- *  1   || -----------------------------N_LONG ---------------------------------------- |
+ *      ||   15   |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
+ *  1   ||---------------------------------N_LONG----------------------------------------|
  *  
- *      || 23 |  22   |    21    |  20   |  19   |   18   |   17   |    16              |
- *  2   || ----------------------------MIN_DOUBLE-------------------------------------- |
+ *      ||   23   |   22   |   21   |   20   |   19   |   18   |   17   |    16          |
+ *  2   ||-------------------------------MIN_DOUBLE--------------------------------------|
  *
- *      || 31 |  30   |    29    |  28   |  27   |   26   |   25   |    24              |
- *  3   || ----------------------------MAX DOUBLE ------------------------------------- |
- *      || 39 |  38   |    37    |  36   |  35   |   34   |   33   |    32              |
- *  4   || ---------(unused)-------------|----------BUFFER_DOUBLES_ALLOC_INT----------- |
- *      || 47 |  46   |    45    |  44   |  43   |   42   |   41   |    40              |
- *  5   || ----------------------------START OF BUFFER----------------------------------|
+ *      ||   31   |   30   |   29   |   28   |   27   |   26   |   25   |    24          |
+ *  3   ||-------------------------------MAX DOUBLE--------------------------------------|
+ *      ||   39   |   38   |   37   |   36   |   35   |   34   |   33   |    32          |
+ *  4   ||--------------(unused)-------------|-----------BUFFER_DOUBLES_ALLOC------------|
+ *      ||   47   |   46   |   45   |   44   |   43   |   42   |   41   |    40          |
+ *  5   ||-----------------------------START OF BUFFER-----------------------------------|
  *  </pre>
  *  
  *  @author Lee Rhodes
@@ -57,7 +56,8 @@ final class PreambleUtil {
   static final int SER_VER_BYTE               = 1;
   static final int FAMILY_BYTE                = 2;
   static final int FLAGS_BYTE                 = 3;
-  static final int K_INT                      = 4;  //to 7;  Stop here for empty sketch
+  static final int K_SHORT                    = 4;  //to 5
+  static final int SEED_SHORT                 = 6;  //to 7  stop here for empty sketch
   static final int N_LONG                     = 8;  //to 15
   static final int MIN_DOUBLE                 = 16; //to 23
   static final int MAX_DOUBLE                 = 24; //to 31
@@ -68,10 +68,10 @@ final class PreambleUtil {
   
   // flag bit masks
   static final int BIG_ENDIAN_FLAG_MASK       = 1;
-  static final int READ_ONLY_FLAG_MASK        = 2;
+  static final int READ_ONLY_FLAG_MASK        = 2;   //place holder
   static final int EMPTY_FLAG_MASK            = 4;
-  static final int COMPACT_FLAG_MASK          = 8;
-  static final int ORDERED_FLAG_MASK          = 16;  //not sure we need this
+  static final int COMPACT_FLAG_MASK          = 8;   //place holder
+  static final int ORDERED_FLAG_MASK          = 16;  //place holder
   
   static final boolean NATIVE_ORDER_IS_BIG_ENDIAN  = 
       (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN);
@@ -108,11 +108,12 @@ final class PreambleUtil {
     int flags = mem.getByte(FLAGS_BYTE);
     boolean bigEndian = (flags & BIG_ENDIAN_FLAG_MASK) > 0;
     String nativeOrder = ByteOrder.nativeOrder().toString();
-    boolean compact = (flags & COMPACT_FLAG_MASK) > 0;
-    boolean ordered = (flags & ORDERED_FLAG_MASK) > 0;
-    boolean readOnly = (flags & READ_ONLY_FLAG_MASK) > 0;
+    //boolean compact = (flags & COMPACT_FLAG_MASK) > 0;
+    //boolean ordered = (flags & ORDERED_FLAG_MASK) > 0;
+    //boolean readOnly = (flags & READ_ONLY_FLAG_MASK) > 0;
     boolean empty = (flags & EMPTY_FLAG_MASK) > 0;
-    int k = mem.getInt(K_INT);
+    int k = mem.getShort(K_SHORT);
+    int seed = mem.getShort(SEED_SHORT);
     //if absent, assumed values
     long n = 0;
     double minValue = Double.POSITIVE_INFINITY;
@@ -129,18 +130,19 @@ final class PreambleUtil {
     
     StringBuilder sb = new StringBuilder();
     sb.append(LS);
-    sb.append("### SKETCH PREAMBLE SUMMARY:").append(LS);
+    sb.append("### QUANTILES SKETCH PREAMBLE SUMMARY:").append(LS);
     sb.append("Byte  0: Preamble Longs       : ").append(preLongs).append(LS);
     sb.append("Byte  1: Serialization Version: ").append(serVer).append(LS);
     sb.append("Byte  2: Family               : ").append(famName).append(LS);
     sb.append("Byte  3: Flags Field          : ").append(String.format("%02o", flags)).append(LS);
     sb.append("  BIG_ENDIAN_STORAGE          : ").append(bigEndian).append(LS);
     sb.append("  (Native Byte Order)         : ").append(nativeOrder).append(LS);
-    sb.append("  READ_ONLY                   : ").append(readOnly).append(LS);
+  //sb.append("  READ_ONLY                   : ").append(readOnly).append(LS);
     sb.append("  EMPTY                       : ").append(empty).append(LS);
-    sb.append("  COMPACT                     : ").append(compact).append(LS);
-    sb.append("  ORDERED                     : ").append(ordered).append(LS);
-    sb.append("Bytes  4-7  : K               : ").append(k).append(LS);
+  //sb.append("  COMPACT                     : ").append(compact).append(LS);
+  //sb.append("  ORDERED                     : ").append(ordered).append(LS);
+    sb.append("Bytes  4-5  : K               : ").append(k).append(LS);
+    sb.append("Bytes  6-7  : SEED            : ").append(seed).append(LS);
     if (preLongs == 1) {
       sb.append(" --ABSENT, ASSUMED:").append(LS);
     }
@@ -157,71 +159,84 @@ final class PreambleUtil {
   
 //@formatter:on
   
-  static int extractPreLongs(final long long0) {
+  static int extractPreLongs(final long pre0) {
     long mask = 0XFFL;
-    return (int) (long0 & mask);
+    return (int) (pre0 & mask);
   }
   
-  static int extractSerVer(final long long0) {
+  static int extractSerVer(final long pre0) {
     int shift = SER_VER_BYTE << 3;
     long mask = 0XFFL;
-    return (int) ((long0 >>> shift) & mask);
+    return (int) ((pre0 >>> shift) & mask);
   }
   
-  static int extractFamilyID(final long long0) {
+  static int extractFamilyID(final long pre0) {
     int shift = FAMILY_BYTE << 3;
     long mask = 0XFFL;
-    return (int) ((long0 >>> shift) & mask);
+    return (int) ((pre0 >>> shift) & mask);
   }
   
-  static int extractFlags(final long long0) {
+  static int extractFlags(final long pre0) {
     int shift = FLAGS_BYTE << 3;
     long mask = 0XFFL;
-    return (int) ((long0 >>> shift) & mask);
+    return (int) ((pre0 >>> shift) & mask);
   }
   
-  static int extractK(final long long1) {
-    int shift = 32;
-    return (int) (long1 >>> shift);
+  static int extractK(final long pre1) {
+    int shift = K_SHORT << 3;
+    long mask = 0XFFFFL;
+    return (int) ((pre1 >>> shift) & mask);
   }
   
-  static int extractBufAlloc(final long long4) {
+  static int extractSeed(final long pre0) {
+    int shift = SEED_SHORT << 3;
+    long mask = 0XFFFFL;
+    return (int) ((pre0 >>> shift) & mask);
+  }
+  
+  static int extractBufAlloc(final long pre4) {
     long mask = 0XFFFFFFFFL;
-    return (int) (long4 & mask);
+    return (int) (pre4 & mask);
   }
   
-  static long insertPreLongs(final int preLongs, final long long0) {
+  static long insertPreLongs(final int preLongs, final long pre0) {
     long mask = 0XFFL;
-    return (preLongs & mask) | (~mask & long0);
+    return (preLongs & mask) | (~mask & pre0);
   }
   
-  static long insertSerVer(final int serVer, final long long0) {
+  static long insertSerVer(final int serVer, final long pre0) {
     int shift = SER_VER_BYTE << 3;
     long mask = 0XFFL;
-    return ((serVer & mask) << shift) | (~(mask << shift) & long0);
+    return ((serVer & mask) << shift) | (~(mask << shift) & pre0);
   }
   
-  static long insertFamilyID(final int familyID, final long long0) {
+  static long insertFamilyID(final int familyID, final long pre0) {
     int shift = FAMILY_BYTE << 3;
     long mask = 0XFFL;
-    return ((familyID & mask) << shift) | (~(mask << shift) & long0);
+    return ((familyID & mask) << shift) | (~(mask << shift) & pre0);
   }
   
-  static long insertFlags(final int flags, final long long0) {
+  static long insertFlags(final int flags, final long pre0) {
     int shift = FLAGS_BYTE << 3;
     long mask = 0XFFL;
-    return ((flags & mask) << shift) | (~(mask << shift) & long0);
+    return ((flags & mask) << shift) | (~(mask << shift) & pre0);
   }
   
-  static long insertK(final int k, final long long1) {
-    int shift = 32;
-    long mask = 0XFFFFFFFFL;
-    return ((k & mask) << shift) | (~(mask << shift) & long1);
+  static long insertK(final int k, final long pre0) {
+    int shift = K_SHORT << 3;
+    long mask = 0XFFFFL;
+    return ((k & mask) << shift) | (~(mask << shift) & pre0);
   }
   
-  static long insertBufAlloc(final int bufAlloc, final long long4) {
+  static long insertSeed(final int seed, final long pre0) {
+    int shift = SEED_SHORT << 3;
+    long mask = 0XFFFFL;
+    return ((seed & mask) << shift) | (~(mask << shift) & pre0);
+  }
+  
+  static long insertBufAlloc(final int bufAlloc, final long pre4) {
     long mask = 0XFFFFFFFFL;
-    return (bufAlloc & mask) | (~mask & long4);
+    return (bufAlloc & mask) | (~mask & pre4);
   }
   
 }

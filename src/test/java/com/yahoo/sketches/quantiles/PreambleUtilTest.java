@@ -15,49 +15,64 @@ public class PreambleUtilTest {
 
   @Test
   public void checkExtracts() {
-    long along = 0XFFL;
-    assertEquals(extractPreLongs(along), (int) along);
+    long v; int shift;
+    v = 0XFFL;    shift = PREAMBLE_LONGS_BYTE << 3;
+    assertEquals(extractPreLongs(v<<shift), (int) v);
+    assertEquals(extractPreLongs(~(v<<shift)), 0);
     
-    along = 3L << 8;
-    assertEquals(extractSerVer(along), 3);
+    v = 0XFFL;    shift = SER_VER_BYTE << 3;
+    assertEquals(extractSerVer(v<<shift), (int) v);
+    assertEquals(extractSerVer(~(v<<shift)), 0);
     
-    along = 7L << 16;
-    assertEquals(extractFamilyID(along), 7);
+    v = 0XFFL;    shift = FAMILY_BYTE << 3;
+    assertEquals(extractFamilyID(v<<shift), (int) v);
+    assertEquals(extractFamilyID(~(v<<shift)), 0);
     
-    along = 0XFFL << 24;
-    assertEquals(extractFlags(along), 0XFF);
+    v = 0XFFL; shift = FLAGS_BYTE << 3;
+    assertEquals(extractFlags(v<<shift), (int) v);
+    assertEquals(extractFlags(~(v<<shift)), 0);
     
-    along = -1L << 32;
-    assertEquals(extractK(along), -1);
+    v = 0XFFFFL;   shift = K_SHORT << 3;
+    assertEquals(extractK(v<<shift), (int) v);
+    assertEquals(extractK(~(v<<shift)), 0);
     
-    along = 0XFFFFFFFFL;
-    assertEquals(extractBufAlloc(along), -1);
+    v = 0XFFFFL;   shift = SEED_SHORT << 3;
+    assertEquals(extractSeed(v<<shift), (int) v);
+    assertEquals(extractSeed(~(v<<shift)), 0);
+    
+    v = 0XFFFFFFFFL; shift = BUFFER_DOUBLES_ALLOC_INT << 3;
+    assertEquals(extractBufAlloc(v<<shift), (int) v);
+    assertEquals(extractBufAlloc(~(v<<shift)), 0);
   }
   
   @Test
   public void checkInserts() {
     long v; int shift;
-    v = 0XFFL; shift = 0;
+    v = 0XFFL; shift = PREAMBLE_LONGS_BYTE << 3;
     assertEquals(insertPreLongs((int)v, ~(v<<shift)), -1L);
     assertEquals(insertPreLongs((int)v, 0), v<<shift);
     
-    v = 0XFFL; shift = 8; 
+    v = 0XFFL; shift = SER_VER_BYTE << 3; 
     assertEquals(insertSerVer((int)v, ~(v<<shift)), -1L);
     assertEquals(insertSerVer((int)v, 0), v<<shift);
     
-    v = 0XFFL; shift = 16;
+    v = 0XFFL; shift = FAMILY_BYTE << 3;
     assertEquals(insertFamilyID((int)v, ~(v<<shift)), -1L);
     assertEquals(insertFamilyID((int)v, 0), v<<shift);
     
-    v = 0XFFL; shift = 24;
+    v = 0XFFL; shift = FLAGS_BYTE << 3;
     assertEquals(insertFlags((int)v, ~(v<<shift)), -1L);
     assertEquals(insertFlags((int)v, 0), v<<shift);
     
-    v = -1L; shift = 32;
+    v = 0XFFFFL; shift = K_SHORT << 3;
     assertEquals(insertK((int)v, ~(v<<shift)), -1L);
     assertEquals(insertK((int)v, 0), v<<shift);
     
-    v = 0XFFFFFFFFL; shift = 0;
+    v = 0XFFFFL; shift = SEED_SHORT << 3;
+    assertEquals(insertSeed((int)v, ~(v<<shift)), -1L);
+    assertEquals(insertSeed((int)v, 0), v<<shift);
+    
+    v = 0XFFFFFFFFL; shift = BUFFER_DOUBLES_ALLOC_INT << 3;
     assertEquals(insertBufAlloc((int)v, ~(v<<shift)), -1L);
     assertEquals(insertBufAlloc((int)v, 0), v<<shift);
   }

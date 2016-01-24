@@ -17,7 +17,7 @@ import java.util.Random;
  * It also contains methods that are used while building histograms and other common
  * functions.</p>
  */
-final class Util { 
+final class Util {
   /**
    * The java line separator character as a String.
    */

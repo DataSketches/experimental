@@ -13,11 +13,10 @@ import static com.yahoo.sketches.quantiles.PreambleUtil.SER_VER;
 import static com.yahoo.sketches.quantiles.Util.*;
 
 import com.yahoo.sketches.Family;
+import com.yahoo.sketches.memory.Memory;
 
 public abstract class QuantilesSketch {
   static final int MIN_BASE_BUF_SIZE = 4; //This is somewhat arbitrary
-  @SuppressWarnings("unused")
-  static final double DUMMY_VALUE = -99.0;  // just for debugging
   
   /**
    * Returns a new builder
@@ -188,14 +187,26 @@ public abstract class QuantilesSketch {
    */
    public abstract void mergeInto(QuantilesSketch qsSource, QuantilesSketch qsTarget);
   
-  
-  //restricted
-  
+   
+   /**
+    * Heapify takes the sketch image in Memory and instantiates an on-heap Sketch, 
+    * The resulting sketch will not retain any link to the source Memory.
+    * @param srcMem an image of a Sketch.
+    * <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+    * @return a heap-based Sketch based on the given Memory
+    */
+   public static QuantilesSketch heapify(Memory srcMem) {
+     return HeapQuantilesSketch.getInstance(srcMem);
+   }
+   
+   
    /**
     * Returns the length of the input stream so far.
     * @return the length of the input stream so far
     */
    public abstract long getN();
+   
+   //restricted
    
    /**
     * Returns the combined buffer

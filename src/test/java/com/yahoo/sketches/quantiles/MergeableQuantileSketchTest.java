@@ -9,15 +9,17 @@ import org.testng.annotations.Test;
 @SuppressWarnings("cast")
 public class MergeableQuantileSketchTest { 
 
+  private static final short SEED = 32749; //prime
+  
   /* the cost of testing for k is k^2, */
   @Test
   public void regressionTestMergeableQuantileSketchStructureAfterUpdates() {
     for (int k = 1; k <= 100; k++) { // was 300
       long longK = (long) k;
-      MergeableQuantileSketch mq = new MergeableQuantileSketch (k);
+      MergeableQuantileSketch mq = new MergeableQuantileSketch(k);
       for (long n = 0; n < (longK * longK + 100); n++) {
-        MergeableQuantileSketch.validateMergeableQuantileSketchStructure (mq, k, n);
-        mq.update (Math.random ());
+        MergeableQuantileSketch.validateMergeableQuantileSketchStructure(mq, k, n);
+        mq.update(Math.random());
       }
       //if (k % 10 == 0) { System.out.printf ("Tested updates with k = %d\n", k); }
     }
@@ -95,7 +97,7 @@ public class MergeableQuantileSketchTest {
   // Actually, setting the seed made it deterministic.
   @Test
   public void endToEndTest () {
-    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic
+    Util.rand.setSeed (SEED); // arbitrary seed that makes this test deterministic
 
     MergeableQuantileSketch mq  = new MergeableQuantileSketch (256);
     MergeableQuantileSketch mq2 = new MergeableQuantileSketch (256);
@@ -235,7 +237,7 @@ public class MergeableQuantileSketchTest {
     double phi_inverse = (Math.sqrt(5.0) - 1.0) / 2.0;
     double bouncy = phi_inverse;
 
-    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
+    Util.rand.setSeed(SEED); // arbitrary seed that makes this test deterministic    
     MergeableQuantileSketch mq  = new MergeableQuantileSketch (16);
     bouncy = phi_inverse;
     for (int i = 0; i < 1357; i++) {
@@ -244,8 +246,8 @@ public class MergeableQuantileSketchTest {
       while (bouncy > 1.0) { bouncy -= 1.0; }
     }
 
-    Util.rand.setSeed (917351); // arbitrary seed that makes this test deterministic    
-    HeapQuantilesSketch mq6 = HeapQuantilesSketch.getInstance(16);
+    Util.rand.setSeed(SEED); // arbitrary seed that makes this test deterministic    
+    HeapQuantilesSketch mq6 = HeapQuantilesSketch.getInstance(16, (short) 0);
     bouncy = phi_inverse;
     for (int i = 0; i < 1357; i++) {
       mq6.update (bouncy);

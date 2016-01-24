@@ -11,6 +11,7 @@ import com.yahoo.sketches.Family;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  * This is an implementation of the low-discrepancy mergeable quantile sketch using double 
@@ -37,6 +38,12 @@ class HeapQuantilesSketch extends QuantilesSketch {
    */
   private final int k_; //could be a short (max 32K)
 
+  /**
+   * Used to make results of QuantilesSketch deterministic given a stream in the same order. 
+   * Not recommended for general usage. Ignored if zero.
+   */
+  private final short seed_;
+  
   /**
    * Total number of data items in the stream so far. (Uniqueness plays no role in these sketches).
    */
@@ -86,11 +93,12 @@ class HeapQuantilesSketch extends QuantilesSketch {
   private double[] combinedBuffer_;
 
   //**CONSTRUCTORS**********************************************************
-  
-  private HeapQuantilesSketch(int k) {
+  private HeapQuantilesSketch(int k, short seed) {
     super();
     QuantilesSketch.checkK(k); //
     k_ = k;
+    seed_ = seed;
+    if (seed_ != 0) Util.rand = new Random(seed_);
   }
   
   /**
@@ -99,9 +107,8 @@ class HeapQuantilesSketch extends QuantilesSketch {
    * @param k Parameter that controls space usage of sketch and accuracy of estimates. 
    * Must be greater than one.
    */
-  static HeapQuantilesSketch getInstance(int k) {
-    
-    HeapQuantilesSketch hqs = new HeapQuantilesSketch(k);
+  static HeapQuantilesSketch getInstance(int k, short seed) {
+    HeapQuantilesSketch hqs = new HeapQuantilesSketch(k, seed);
     int bufAlloc = MIN_BASE_BUF_SIZE;
     hqs.n_ = 0;
     hqs.combinedBufferAllocatedCount_ = bufAlloc;
@@ -129,12 +136,13 @@ class HeapQuantilesSketch extends QuantilesSketch {
     int familyID = extractFamilyID(pre0);
     int flags = extractFlags(pre0);
     int k = extractK(pre0);
+    short seed = (short)extractSeed(pre0);
     
     boolean empty = checkPreLongsFlagsCap(preambleLongs, flags, memCapBytes);
     checkFamilyID(familyID);
     checkSerVer(serVer);
     
-    HeapQuantilesSketch hqs = new HeapQuantilesSketch(k);
+    HeapQuantilesSketch hqs = new HeapQuantilesSketch(k, seed);
     
     if (empty) return hqs;
     

@@ -18,6 +18,7 @@ import com.yahoo.sketches.memory.Memory;
 public class QuantilesSketchBuilder {
   private int bK = MIN_BASE_BUF_SIZE/2;
   private Memory bDstMem = null;
+  private short bSeed = 0;
   
   public QuantilesSketchBuilder() {
     bK = 227; //default for ~1% rank accuracy
@@ -35,10 +36,15 @@ public class QuantilesSketchBuilder {
     return this;
   }
   
+  public QuantilesSketchBuilder setSeed(short seed) {
+    bSeed = seed;
+    return this;
+  }
+  
   public QuantilesSketch build() {
     QuantilesSketch sketch = null;
     if (bDstMem == null) {
-      sketch = HeapQuantilesSketch.getInstance(bK);
+      sketch = HeapQuantilesSketch.getInstance(bK, bSeed);
     } else {
       //sketch = DirectQuantilesSketch.getInstance(bK, bDstMem);
     }

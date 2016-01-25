@@ -352,11 +352,6 @@ class HeapQuantilesSketch extends QuantilesSketch {
   }
   
   @Override
-  public String toString() {
-    return toString(true, false);
-  }
-  
-  @Override
   public String toString(boolean sketchSummary, boolean dataDetail) {
     StringBuilder sb = new StringBuilder();
     String thisSimpleName = this.getClass().getSimpleName();
@@ -449,22 +444,13 @@ class HeapQuantilesSketch extends QuantilesSketch {
   
   @Override
   public void mergeInto(QuantilesSketch srcQS, QuantilesSketch tgtQS) {
-    HeapQuantilesSketch src, tgt;
-    if (srcQS.isDirect()) {
-      Memory mem = new NativeMemory(srcQS.toByteArray()); //Horrible! Fix later
-      src = HeapQuantilesSketch.getInstance(mem);
-    }
-    else {
-      src = (HeapQuantilesSketch)srcQS;
-    }
-    if (tgtQS.isDirect()) {
-      Memory mem = new NativeMemory(tgtQS.toByteArray()); //Horrible! Fix later
-      tgt = HeapQuantilesSketch.getInstance(mem);
-    }
-    else {
-      tgt = (HeapQuantilesSketch)tgtQS;
+    if (srcQS.isDirect() || tgtQS.isDirect()) {
+      throw new IllegalArgumentException("DirectQuantilesSketch not implemented.");
     }
     
+    HeapQuantilesSketch src = (HeapQuantilesSketch)srcQS;
+    HeapQuantilesSketch tgt = (HeapQuantilesSketch)tgtQS;
+
     if ( tgt.getK() != src.getK()) 
       throw new IllegalArgumentException("Given sketches must have the same value of k.");
 
@@ -483,7 +469,7 @@ class HeapQuantilesSketch extends QuantilesSketch {
     double[] scratchBuf = new double[2*tgtK];
 
     long srcBits = src.getBitPattern();
-    assert srcBits == src.getN() / (2L * src.getK());
+    assert srcBits == (src.getN() / (2L * src.getK()));
     for (int srcLvl = 0; srcBits != 0L; srcLvl++, srcBits >>>= 1) {
       if ((srcBits & 1L) > 0L) {
         tgt.inPlacePropagateCarry(srcLvl,

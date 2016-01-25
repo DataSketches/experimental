@@ -4,9 +4,7 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static com.yahoo.sketches.quantiles.Util.hiBitPos;
-import static com.yahoo.sketches.quantiles.Util.lg;
-import static com.yahoo.sketches.quantiles.Util.sumOfDoublesInSubArray;
+import static com.yahoo.sketches.quantiles.Util.*;
 import static org.testng.Assert.assertEquals;
 
 import java.util.Arrays;
@@ -16,6 +14,13 @@ import org.testng.annotations.Test;
 import com.yahoo.sketches.quantiles.Util.EpsilonFromK;
 
 public class UtilTest {
+  
+  @Test
+  public void checkBufferElementCapacity() {
+    int k = 227;
+    int capEl = bufferElementCapacity(k, 0);
+    assertEquals(capEl, QuantilesSketch.MIN_BASE_BUF_SIZE);
+  }
   
   @Test
   public void checkGetAdjustedEpsilon() {
@@ -38,6 +43,13 @@ public class UtilTest {
   public void checkHiBitPos() {
     int bitPos = hiBitPos(4096);
     assertEquals(bitPos, 12);
+  }
+  
+  @Test
+  public void checkNumValidLevels() {
+    long v = (1L << 32)-1L;
+    int ones = Util.numValidLevels(v);
+    assertEquals(ones, 32);
   }
   
   @Test
@@ -107,8 +119,7 @@ public class UtilTest {
 
   @Test
   public void testLinearTimeIncrementHistogramCounters () {
-    double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5};
-
+    double [] samples = {0.1, 0.2, 0.3, 0.4, 0.5}; 
     {
       double [] splitPoints = {0.25, 0.4};
       long counters [] = {0, 0, 0};
@@ -268,5 +279,25 @@ public class UtilTest {
       }
     }
   }
- 
+  
+//  static QuantilesSketch buildQS(int k, long n, int startV, short seed) { //TODO
+//    QuantilesSketch qs = QuantilesSketch.builder().setSeed(seed).build(k);
+//    for (int i=0; i<n; i++) {
+//      qs.update(startV + i);
+//    }
+//    return qs;
+//  }
+  
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+  
+  /**
+   * @param s value to print 
+   */
+  static void println(String s) {
+    System.out.println(s); //disable here
+  }
+  
 }

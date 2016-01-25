@@ -241,12 +241,17 @@ public class HeapQuantilesSketchTest {
     assertEquals(qs.getN(), 0);
   }
   
+  @SuppressWarnings("unused")
   @Test
   public void checkToStringDetail() {
     int k = 227;
     int n = 1000000;
-    QuantilesSketch qs = buildQS(k, n, 0, (short)0);
+    QuantilesSketch qs = buildQS(k, 0, 0, (short)0);
+    String s = qs.toString();
+    s = qs.toString(false, true);
+    qs = buildQS(k, n, 0, (short)0);
     //println(qs.toString());
+    s = qs.toString(false, true);
     //println(qs.toString(false, true));
     
     int n2 = (int)qs.getN();
@@ -329,6 +334,22 @@ public class HeapQuantilesSketchTest {
   public void checkValidateSplitPoints() {
     double[] arr = {2, 1};
     QuantilesSketch.validateSplitPoints(arr);
+  }
+  
+  @Test
+  public void checkStorageBytes() {
+    int k = 227;
+    QuantilesSketch qs = buildQS(k, 0, 0, (short) 0);
+    int stor = qs.getStorageBytes();
+    assertEquals(stor, 8);
+    qs = buildQS(k, 2*(k), 0, (short) 0);
+    stor = qs.getStorageBytes();
+    println("BufLen      : "+qs.getCombinedBuffer().length);
+    println("getStorBytes: "+stor);
+    qs = buildQS(k, 2*(k-1), 0, (short) 0);
+    stor = qs.getStorageBytes();
+    println("BufLen      : "+qs.getCombinedBuffer().length);
+    println("getStorBytes: "+stor);
   }
   
   @Test
@@ -522,7 +543,7 @@ public class HeapQuantilesSketchTest {
    * @param s value to print 
    */
   static void println(String s) {
-    System.out.println(s); //disable here
+    //System.out.println(s); //disable here
   }
   
 }

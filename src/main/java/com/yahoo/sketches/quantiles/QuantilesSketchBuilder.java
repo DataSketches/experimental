@@ -42,13 +42,11 @@ public class QuantilesSketchBuilder {
   }
   
   public QuantilesSketch build() {
-    QuantilesSketch sketch = null;
-    if (bDstMem == null) {
-      sketch = HeapQuantilesSketch.getInstance(bK, bSeed);
-    } else {
+    if (bDstMem != null) {
+      throw new IllegalArgumentException("DirectQuantilesSketch not implemented.");
       //sketch = DirectQuantilesSketch.getInstance(bK, bDstMem);
-    }
-    return sketch;
+    } 
+    return HeapQuantilesSketch.getInstance(bK, bSeed);
   }
   
   public QuantilesSketch build(int k) {

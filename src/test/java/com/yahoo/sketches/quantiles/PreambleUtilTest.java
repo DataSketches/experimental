@@ -125,6 +125,4 @@ public class PreambleUtilTest {
     //System.out.println(s); //disable here
   }
   
-  
-  
 }

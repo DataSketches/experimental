@@ -230,7 +230,7 @@ public abstract class QuantilesSketch {
    
    public int getStorageBytes() {
      if (isEmpty()) return 8;
-     return 40 + Util.bufferElementCapacity(getK(), getN());
+     return 40 + 8*Util.bufferElementCapacity(getK(), getN());
    }
    
    //restricted

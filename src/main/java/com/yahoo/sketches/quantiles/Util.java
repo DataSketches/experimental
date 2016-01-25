@@ -41,7 +41,13 @@ final class Util {
    */
   static int bufferElementCapacity(int k, long n) {
     int maxLevels = computeNumLevelsNeeded(k, n);
-    int bbCap = (maxLevels > 0)? 2*k : ceilingPowerOf2(computeBaseBufferCount(k, n));
+    int minBB = QuantilesSketch.MIN_BASE_BUF_SIZE;
+    if (n <= minBB) return minBB;
+    int minBBCnt = Math.max(computeBaseBufferCount(k, n), minBB);
+    int maxBBcap = 2*k;
+    int bbCap = (maxLevels > 0)? maxBBcap : Math.min(maxBBcap, ceilingPowerOf2(minBBCnt));
+
+  
     return bbCap + maxLevels*k;
   }
 

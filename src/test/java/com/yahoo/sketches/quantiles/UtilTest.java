@@ -4,11 +4,16 @@
  */
 package com.yahoo.sketches.quantiles;
 
+import static com.yahoo.sketches.quantiles.Util.hiBitPos;
+import static com.yahoo.sketches.quantiles.Util.lg;
+import static com.yahoo.sketches.quantiles.Util.sumOfDoublesInSubArray;
 import static org.testng.Assert.assertEquals;
-import static com.yahoo.sketches.quantiles.Util.*;
+
 import java.util.Arrays;
 
 import org.testng.annotations.Test;
+
+import com.yahoo.sketches.quantiles.Util.EpsilonFromK;
 
 public class UtilTest {
   

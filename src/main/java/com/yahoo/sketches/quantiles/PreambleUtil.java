@@ -1,7 +1,7 @@
 package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.Family.idToFamily;
-import static com.yahoo.sketches.Util.LS;
+import static com.yahoo.sketches.quantiles.Util.LS;
 
 import java.nio.ByteOrder;
 

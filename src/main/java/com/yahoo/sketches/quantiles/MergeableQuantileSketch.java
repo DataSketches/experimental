@@ -5,6 +5,7 @@
 package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.quantiles.Util.*;
+
 import java.util.Arrays;
 
 /**
@@ -519,21 +520,20 @@ public class MergeableQuantileSketch {
   
   //only used in test
   static void validateMergeableQuantileSketchStructure(MergeableQuantileSketch mq, int k, long n) {
-    long long2k = 2L * k;
-    long quotient = n / long2k;         //the bit pattern
-    int remainder = (int) (n % long2k); //the base buffer count
+    long theorBitPattern = computeBitPattern(k, n);
+    int remainder = computeBaseBufferCount(k, n);
     assert mq.baseBufferCount_ == remainder : "Wrong number of items in base buffer";
     int numLevels = 0;
-    if (quotient > 0) { numLevels = (1 + (hiBitPos(quotient))); }
+    if (theorBitPattern > 0) { numLevels = computeNumLevelsNeeded(k, n); }
     assert mq.levelsArr_.length == numLevels : "Wrong number of levels";
     int level;
-    long bitPattern;
-    for (level = 0, bitPattern = quotient; level < numLevels; level++, bitPattern >>>= 1) {
-      if ((bitPattern & 1) == 0) {
+    long actBitPattern;
+    for (level = 0, actBitPattern = theorBitPattern; level < numLevels; level++, actBitPattern >>>= 1) {
+      if ((actBitPattern & 1) == 0) {
         assert mq.levelsArr_[level] == null : "Buffer present when it should not be.";
       }
       else {
-        assert ((bitPattern & 1) == 1) : "Should not happen";
+        assert ((actBitPattern & 1) == 1) : "Should not happen";
         assert mq.levelsArr_[level] != null : "Buffer missing" ; 
         double [] thisBuf = mq.levelsArr_[level];
         for (int i = 0; i < thisBuf.length - 1; i++) {

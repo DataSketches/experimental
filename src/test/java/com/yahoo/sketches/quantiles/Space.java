@@ -4,7 +4,8 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static com.yahoo.sketches.Util.*;
+import static com.yahoo.sketches.quantiles.Util.LS;
+
 /**
  * Utility functions for computing space consumed by the MergeableQuantileSketch.
  * 

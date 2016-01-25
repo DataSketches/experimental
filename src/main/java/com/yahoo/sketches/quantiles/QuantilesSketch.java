@@ -10,7 +10,7 @@ import static com.yahoo.sketches.quantiles.PreambleUtil.EMPTY_FLAG_MASK;
 import static com.yahoo.sketches.quantiles.PreambleUtil.ORDERED_FLAG_MASK;
 import static com.yahoo.sketches.quantiles.PreambleUtil.READ_ONLY_FLAG_MASK;
 import static com.yahoo.sketches.quantiles.PreambleUtil.SER_VER;
-import static com.yahoo.sketches.quantiles.Util.*;
+import static com.yahoo.sketches.quantiles.Util.bufferElementCapacity;
 
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.memory.Memory;
@@ -31,7 +31,6 @@ public abstract class QuantilesSketch {
    * @param dataItem an item from a stream of items.  NaNs are ignored.
    */
   public abstract void update(double dataItem);
-  
   
   /**
    * This returns an approximation to the value of the data item
@@ -124,11 +123,19 @@ public abstract class QuantilesSketch {
    */
   public abstract double[] getCDF(double[] splitPoints);
   
+  //Internal parameters
+  
   /**
    * Returns the configured value of K
    * @return the configured value of K
    */
   public abstract int getK();
+  
+  /**
+   * Returns the length of the input stream so far.
+   * @return the length of the input stream so far
+   */
+  public abstract long getN();
   
   /**
    * Returns the min value of the stream
@@ -146,7 +153,9 @@ public abstract class QuantilesSketch {
    * Returns true if this sketch is empty
    * @return true if this sketch is empty
    */
-  public abstract boolean isEmpty();
+  public boolean isEmpty() {
+   return getN() == 0; 
+  }
   
   /**
    * Returns true if this sketch accesses its internal data using the Memory package
@@ -167,7 +176,15 @@ public abstract class QuantilesSketch {
   public abstract byte[] toByteArray();
 
   /**
-   * Returns summary information about the sketch. Used for debugging
+   * Returns summary information about this sketch.
+   */
+  @Override
+  public String toString() {
+    return toString(true, false);
+  }
+  
+  /**
+   * Returns summary information about this sketch. Used for debugging.
    * @param sketchSummary if true includes sketch summary
    * @param dataDetail if true includes data detail
    * @return summary information about the sketch.
@@ -181,12 +198,11 @@ public abstract class QuantilesSketch {
   public abstract void merge(QuantilesSketch qsSource);
   
   /**
-   * Modifies the source sketch into the target sketch.
+   * Modifies the source sketch into the target sketch
    * @param qsSource The source sketch
    * @param qsTarget The target sketch
    */
    public abstract void mergeInto(QuantilesSketch qsSource, QuantilesSketch qsTarget);
-  
    
    /**
     * Heapify takes the sketch image in Memory and instantiates an on-heap Sketch, 
@@ -199,18 +215,29 @@ public abstract class QuantilesSketch {
      return HeapQuantilesSketch.getInstance(srcMem);
    }
    
-   
    /**
-    * Returns the length of the input stream so far.
-    * @return the length of the input stream so far
+    * Computes the number of retained entries (samples) in the sketch
+    * @return the number of retained entries (samples) in the sketch
     */
-   public abstract long getN();
+   public int getRetainedEntries() {
+     int k =  getK();
+     long n = getN();
+     int bbCnt = Util.computeBaseBufferCount(k, n);
+     long bitPattern = Util.computeBitPattern(k, n);
+     int validLevels = Long.bitCount(bitPattern);
+     return bbCnt + validLevels*k; 
+   }
+   
+   public int getStorageBytes() {
+     if (isEmpty()) return 8;
+     return 40 + Util.bufferElementCapacity(getK(), getN());
+   }
    
    //restricted
    
    /**
-    * Returns the combined buffer
-    * @return the commbined buffer
+    * Returns the combined buffer reference
+    * @return the commbined buffer reference
     */
    abstract double[] getCombinedBuffer();
    
@@ -226,12 +253,6 @@ public abstract class QuantilesSketch {
     */
    abstract long getBitPattern();
    
-   /**
-    * Computes the number of samples in the sketch from the base buffer count and the bit pattern
-    * @return the number of samples in the sketch
-    */
-   abstract int numValidSamples();
-   
   /**
    * Checks the validity of the given value k
    * @param k must be greater than or equal to 2.
@@ -242,6 +263,10 @@ public abstract class QuantilesSketch {
     }
   }
 
+  /**
+   * Check the validity of the given serialization version
+   * @param serVer the given serialization version
+   */
   static void checkSerVer(int serVer) {
     if (serVer != SER_VER) {
       throw new IllegalArgumentException(
@@ -249,6 +274,10 @@ public abstract class QuantilesSketch {
     }
   }
   
+  /**
+   * Checks the validity of the given family ID
+   * @param familyID the given family ID
+   */
   static void checkFamilyID(int familyID) {
     Family family = Family.idToFamily(familyID);
     if (!family.equals(Family.QUANTILES)) {
@@ -257,6 +286,14 @@ public abstract class QuantilesSketch {
     }
   }
   
+  /**
+   * Checks the validity of the memory buffer allocation and the memory capacity assuming
+   * n and k.
+   * @param k the given value of k
+   * @param n the given value of n
+   * @param memBufAlloc the memory buffer allocation
+   * @param memCapBytes the memory capacity
+   */
   static void checkBufAllocAndCap(int k, long n, int memBufAlloc, long memCapBytes) {
     int computedBufAlloc = bufferElementCapacity(k, n);
     if (memBufAlloc != computedBufAlloc) {
@@ -271,6 +308,14 @@ public abstract class QuantilesSketch {
     }
   }
   
+  /**
+   * Checks the consistency of the flag bits and the state of preambleLong and the memory
+   * capacity and returns the empty state.
+   * @param preambleLongs the size of preamble in longs 
+   * @param flags the flags field
+   * @param memCapBytes the memory capacity
+   * @return the value of the empty state
+   */
   static boolean checkPreLongsFlagsCap(int preambleLongs, int flags, long memCapBytes) {
     boolean empty = (flags & EMPTY_FLAG_MASK) > 0;
     int minPre = Family.QUANTILES.getMinPreLongs();
@@ -288,6 +333,10 @@ public abstract class QuantilesSketch {
     return empty;
   }
   
+  /**
+   * Checks just the flags field of the preamble
+   * @param flags the flags field
+   */
   static void checkFlags(int flags) {
     int flagsMask = ORDERED_FLAG_MASK | COMPACT_FLAG_MASK | READ_ONLY_FLAG_MASK | BIG_ENDIAN_FLAG_MASK;
     if ((flags & flagsMask) > 0) {

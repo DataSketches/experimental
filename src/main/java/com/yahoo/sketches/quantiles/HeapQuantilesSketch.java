@@ -4,14 +4,33 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static com.yahoo.sketches.quantiles.Util.*;
-import static com.yahoo.sketches.quantiles.PreambleUtil.*;
+import static com.yahoo.sketches.quantiles.PreambleUtil.EMPTY_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.SER_VER;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractFamilyID;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractFlags;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractPreLongs;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractSeed;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractSerVer;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertFamilyID;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertFlags;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertPreLongs;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertSerVer;
+import static com.yahoo.sketches.quantiles.Util.LS;
+import static com.yahoo.sketches.quantiles.Util.bilinearTimeIncrementHistogramCounters;
+import static com.yahoo.sketches.quantiles.Util.computeBaseBufferCount;
+import static com.yahoo.sketches.quantiles.Util.computeBitPattern;
+import static com.yahoo.sketches.quantiles.Util.computeNumLevelsNeeded;
+import static com.yahoo.sketches.quantiles.Util.linearTimeIncrementHistogramCounters;
+import static com.yahoo.sketches.quantiles.Util.positionOfLowestZeroBitStartingAt;
+
+import java.util.Arrays;
+import java.util.Random;
 
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
-import java.util.Arrays;
-import java.util.Random;
 
 /**
  * This is an implementation of the low-discrepancy mergeable quantile sketch using double 
@@ -279,11 +298,6 @@ class HeapQuantilesSketch extends QuantilesSketch {
   }
   
   @Override
-  public boolean isEmpty() {
-    return (n_ == 0);
-  }
-  
-  @Override
   public void reset() {
     n_ = 0;
     combinedBufferAllocatedCount_ = Math.min(MIN_BASE_BUF_SIZE,2*k_); //the min is important
@@ -389,7 +403,7 @@ class HeapQuantilesSketch extends QuantilesSketch {
       int preBytes = 4 + 8 + 8 + 8 + 8;
       double eps = Util.EpsilonFromK.getAdjustedEpsilon(k_);
       String epsPct = String.format("%.3f%%", eps * 100.0);
-      int numSamples = numValidSamples();
+      int numSamples = getRetainedEntries();
       String numSampStr = String.format("%,d", numSamples);
       sb.append(LS).append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
       sb.append("   K                            : ").append(getK()).append(LS);
@@ -491,7 +505,11 @@ class HeapQuantilesSketch extends QuantilesSketch {
     if (srcMax > tgtMax) { tgt.maxValue_ = srcMax; }
     if (srcMin < tgtMin) { tgt.minValue_ = srcMin; }
   }
-
+  
+  @Override
+  public long getN() { 
+    return n_; 
+  }
   
   //Restricted
 
@@ -503,11 +521,6 @@ class HeapQuantilesSketch extends QuantilesSketch {
   Auxiliary constructAuxiliary() {
     return new Auxiliary( this );
         //k_, n_, bitPattern_, combinedBuffer_, baseBufferCount_, numSamplesInSketch());
-  }
-
-  @Override
-  public long getN() { 
-    return n_; 
   }
   
   @Override
@@ -523,11 +536,6 @@ class HeapQuantilesSketch extends QuantilesSketch {
   @Override
   int getBaseBufferCount() {
     return baseBufferCount_;
-  }
-  
-  @Override
-  final int numValidSamples() {
-    return baseBufferCount_ + numValidLevels(bitPattern_)*k_;
   }
   
   /**
@@ -632,7 +640,6 @@ class HeapQuantilesSketch extends QuantilesSketch {
                                      double[] sizeKBuf, int sizeKStart,
                                      double[] size2KBuf, int size2KStart,
                                      boolean doUpdateVersion) { // else doMergeIntoVersion
-
     double[] levelsArr = combinedBuffer_;
 
     int endingLevel = positionOfLowestZeroBitStartingAt(bitPattern_, startingLevel);
@@ -651,25 +658,20 @@ class HeapQuantilesSketch extends QuantilesSketch {
     }
 
     for (int lvl = startingLevel; lvl < endingLevel; lvl++) {
-
       assert (bitPattern_ & (1L << lvl)) > 0;  // internal consistency check
-
       mergeTwoSizeKBuffers(levelsArr, ((2+lvl) * k_),
                                levelsArr, ((2+endingLevel) * k_),
                                size2KBuf, size2KStart,
                                k_);
-
       zipSize2KBuffer(size2KBuf, size2KStart,
                           levelsArr, ((2+endingLevel) * k_),
                           k_);
       // just while debugging
       //Arrays.fill(levelsArr, ((2+lvl) * k_), ((2+lvl+1) * k_), DUMMY_VALUE);
-
     } // end of loop over lower levels
 
     // update bit pattern with binary-arithmetic ripple carry
     bitPattern_ = bitPattern_ + (((long) 1) << startingLevel);
-
   }
 
   /**

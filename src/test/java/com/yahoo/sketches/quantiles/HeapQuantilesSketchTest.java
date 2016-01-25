@@ -4,10 +4,14 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static org.testng.Assert.*;
-import static com.yahoo.sketches.quantiles.Util.*;
-import static com.yahoo.sketches.quantiles.PreambleUtil.*;
-import static java.lang.Math.*;
+import static com.yahoo.sketches.quantiles.PreambleUtil.EMPTY_FLAG_MASK;
+import static com.yahoo.sketches.quantiles.Util.LS;
+import static com.yahoo.sketches.quantiles.Util.bufferElementCapacity;
+import static com.yahoo.sketches.quantiles.Util.computeNumLevelsNeeded;
+import static com.yahoo.sketches.quantiles.Util.lg;
+import static java.lang.Math.floor;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 import org.testng.annotations.Test;
 
@@ -107,7 +111,7 @@ public class HeapQuantilesSketchTest {
       HeapQuantilesSketch qs = HeapQuantilesSketch.getInstance(k, SEED);
       for (int numItemsSoFar = 0; numItemsSoFar < 1000; numItemsSoFar++) {
         Auxiliary aux = qs.constructAuxiliary();
-        int numSamples = qs.numValidSamples();
+        int numSamples = qs.getRetainedEntries();
         double[] auxItems = aux.auxSamplesArr_;
         long[] auxAccum = aux.auxCumWtsArr_;
 

@@ -25,7 +25,7 @@ class Auxiliary {
     long bitPattern = qs.getBitPattern();
     double[] combinedBuffer = qs.getCombinedBuffer();
     int baseBufferCount = qs.getBaseBufferCount();
-    int numSamples = qs.numValidSamples();
+    int numSamples = qs.getRetainedEntries();
     
     double[] itemsArr = new double[numSamples];
     long[] cumWtsArr = new long[numSamples + 1]; /* the extra slot is very important */

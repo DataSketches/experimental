@@ -4,7 +4,7 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
 
 import org.testng.annotations.Test;
 

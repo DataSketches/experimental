@@ -4,10 +4,28 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static com.yahoo.sketches.quantiles.PreambleUtil.*;
-import static org.testng.Assert.*;
-
-import com.yahoo.sketches.quantiles.QuantilesSketch;
+import static com.yahoo.sketches.quantiles.PreambleUtil.BUFFER_DOUBLES_ALLOC_INT;
+import static com.yahoo.sketches.quantiles.PreambleUtil.FAMILY_BYTE;
+import static com.yahoo.sketches.quantiles.PreambleUtil.FLAGS_BYTE;
+import static com.yahoo.sketches.quantiles.PreambleUtil.K_SHORT;
+import static com.yahoo.sketches.quantiles.PreambleUtil.PREAMBLE_LONGS_BYTE;
+import static com.yahoo.sketches.quantiles.PreambleUtil.SEED_SHORT;
+import static com.yahoo.sketches.quantiles.PreambleUtil.SER_VER_BYTE;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractBufAlloc;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractFamilyID;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractFlags;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractPreLongs;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractSeed;
+import static com.yahoo.sketches.quantiles.PreambleUtil.extractSerVer;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertBufAlloc;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertFamilyID;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertFlags;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertK;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertPreLongs;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertSeed;
+import static com.yahoo.sketches.quantiles.PreambleUtil.insertSerVer;
+import static org.testng.Assert.assertEquals;
 
 import org.testng.annotations.Test;
 

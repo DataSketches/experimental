@@ -5,7 +5,7 @@
 package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
-import static java.lang.System.*;
+import static java.lang.System.arraycopy;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -22,6 +22,12 @@ final class Util {
    * The java line separator character as a String.
    */
   public static String LS = System.getProperty("line.separator");
+  
+  /**
+   * The tab character
+   */
+  public static final char TAB = '\t';
+  
   static Random rand = new Random();
   
   /**
@@ -35,8 +41,8 @@ final class Util {
    */
   static int bufferElementCapacity(int k, long n) {
     int maxLevels = computeNumLevelsNeeded(k, n);
-    int bbCnt = (maxLevels > 0)? 2*k : ceilingPowerOf2(computeBaseBufferCount(k, n));
-    return bbCnt + maxLevels*k;
+    int bbCap = (maxLevels > 0)? 2*k : ceilingPowerOf2(computeBaseBufferCount(k, n));
+    return bbCap + maxLevels*k;
   }
 
   /**
@@ -191,7 +197,7 @@ final class Util {
    * merge tree remains to be executed. Also, two arrays are sorted in tandem,
    * as discussed above.
    * Used by Aux constructors for both Heap QS and MQS
-   */
+   */ //used by Auxiliary, so far
   static void blockyTandemMergeSort(double[] keyArr, long[] valArr, int arrLen, int blkSize) {
     assert blkSize >= 1;
     if (arrLen <= blkSize) return;
@@ -342,7 +348,7 @@ final class Util {
    *  1073741824   3.42875166500824e-09
    * </pre></code>
    */ //used by Heap QS
-  public static class EpsilonFromK {
+  static class EpsilonFromK {
     /**
      *  Used while crunching down the empirical results.  If this value is changed the adjustKForEps
      *  value will be incorrect and must also be recomputed.  Don't touch this!
@@ -365,8 +371,8 @@ final class Util {
      * epsilon. This uses a fudge factor of 4/3 times the theoretical calculation of epsilon.
      * @param k the given k that must be greater than one.
      * @return the resulting epsilon
-     */ //used by HeapQS
-    public static double getAdjustedEpsilon(int k) {
+     */ //used by HeapQS, so far
+    static double getAdjustedEpsilon(int k) {
       return getTheoreticalEpsilon(k, adjustKForEps);
     }
     

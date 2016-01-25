@@ -4,9 +4,9 @@
  */
 package com.yahoo.sketches.quantiles;
 
-import static com.yahoo.sketches.Util.LS;
-import static com.yahoo.sketches.Util.TAB;
-import static com.yahoo.sketches.quantiles.QuantilesSketch.*;
+import static com.yahoo.sketches.quantiles.Util.LS;
+import static com.yahoo.sketches.quantiles.Util.TAB;
+import static com.yahoo.sketches.quantiles.QuantilesSketch.MIN_BASE_BUF_SIZE;
 
 import com.yahoo.sketches.memory.Memory;
 

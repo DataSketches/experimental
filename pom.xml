@@ -62,7 +62,7 @@
     <dependency>
       <groupId>com.yahoo.datasketches</groupId>
       <artifactId>sketches-core</artifactId>
-      <version>0.2.3-SNAPSHOT</version>
+      <version>0.3.0</version>
     </dependency>
 
     <!-- Test Scope -->

@@ -8,6 +8,8 @@ import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.yahoo.sketches.Family;
+
 /**
  * CompactSketches are never created directly. They are created as a result of
  * the compact() method of a QuickSelectSketch or as a result of the getResult()
@@ -20,7 +22,9 @@ import java.nio.ByteOrder;
  */
 public class CompactSketch<S extends Summary> extends Sketch<S> {
 
-  public static final byte serialVersionUID = 2;
+  public static final byte serialVersionUID = 1;
+
+  private enum Flags { IS_BIG_ENDIAN, IS_EMPTY, HAS_ENTRIES, IS_THETA_INCLUDED }
 
   public CompactSketch() {
     theta_ = Long.MAX_VALUE;
@@ -39,26 +43,32 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
    */
   @SuppressWarnings({"unchecked"})
   public CompactSketch(ByteBuffer buffer) {
+    byte preambleLongs = buffer.get();
     byte version = buffer.get();
+    byte familyId = buffer.get();
+    SerializerDeserializer.validateFamily(familyId, preambleLongs);
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
     SerializerDeserializer.validateType(buffer, SerializerDeserializer.SketchType.CompactSketch);
     byte flags = buffer.get();
     boolean isBigEndian = (flags & (1 << Flags.IS_BIG_ENDIAN.ordinal())) > 0;
     if (isBigEndian ^ buffer.order().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     isEmpty_ = (flags & (1 << Flags.IS_EMPTY.ordinal())) > 0;
-    int classNameLength = buffer.get();
-    theta_ = Long.MAX_VALUE;
+    boolean isThetaIncluded = (flags & (1 << Flags.IS_THETA_INCLUDED.ordinal())) > 0;
+    if (isThetaIncluded) {
+      theta_ = buffer.getLong();
+    } else {
+      theta_ = Long.MAX_VALUE;
+    }
     boolean hasEntries = (flags & (1 << Flags.HAS_ENTRIES.ordinal())) > 0;
     if (hasEntries) {
+      int classNameLength = buffer.get();
       int count = buffer.getInt();
-      theta_ = buffer.getLong();
       byte[] classNameBuffer = new byte[classNameLength];
       buffer.get(classNameBuffer);
       String className = new String(classNameBuffer);
       keys_ = new long[count];
+      for (int i = 0; i < count; i++) keys_[i] = buffer.getLong();
       for (int i = 0; i < count; i++) {
-        long key = buffer.getLong();
-        keys_[i] = key;
         S summary = (S) SerializerDeserializer.deserializeFromByteBuffer(buffer, className);
         if (summaries_ == null) summaries_ = (S[]) Array.newInstance(summary.getClass(), count);
         summaries_[i] = summary;
@@ -80,19 +90,6 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     return keys_ == null ? 0 : keys_.length;
   }
 
-  private static final int MINI_HEADER_SIZE_BYTES =
-      1 // version
-    + 1 // sketch type
-    + 1 // flags
-    + 1; // summary class name length
-
-  private static final int HEADER_SIZE_BYTES =
-      MINI_HEADER_SIZE_BYTES
-    + 4 // count
-    + 8; // theta
-
-  private enum Flags { IS_BIG_ENDIAN, IS_EMPTY, HAS_ENTRIES }
-
   /**
    * @return serialized representation of CompactSketch
    */
@@ -100,39 +97,51 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
   public ByteBuffer serializeToByteBuffer() {
     int summariesBytesLength = 0;
     byte[][] summariesBytes = null;
-    if (!isEmpty()) {
-      summariesBytes = new byte[getRetainedEntries()][];
-      for (int i = 0; i < getRetainedEntries(); i++) {
+    int count = getRetainedEntries();
+    if (count > 0) {
+      summariesBytes = new byte[count][];
+      for (int i = 0; i < count; i++) {
         summariesBytes[i] = summaries_[i].serializeToByteBuffer().array();
         summariesBytesLength += summariesBytes[i].length;
       }
     }
 
-    int headerSizeBytes = isEmpty() ? MINI_HEADER_SIZE_BYTES : HEADER_SIZE_BYTES;
-    int sizeBytes = headerSizeBytes + 8 * getRetainedEntries() + summariesBytesLength;
+    int sizeBytes =
+        1 // preamble longs
+      + 1 // serial version
+      + 1 // family id
+      + 1 // sketch type
+      + 1; // flags
+    boolean isThetaIncluded = theta_ < Long.MAX_VALUE;
+    if (isThetaIncluded) sizeBytes += 8; // theta
     String summaryClassName = null;
-    if (getRetainedEntries() > 0) {
+    if (count > 0) {
       summaryClassName = summaries_[0].getClass().getName();
-      sizeBytes += summaryClassName.length(); 
+      sizeBytes +=
+          1 // summary class name length
+        + 4 // count
+        + summaryClassName.length() 
+        + 8 * count + summariesBytesLength;
     }
     ByteBuffer buffer = ByteBuffer.allocate(sizeBytes).order(ByteOrder.nativeOrder());
+    buffer.put((byte) 1);
     buffer.put(serialVersionUID);
-    buffer.put((byte)SerializerDeserializer.SketchType.CompactSketch.ordinal());
+    buffer.put((byte) Family.TUPLE.getID());
+    buffer.put((byte) SerializerDeserializer.SketchType.CompactSketch.ordinal());
     boolean isBigEndian = buffer.order().equals(ByteOrder.BIG_ENDIAN);
-    buffer.put((byte)(
-      ((isBigEndian ? 1 : 0) << Flags.IS_BIG_ENDIAN.ordinal()) |
-      ((isEmpty_ ? 1 : 0) << Flags.IS_EMPTY.ordinal()) |
-      ((getRetainedEntries() > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
+    buffer.put((byte) (
+      (isBigEndian ? 1 << Flags.IS_BIG_ENDIAN.ordinal() : 0) |
+      (isEmpty_ ? 1 << Flags.IS_EMPTY.ordinal() : 0) |
+      (count > 0 ? 1 << Flags.HAS_ENTRIES.ordinal() : 0) |
+      (isThetaIncluded ? 1 << Flags.IS_THETA_INCLUDED.ordinal() : 0)
     ));
-    buffer.put((byte)(summaryClassName == null ? 0 : summaryClassName.length()));
-    if (!isEmpty()) {
+    if (isThetaIncluded) buffer.putLong(theta_);
+    if (count > 0) {
+      buffer.put((byte) summaryClassName.length());
       buffer.putInt(getRetainedEntries());
-      buffer.putLong(theta_);
       buffer.put(summaryClassName.getBytes());
-      for (int i = 0; i < getRetainedEntries(); i++) {
-        buffer.putLong(keys_[i]);
-        buffer.put(summariesBytes[i]);
-      }
+      for (int i = 0; i < count; i++) buffer.putLong(keys_[i]);
+      for (int i = 0; i < count; i++) buffer.put(summariesBytes[i]);
     }
     return buffer;
   }

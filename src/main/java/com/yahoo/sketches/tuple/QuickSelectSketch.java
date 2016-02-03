@@ -13,19 +13,20 @@ import static com.yahoo.sketches.HashOperations.hashSearch;
 import static com.yahoo.sketches.HashOperations.hashSearchOrInsert;
 import static com.yahoo.sketches.HashOperations.hashInsertOnly;
 
+import com.yahoo.sketches.Family;
 import com.yahoo.sketches.QuickSelect;
 
 public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
-  public static final byte serialVersionUID = 2;
+  public static final byte serialVersionUID = 1;
 
   static final int MIN_NOM_ENTRIES = 32;
-  private static final int DEFAULT_LG_RESIZE_RATIO = 3;
+  private static final int DEFAULT_LG_RESIZE_FACTOR = 3;
   private static final double REBUILD_RATIO_AT_RESIZE = 0.5;
   static final double REBUILD_RATIO_AT_TARGET_SIZE = 15.0 / 16.0;
   private int nomEntries_;
   private int lgCurrentCapacity_;
-  private int lgResizeRatio_;
+  private int lgResizeFactor_;
   private int count_;
   private final SummaryFactory<S> summaryFactory_;
   private float samplingProbability_;
@@ -37,7 +38,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    * @param summaryFactory An instance of a SummaryFactory.
    */
   QuickSelectSketch(int nomEntries, SummaryFactory<S> summaryFactory) {
-    this(nomEntries, DEFAULT_LG_RESIZE_RATIO, summaryFactory);
+    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, summaryFactory);
   }
 
   /**
@@ -47,27 +48,27 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    * @param summaryFactory An instance of a SummaryFactory.
    */
   QuickSelectSketch(int nomEntries, float samplingProbability, SummaryFactory<S> summaryFactory) {
-    this(nomEntries, DEFAULT_LG_RESIZE_RATIO, samplingProbability, summaryFactory);
+    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, summaryFactory);
   }
 
   /**
    * This is to create an instance of a QuickSelectSketch with custom resize factor
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
-   * @param lgResizeRatio log2(resizeRatio) - value from 0 to 3:
+   * @param lgResizeFactor log2(resizeFactor) - value from 0 to 3:
    * 0 - no resizing (max size allocated),
    * 1 - double internal hash table each time it reaches a threshold
    * 2 - grow four times
    * 3 - grow eight times (default) 
    * @param summaryFactory An instance of a SummaryFactory.
    */
-  QuickSelectSketch(int nomEntries, int lgResizeRatio, SummaryFactory<S> summaryFactory) {
-    this(nomEntries, lgResizeRatio, 1f, summaryFactory);
+  QuickSelectSketch(int nomEntries, int lgResizeFactor, SummaryFactory<S> summaryFactory) {
+    this(nomEntries, lgResizeFactor, 1f, summaryFactory);
   }
 
   /**
    * This is to create an instance of a QuickSelectSketch with custom resize factor and sampling probability
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
-   * @param lgResizeRatio log2(resizeRatio) - value from 0 to 3:
+   * @param lgResizeFactor log2(resizeFactor) - value from 0 to 3:
    * 0 - no resizing (max size allocated),
    * 1 - double internal hash table each time it reaches a threshold
    * 2 - grow four times
@@ -76,15 +77,15 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    * @param summaryFactory An instance of a SummaryFactory.
    */
   @SuppressWarnings("unchecked")
-  QuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, SummaryFactory<S> summaryFactory) {
+  QuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, SummaryFactory<S> summaryFactory) {
     nomEntries_ = ceilingPowerOf2(nomEntries);
-    lgResizeRatio_ = lgResizeRatio;
+    lgResizeFactor_ = lgResizeFactor;
     samplingProbability_ = samplingProbability;
     summaryFactory_ = summaryFactory;
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
     int startingSize = 1 << Util.startingSubMultiple(
       Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
-      lgResizeRatio,
+      lgResizeFactor,
       Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
     );
     lgCurrentCapacity_ = Integer.numberOfTrailingZeros(startingSize);
@@ -99,7 +100,10 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    */
   @SuppressWarnings("unchecked")
   public QuickSelectSketch(ByteBuffer buffer) {
+    byte preambleLongs = buffer.get();
     byte version = buffer.get();
+    byte familyId = buffer.get();
+    SerializerDeserializer.validateFamily(familyId, preambleLongs);
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
     SerializerDeserializer.validateType(buffer, SerializerDeserializer.SketchType.QuickSelectSketch);
     byte flags = buffer.get();
@@ -107,19 +111,25 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     if (isBigEndian ^ buffer.order().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     nomEntries_ = 1 << buffer.get();
     lgCurrentCapacity_ = buffer.get();
-    lgResizeRatio_ = buffer.get();
-    int count = 0;
-    Long thetaLong = null;
-    boolean hasEntries = (flags & (1 << Flags.HAS_ENTRIES.ordinal())) > 0;
-    if (hasEntries) {
-      count = buffer.getInt();
-      thetaLong = buffer.getLong();
-    }
+    lgResizeFactor_ = buffer.get();
+
     boolean isInSamplingMode = (flags & (1 << Flags.IS_IN_SAMPLING_MODE.ordinal())) > 0;
     samplingProbability_ = 1f;
     if (isInSamplingMode) samplingProbability_ = buffer.getFloat();
+
+    boolean isThetaIncluded = (flags & (1 << Flags.IS_THETA_INCLUDED.ordinal())) > 0;
+    if (isThetaIncluded) {
+      theta_ = buffer.getLong();
+    } else {
+      theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability_);
+    }
+
+    int count = 0;
+    boolean hasEntries = (flags & (1 << Flags.HAS_ENTRIES.ordinal())) > 0;
+    if (hasEntries) {
+      count = buffer.getInt();
+    }
     summaryFactory_ = (SummaryFactory<S>) SerializerDeserializer.deserializeFromByteBuffer(buffer);
-    theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability_);
     int currentCapacity = 1 << lgCurrentCapacity_;
     keys_ = new long[currentCapacity];
     summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), currentCapacity);
@@ -128,7 +138,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
       S summary = summaryFactory_.deserializeSummaryFromByteBuffer(buffer);
       insert(key, summary);
     }
-    if (thetaLong != null) setThetaLong(thetaLong);
     setIsEmpty((flags & (1 << Flags.IS_EMPTY.ordinal())) > 0);
     setRebuildThreshold();
   }
@@ -174,7 +183,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return new CompactSketch<S>(keys, summaries, theta_, isEmpty_);
   }
 
-  private enum Flags { IS_BIG_ENDIAN, IS_IN_SAMPLING_MODE, IS_EMPTY, HAS_ENTRIES }
+  private enum Flags { IS_BIG_ENDIAN, IS_IN_SAMPLING_MODE, IS_EMPTY, HAS_ENTRIES, IS_THETA_INCLUDED }
 
   /**
    * @return serialized representation of QuickSelectSketch
@@ -197,37 +206,38 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     }
 
     int sizeBytes = 
-        1 // version
+        1 // preamble longs
+      + 1 // serial version
+      + 1 // family
       + 1 // sketch type
       + 1 // flags
       + 1 // log2(nomEntries)
       + 1 // log2(currentCapacity)
-      + 1; // log2(resizeRatio)
-    if (count_ > 0) {
-      sizeBytes +=
-          4 // count
-        + 8; // theta
-    }
+      + 1; // log2(resizeFactor)
     if (isInSamplingMode()) sizeBytes += 4; // samplingProbability
+    boolean isThetaIncluded = isInSamplingMode() ? theta_ < samplingProbability_ : theta_ < Long.MAX_VALUE;
+    if (isThetaIncluded) sizeBytes += 8;
+    if (count_ > 0) sizeBytes += 4; // count
     sizeBytes += 8 * count_ + summaryFactoryBytes.length + summariesBytesLength;
     ByteBuffer buffer = ByteBuffer.allocate(sizeBytes).order(ByteOrder.nativeOrder());
+    buffer.put((byte) 1);
     buffer.put(serialVersionUID);
-    buffer.put((byte)SerializerDeserializer.SketchType.QuickSelectSketch.ordinal());
+    buffer.put((byte) Family.TUPLE.getID());
+    buffer.put((byte) SerializerDeserializer.SketchType.QuickSelectSketch.ordinal());
     boolean isBigEndian = buffer.order().equals(ByteOrder.BIG_ENDIAN);
-    buffer.put((byte)(
-      ((isBigEndian ? 1 : 0) << Flags.IS_BIG_ENDIAN.ordinal()) |
-      ((isInSamplingMode() ? 1 : 0) << Flags.IS_IN_SAMPLING_MODE.ordinal()) |
-      ((isEmpty_ ? 1 : 0) << Flags.IS_EMPTY.ordinal()) |
-      ((count_ > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
+    buffer.put((byte) (
+      (isBigEndian ? 1 << Flags.IS_BIG_ENDIAN.ordinal() : 0) |
+      (isInSamplingMode() ? 1 << Flags.IS_IN_SAMPLING_MODE.ordinal() : 0) |
+      (isEmpty_ ? 1 << Flags.IS_EMPTY.ordinal() : 0) |
+      (count_ > 0 ? 1 << Flags.HAS_ENTRIES.ordinal() : 0) |
+      (isThetaIncluded ? 1<< Flags.IS_THETA_INCLUDED.ordinal() : 0)
     ));
-    buffer.put((byte)Integer.numberOfTrailingZeros(nomEntries_));
-    buffer.put((byte)lgCurrentCapacity_);
-    buffer.put((byte)lgResizeRatio_);
-    if (count_ > 0) {
-      buffer.putInt(count_);
-      buffer.putLong(theta_);
-    }
+    buffer.put((byte) Integer.numberOfTrailingZeros(nomEntries_));
+    buffer.put((byte) lgCurrentCapacity_);
+    buffer.put((byte) lgResizeFactor_);
     if (samplingProbability_ < 1f) buffer.putFloat(samplingProbability_);
+    if (isThetaIncluded) buffer.putLong(theta_);
+    if (count_ > 0) buffer.putInt(count_);
     buffer.put(summaryFactoryBytes);
     if (count_ > 0) {
       int i = 0;
@@ -293,7 +303,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
       updateTheta();
       rebuild();
     } else {
-      rebuild(keys_.length * (1 << lgResizeRatio_));
+      rebuild(keys_.length * (1 << lgResizeFactor_));
     }
     return true;
   }

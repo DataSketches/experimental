@@ -6,6 +6,7 @@ package com.yahoo.sketches.tuple;
 
 import java.nio.ByteOrder;
 
+import com.yahoo.sketches.Family;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
 
@@ -44,9 +45,12 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public HeapArrayOfDoublesCompactSketch(Memory mem) {
+    SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesCompactSketch);
     byte version = mem.getByte(SERIAL_VERSION_BYTE);
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
+    boolean isBigEndian = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_BIG_ENDIAN.ordinal()));
+    if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     isEmpty_ = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
     numValues_ = mem.getByte(NUM_VALUES_BYTE);
     theta_ = mem.getLong(THETA_LONG);
@@ -65,22 +69,9 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
   }
 
   @Override
-  public boolean isEmpty() {
-    return isEmpty_;
-  }
-
-  @Override
   public int getRetainedEntries() {
     return keys_ == null ? 0 : keys_.length;
   }
-
-  private static final int HEADER_SIZE_BYTES =
-      1 // version
-    + 1 // sketch type
-    + 1 // flags
-    + 1 // numValues
-    + 4 // count
-    + 8; // theta
 
   /**
    * @return serialized representation of CompactSketch
@@ -88,11 +79,16 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
   @Override
   public byte[] toByteArray() {
     int count = getRetainedEntries();
-    int sizeBytes = HEADER_SIZE_BYTES + SIZE_OF_KEY_BYTES * count + SIZE_OF_VALUE_BYTES * numValues_ * count;
+    int sizeBytes = EMPTY_SIZE;
+    if (count > 0) {
+      sizeBytes = ENTRIES_START + SIZE_OF_KEY_BYTES * count + SIZE_OF_VALUE_BYTES * numValues_ * count;
+    }
     byte[] bytes = new byte[sizeBytes];
     Memory mem = new NativeMemory(bytes);
+    mem.putByte(PREAMBLE_LONGS_BYTE, (byte) 1);
     mem.putByte(SERIAL_VERSION_BYTE, serialVersionUID);
-    mem.putByte(SKETCH_TYPE_BYTE, (byte)SerializerDeserializer.SketchType.ArrayOfDoublesCompactSketch.ordinal());
+    mem.putByte(FAMILY_ID_BYTE, (byte) Family.TUPLE.getID()); 
+    mem.putByte(SKETCH_TYPE_BYTE, (byte) SerializerDeserializer.SketchType.ArrayOfDoublesCompactSketch.ordinal());
     boolean isBigEndian = ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     mem.putByte(FLAGS_BYTE, (byte) (
       ((isBigEndian ? 1 : 0) << Flags.IS_BIG_ENDIAN.ordinal()) |
@@ -100,9 +96,9 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
       ((count > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
     ));
     mem.putByte(NUM_VALUES_BYTE, (byte) numValues_);
-    mem.putInt(RETAINED_ENTRIES_INT, count);
     mem.putLong(THETA_LONG, theta_);
     if (count > 0) {
+      mem.putInt(RETAINED_ENTRIES_INT, count);
       mem.putLongArray(ENTRIES_START, keys_, 0, count);
       int offset = ENTRIES_START + SIZE_OF_KEY_BYTES * count;
       for (int i = 0; i < count; i++) {
@@ -115,8 +111,9 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
 
   @Override
   public double[][] getValues() {
-    double[][] values = new double[getRetainedEntries()][];
-    if (!isEmpty()) {
+    int count = getRetainedEntries();
+    double[][] values = new double[count][];
+    if (count > 0) {
       int i = 0;
       for (int j = 0; j < values_.length; j++) {
         values[i++] = values_[j].clone();

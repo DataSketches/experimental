@@ -207,7 +207,7 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
     buffer.rewind();
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(buffer);
     Assert.assertTrue(sketch2.isEstimationMode());
-    Assert.assertEquals(sketch2.getEstimate() / (double) numberOfUniques, 1.0, 0.01);
+    Assert.assertEquals(sketch2.getEstimate() / numberOfUniques, 1.0, 0.01);
     Assert.assertEquals(sketch2.getRetainedEntries() / (double) numberOfUniques, 0.5, 0.01);
     Assert.assertEquals(sketch1.getTheta(), sketch2.getTheta());
   }

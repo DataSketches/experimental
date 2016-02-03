@@ -6,19 +6,32 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.yahoo.sketches.Family;
+
 public class SerializerDeserializer {
   public static enum SketchType { QuickSelectSketch, CompactSketch, ArrayOfDoublesQuickSelectSketch, ArrayOfDoublesCompactSketch }
-  public static final int TYPE_BYTE_OFFSET = 1;
+  static final int TYPE_BYTE_OFFSET = 1;
 
-  protected static final Map<String, Method> deserializeMethodCache = new HashMap<String, Method>();
+  private static final Map<String, Method> deserializeMethodCache = new HashMap<String, Method>();
 
-  public static void validateType(ByteBuffer buffer, SketchType expectedType) {
+  static void validateFamily(byte familyId, byte preambleLongs) {
+    Family family = Family.idToFamily(familyId);
+    if (family.equals(Family.TUPLE)) {
+      if (preambleLongs != Family.TUPLE.getMinPreLongs()) {
+        throw new IllegalArgumentException("Possible corruption: Invalid PreambleLongs value for family TUPLE: " + preambleLongs);
+      }
+    } else {
+      throw new IllegalArgumentException("Possible corruption: Invalid Family: " + family.toString());
+    }
+  }
+
+  static void validateType(ByteBuffer buffer, SketchType expectedType) {
     byte sketchTypeByte = buffer.get();
     SketchType sketchType = getSketchType(sketchTypeByte);
     if (!sketchType.equals(expectedType)) throw new RuntimeException("Sketch Type mismatch. Expected " + expectedType.name() + ", got " + sketchType.name());
   }
 
-  public static void validateType(byte sketchTypeByte, SketchType expectedType) {
+  static void validateType(byte sketchTypeByte, SketchType expectedType) {
     SketchType sketchType = getSketchType(sketchTypeByte);
     if (!sketchType.equals(expectedType)) throw new RuntimeException("Sketch Type mismatch. Expected " + expectedType.name() + ", got " + sketchType.name());
   }
@@ -33,7 +46,7 @@ public class SerializerDeserializer {
     return getSketchType(sketchTypeByte);
   }
 
-  public static ByteBuffer serializeToByteBuffer(Object object) {
+  static ByteBuffer serializeToByteBuffer(Object object) {
     try {
       String className = object.getClass().getName();
       ByteBuffer objectBuffer = ((ByteBuffer) object.getClass().getMethod("serializeToByteBuffer", (Class<?>[])null).invoke(object));
@@ -46,7 +59,7 @@ public class SerializerDeserializer {
     }
   }
 
-  public static Object deserializeFromByteBuffer(ByteBuffer buffer) {
+  static Object deserializeFromByteBuffer(ByteBuffer buffer) {
     int classNameLength = buffer.get();
     byte[] classNameBuffer = new byte[classNameLength];
     buffer.get(classNameBuffer);
@@ -54,7 +67,7 @@ public class SerializerDeserializer {
     return deserializeFromByteBuffer(buffer, className);
   }
 
-  public static Object deserializeFromByteBuffer(ByteBuffer buffer, String className) {
+  static Object deserializeFromByteBuffer(ByteBuffer buffer, String className) {
     try {
       Method method = deserializeMethodCache.get(className);
       if (method == null) {

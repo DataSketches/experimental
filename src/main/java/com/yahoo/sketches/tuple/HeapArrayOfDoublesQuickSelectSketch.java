@@ -12,6 +12,7 @@ import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
 
+import com.yahoo.sketches.Family;
 import com.yahoo.sketches.HashOperations;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
@@ -92,31 +93,37 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public HeapArrayOfDoublesQuickSelectSketch(Memory mem) {
+    SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch);
     byte version = mem.getByte(SERIAL_VERSION_BYTE);
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
     byte flags = mem.getByte(FLAGS_BYTE);
+    boolean isBigEndian = (flags & (1 << Flags.IS_BIG_ENDIAN.ordinal())) > 0;
+    if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     isEmpty_ = (flags & (1 << Flags.IS_EMPTY.ordinal())) > 0;
     nomEntries_ = 1 << mem.getByte(LG_NOM_ENTRIES_BYTE);
+    theta_ = mem.getLong(THETA_LONG);
     int currentCapacity = 1 << mem.getByte(LG_CUR_CAPACITY_BYTE);
     lgResizeFactor_ = mem.getByte(LG_RESIZE_FACTOR_BYTE);
     numValues_ = mem.getByte(NUM_VALUES_BYTE);
-    count_ = mem.getInt(RETAINED_ENTRIES_INT);
-    theta_ = mem.getLong(THETA_LONG);
     samplingProbability_ = mem.getFloat(SAMPLING_P_FLOAT);
     keys_ = new long[currentCapacity];
     values_ = new double[currentCapacity][];
     mask_ = currentCapacity - 1;
-    mem.getLongArray(ENTRIES_START, keys_, 0, currentCapacity);
-    int offset = ENTRIES_START + SIZE_OF_KEY_BYTES * currentCapacity;
-    int sizeOfValues = SIZE_OF_VALUE_BYTES * numValues_;
-    for (int i = 0; i < currentCapacity; i++) {
-      if (keys_[i] != 0) {
-        double[] values = new double[numValues_];
-        mem.getDoubleArray(offset, values, 0, numValues_);
-        values_[i] = values;
+    boolean hasEntries = (flags & (1 << Flags.HAS_ENTRIES.ordinal())) > 0;
+    count_ = hasEntries ? mem.getInt(RETAINED_ENTRIES_INT) : 0;
+    if (count_ > 0) {
+      mem.getLongArray(ENTRIES_START, keys_, 0, currentCapacity);
+      int offset = ENTRIES_START + SIZE_OF_KEY_BYTES * currentCapacity;
+      int sizeOfValues = SIZE_OF_VALUE_BYTES * numValues_;
+      for (int i = 0; i < currentCapacity; i++) {
+        if (keys_[i] != 0) {
+          double[] values = new double[numValues_];
+          mem.getDoubleArray(offset, values, 0, numValues_);
+          values_[i] = values;
+        }
+        offset += sizeOfValues;
       }
-      offset += sizeOfValues;
     }
     setRebuildThreshold();
     lgCurrentCapacity_ = Integer.numberOfTrailingZeros(currentCapacity);
@@ -124,8 +131,9 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
 
   @Override
   public double[][] getValues() {
-    double[][] values = new double[getRetainedEntries()][];
-    if (!isEmpty()) {
+    int count = getRetainedEntries();
+    double[][] values = new double[count][];
+    if (count > 0) {
       int i = 0;
       for (int j = 0; j < values_.length; j++) {
         if (values_[j] != null) values[i++] = values_[j].clone();
@@ -167,30 +175,34 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     int sizeBytes = ENTRIES_START + (SIZE_OF_KEY_BYTES + SIZE_OF_VALUE_BYTES * numValues_) * getCurrentCapacity();
     byte[] byteArray = new byte[sizeBytes];
     Memory mem = new NativeMemory(byteArray); // wrap the byte array to use the putX methods
+    mem.putByte(PREAMBLE_LONGS_BYTE, (byte) 1);
     mem.putByte(SERIAL_VERSION_BYTE, serialVersionUID);
+    mem.putByte(FAMILY_ID_BYTE, (byte) Family.TUPLE.getID());
     mem.putByte(SKETCH_TYPE_BYTE, (byte)SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch.ordinal());
     boolean isBigEndian = ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     mem.putByte(FLAGS_BYTE, (byte)(
-      ((isBigEndian ? 1 : 0) << Flags.IS_BIG_ENDIAN.ordinal()) |
-      ((isInSamplingMode() ? 1 : 0) << Flags.IS_IN_SAMPLING_MODE.ordinal()) |
-      ((isEmpty_ ? 1 : 0) << Flags.IS_EMPTY.ordinal()) |
-      ((count_ > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
+      (isBigEndian ? 1 << Flags.IS_BIG_ENDIAN.ordinal() : 0) |
+      (isInSamplingMode() ? 1 << Flags.IS_IN_SAMPLING_MODE.ordinal() : 0) |
+      (isEmpty_ ? 1 << Flags.IS_EMPTY.ordinal() : 0) |
+      (count_ > 0 ? 1 << Flags.HAS_ENTRIES.ordinal() : 0)
     ));
-    mem.putByte(LG_NOM_ENTRIES_BYTE, (byte)Integer.numberOfTrailingZeros(nomEntries_));
-    mem.putByte(LG_CUR_CAPACITY_BYTE, (byte)Integer.numberOfTrailingZeros(keys_.length));
-    mem.putByte(LG_RESIZE_FACTOR_BYTE, (byte)lgResizeFactor_);
-    mem.putByte(NUM_VALUES_BYTE, (byte)numValues_);
-    mem.putInt(RETAINED_ENTRIES_INT, count_);
+    mem.putByte(NUM_VALUES_BYTE, (byte) numValues_);
     mem.putLong(THETA_LONG, theta_);
+    mem.putByte(LG_NOM_ENTRIES_BYTE, (byte) Integer.numberOfTrailingZeros(nomEntries_));
+    mem.putByte(LG_CUR_CAPACITY_BYTE, (byte) Integer.numberOfTrailingZeros(keys_.length));
+    mem.putByte(LG_RESIZE_FACTOR_BYTE, (byte) lgResizeFactor_);
     mem.putFloat(SAMPLING_P_FLOAT, samplingProbability_);
-    mem.putLongArray(ENTRIES_START, keys_, 0, keys_.length);
-    int offset = ENTRIES_START + SIZE_OF_KEY_BYTES * keys_.length;
-    int sizeOfValues = SIZE_OF_VALUE_BYTES * numValues_;
-    for (int i = 0; i < values_.length; i++) {
-      if (values_[i] != null) {
-        mem.putDoubleArray(offset, values_[i], 0, numValues_);
+    mem.putInt(RETAINED_ENTRIES_INT, count_);
+    if (count_ > 0) {
+      mem.putLongArray(ENTRIES_START, keys_, 0, keys_.length);
+      int offset = ENTRIES_START + SIZE_OF_KEY_BYTES * keys_.length;
+      int sizeOfValues = SIZE_OF_VALUE_BYTES * numValues_;
+      for (int i = 0; i < values_.length; i++) {
+        if (values_[i] != null) {
+          mem.putDoubleArray(offset, values_[i], 0, numValues_);
+        }
+        offset += sizeOfValues;
       }
-      offset += sizeOfValues;
     }
     return byteArray;
   }

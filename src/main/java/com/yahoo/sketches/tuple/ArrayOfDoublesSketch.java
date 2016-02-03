@@ -19,10 +19,14 @@ public abstract class ArrayOfDoublesSketch {
   static final int SIZE_OF_VALUE_BYTES = 8;
   
   // common part of serialized layout
-  static final int SERIAL_VERSION_BYTE = 0;
-  static final int SKETCH_TYPE_BYTE = 1;
-  static final int FLAGS_BYTE = 2;
-  static final int NUM_VALUES_BYTE = 3;
+  static final int PREAMBLE_LONGS_BYTE = 0; // not used, always 1
+  static final int SERIAL_VERSION_BYTE = 1;
+  static final int FAMILY_ID_BYTE = 2;
+  static final int SKETCH_TYPE_BYTE = 3;
+  static final int FLAGS_BYTE = 4;
+  static final int NUM_VALUES_BYTE = 5;
+  static final int SEED_HASH_SHORT = 6;
+  static final int THETA_LONG = 8;
 
   protected long theta_;
   protected int numValues_;
@@ -81,8 +85,9 @@ public abstract class ArrayOfDoublesSketch {
   }
   
   /**
-   * <a href="{@docRoot}/resources/dictionary.html#empty">See Empty</a>
-   * @return true if empty.
+   * Returns true if the sketch is Estimation Mode (as opposed to Exact Mode).
+   * This is true if theta &lt; 1.0 AND isEmpty() is false.
+   * @return true if the sketch is in estimation mode.
    */
   public boolean isEstimationMode() {
     return ((theta_ < Long.MAX_VALUE) && !isEmpty());

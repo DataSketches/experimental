@@ -19,14 +19,14 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
 
   public static final byte serialVersionUID = 1;
 
-  static final int LG_NOM_ENTRIES_BYTE = 4;
-  static final int LG_CUR_CAPACITY_BYTE = 5;
-  static final int LG_RESIZE_FACTOR_BYTE = 6;
-  // one byte of padding for alignment
-  static final int RETAINED_ENTRIES_INT = 8;
-  static final int SAMPLING_P_FLOAT = 12;
-  static final int THETA_LONG = 16;
-  static final int ENTRIES_START = 24;
+  static final int LG_NOM_ENTRIES_BYTE = 16;
+  static final int LG_CUR_CAPACITY_BYTE = 17;
+  static final int LG_RESIZE_FACTOR_BYTE = 18;
+  // 1 byte of padding for alignment
+  static final int SAMPLING_P_FLOAT = 20;
+  static final int RETAINED_ENTRIES_INT = 24;
+  // 4 bytes of padding for alignment
+  static final int ENTRIES_START = 32;
 
   protected static final int MIN_NOM_ENTRIES = 32;
   protected static final int DEFAULT_LG_RESIZE_FACTOR = 3;

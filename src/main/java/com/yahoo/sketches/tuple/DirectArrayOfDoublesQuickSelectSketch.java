@@ -14,6 +14,7 @@ import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import com.yahoo.sketches.Family;
 import com.yahoo.sketches.HashOperations;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.MemoryUtil;
@@ -53,23 +54,25 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
       lgResizeFactor,
       Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
     );
+    mem_.putByte(PREAMBLE_LONGS_BYTE, (byte) 1);
     mem_.putByte(SERIAL_VERSION_BYTE, serialVersionUID);
-    mem_.putByte(SKETCH_TYPE_BYTE, (byte)SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch.ordinal());
+    mem_.putByte(FAMILY_ID_BYTE, (byte) Family.TUPLE.getID());
+    mem_.putByte(SKETCH_TYPE_BYTE, (byte) SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch.ordinal());
     boolean isBigEndian = ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
-    mem_.putByte(FLAGS_BYTE, (byte)(
+    mem_.putByte(FLAGS_BYTE, (byte) (
       (isBigEndian ? 1 << Flags.IS_BIG_ENDIAN.ordinal() : 0) |
       (samplingProbability < 1f ? 1 << Flags.IS_IN_SAMPLING_MODE.ordinal() : 0) |
       (1 << Flags.IS_EMPTY.ordinal())
     ));
-    mem_.putByte(LG_NOM_ENTRIES_BYTE, (byte)Integer.numberOfTrailingZeros(nomEntries));
-    mem_.putByte(LG_CUR_CAPACITY_BYTE, (byte)Integer.numberOfTrailingZeros(startingCapacity));
-    mem_.putByte(LG_RESIZE_FACTOR_BYTE, (byte)lgResizeFactor);
     numValues_ = numValues;
-    mem_.putByte(NUM_VALUES_BYTE, (byte)numValues);
-    mem_.putInt(RETAINED_ENTRIES_INT, 0);
+    mem_.putByte(NUM_VALUES_BYTE, (byte) numValues);
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
     mem_.putLong(THETA_LONG, theta_);
+    mem_.putByte(LG_NOM_ENTRIES_BYTE, (byte) Integer.numberOfTrailingZeros(nomEntries));
+    mem_.putByte(LG_CUR_CAPACITY_BYTE, (byte) Integer.numberOfTrailingZeros(startingCapacity));
+    mem_.putByte(LG_RESIZE_FACTOR_BYTE, (byte) lgResizeFactor);
     mem_.putFloat(SAMPLING_P_FLOAT, samplingProbability);
+    mem_.putInt(RETAINED_ENTRIES_INT, 0);
     keysOffset_ = ENTRIES_START;
     valuesOffset_ = keysOffset_ + SIZE_OF_KEY_BYTES * startingCapacity;
     mem_.clear(keysOffset_, SIZE_OF_KEY_BYTES * startingCapacity); // clear keys only
@@ -84,9 +87,12 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
    */
   public DirectArrayOfDoublesQuickSelectSketch(Memory mem) {
     mem_ = mem;
+    SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem_.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch);
     byte version = mem_.getByte(SERIAL_VERSION_BYTE);
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
+    boolean isBigEndian = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_BIG_ENDIAN.ordinal()));
+    if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     keysOffset_ = ENTRIES_START;
     valuesOffset_ = keysOffset_ + SIZE_OF_KEY_BYTES * getCurrentCapacity();
     // to do: make parent take care of its own parts
@@ -105,8 +111,9 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
 
   @Override
   public double[][] getValues() {
-    double[][] values = new double[getRetainedEntries()][];
-    if (!isEmpty()) {
+    int count = getRetainedEntries();
+    double[][] values = new double[count][];
+    if (count > 0) {
       long keyOffset = keysOffset_;
       long valuesOffset = valuesOffset_;
       int i = 0;
@@ -125,10 +132,10 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
 
   @Override
   public byte[] toByteArray() {
-    int lengthBytes = valuesOffset_ + SIZE_OF_VALUE_BYTES * getNumValues() * getCurrentCapacity();
-    byte[] byteArray = new byte[lengthBytes];
+    int sizeBytes = valuesOffset_ + SIZE_OF_VALUE_BYTES * getNumValues() * getCurrentCapacity();
+    byte[] byteArray = new byte[sizeBytes];
     Memory mem = new NativeMemory(byteArray);
-    MemoryUtil.copy(mem_, 0, mem, 0, lengthBytes);
+    MemoryUtil.copy(mem_, 0, mem, 0, sizeBytes);
     return byteArray;
   }
 

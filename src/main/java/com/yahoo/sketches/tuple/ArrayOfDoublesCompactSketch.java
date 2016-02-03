@@ -17,8 +17,9 @@ public abstract class ArrayOfDoublesCompactSketch extends ArrayOfDoublesSketch {
 
   public static final byte serialVersionUID = 1;
 
-  static final int RETAINED_ENTRIES_INT = 4;
-  static final int THETA_LONG = 8;
-  static final int ENTRIES_START = 16;
+  static final int EMPTY_SIZE = 16;
+  static final int RETAINED_ENTRIES_INT = 16;
+  // 4 bytes of padding for alignment
+  static final int ENTRIES_START = 24;
 
 }

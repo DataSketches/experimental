@@ -75,8 +75,8 @@ public class AnotB<S extends Summary> {
   }
 
   private long[] convertToHashTable(Sketch<S> sketch) {
-    int size = (int) Math.max(
-      ceilingPowerOf2((int) (Math.ceil(sketch.getRetainedEntries()) / QuickSelectSketch.REBUILD_RATIO_AT_TARGET_SIZE)),
+    int size = Math.max(
+      ceilingPowerOf2((int) Math.ceil(sketch.getRetainedEntries() / QuickSelectSketch.REBUILD_RATIO_AT_TARGET_SIZE)),
       QuickSelectSketch.MIN_NOM_ENTRIES
     );
     long[] hashTable = new long[size];

@@ -11,6 +11,7 @@ package com.yahoo.sketches.tuple;
 import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
+import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
 
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.HashOperations;
@@ -19,12 +20,13 @@ import com.yahoo.sketches.memory.NativeMemory;
 
 public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSelectSketch {
 
+  private final int nomEntries_;
+  private final int lgResizeFactor_;
+  private final float samplingProbability_;
+
+  private int count_;
   protected long[] keys_;
   protected double[][] values_;
-  private int nomEntries_;
-  private int lgResizeFactor_;
-  private int count_;
-  private float samplingProbability_;
 
   /**
    * This is to create an instance of a QuickSelectSketch with default resize factor.
@@ -42,7 +44,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param numValues number of double values to keep for each key
    */
   public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, float samplingProbability, int numValues) {
-    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, numValues);
+    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, numValues, DEFAULT_UPDATE_SEED);
   }
 
   /**
@@ -56,7 +58,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param numValues number of double values to keep for each key
    */
   public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, int numValues) {
-    this(nomEntries, lgResizeRatio, 1f, numValues);
+    this(nomEntries, lgResizeRatio, 1f, numValues, DEFAULT_UPDATE_SEED);
   }
 
   /**
@@ -70,11 +72,11 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param samplingProbability
    * @param numValues number of double values to keep for each key
    */
-  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, int numValues) {
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, int numValues, long seed) {
+    super(numValues, seed);
     nomEntries_ = ceilingPowerOf2(nomEntries);
     lgResizeFactor_ = lgResizeRatio;
     samplingProbability_ = samplingProbability;
-    numValues_ = numValues;
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
     int startingCapacity = 1 << Util.startingSubMultiple(
       Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
@@ -89,10 +91,20 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
   }
 
   /**
-   * This is to create an instance given a serialized form
+   * This is to create an instance with the default update seed given a serialized form
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public HeapArrayOfDoublesQuickSelectSketch(Memory mem) {
+    this(mem, DEFAULT_UPDATE_SEED);
+  }
+
+  /**
+   * This is to create an instance given a serialized form
+   * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+   * @param seed update seed
+   */
+  public HeapArrayOfDoublesQuickSelectSketch(Memory mem, long seed) {
+    super(mem.getByte(NUM_VALUES_BYTE), seed);
     SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch);
     byte version = mem.getByte(SERIAL_VERSION_BYTE);
@@ -100,12 +112,12 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     byte flags = mem.getByte(FLAGS_BYTE);
     boolean isBigEndian = (flags & (1 << Flags.IS_BIG_ENDIAN.ordinal())) > 0;
     if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
+    Util.checkSeedHashes(mem.getShort(SEED_HASH_SHORT), Util.computeSeedHash(seed));
     isEmpty_ = (flags & (1 << Flags.IS_EMPTY.ordinal())) > 0;
     nomEntries_ = 1 << mem.getByte(LG_NOM_ENTRIES_BYTE);
     theta_ = mem.getLong(THETA_LONG);
     int currentCapacity = 1 << mem.getByte(LG_CUR_CAPACITY_BYTE);
     lgResizeFactor_ = mem.getByte(LG_RESIZE_FACTOR_BYTE);
-    numValues_ = mem.getByte(NUM_VALUES_BYTE);
     samplingProbability_ = mem.getFloat(SAMPLING_P_FLOAT);
     keys_ = new long[currentCapacity];
     values_ = new double[currentCapacity][];
@@ -187,6 +199,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
       (count_ > 0 ? 1 << Flags.HAS_ENTRIES.ordinal() : 0)
     ));
     mem.putByte(NUM_VALUES_BYTE, (byte) numValues_);
+    mem.putShort(SEED_HASH_SHORT, Util.computeSeedHash(seed_));
     mem.putLong(THETA_LONG, theta_);
     mem.putByte(LG_NOM_ENTRIES_BYTE, (byte) Integer.numberOfTrailingZeros(nomEntries_));
     mem.putByte(LG_CUR_CAPACITY_BYTE, (byte) Integer.numberOfTrailingZeros(keys_.length));

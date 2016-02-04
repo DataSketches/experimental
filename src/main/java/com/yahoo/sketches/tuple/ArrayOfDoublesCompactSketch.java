@@ -22,4 +22,7 @@ public abstract class ArrayOfDoublesCompactSketch extends ArrayOfDoublesSketch {
   // 4 bytes of padding for alignment
   static final int ENTRIES_START = 24;
 
+  protected ArrayOfDoublesCompactSketch(int numValues) {
+    super(numValues);
+  }
 }

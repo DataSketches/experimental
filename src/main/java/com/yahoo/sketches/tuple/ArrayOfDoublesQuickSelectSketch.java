@@ -36,6 +36,10 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   protected int mask_;
   protected int lgCurrentCapacity_;
 
+  protected ArrayOfDoublesQuickSelectSketch(int numValues, long seed) {
+    super(numValues, seed);
+  }
+
   protected abstract void updateValues(int index, double[] values);
   protected abstract void setNotEmpty();
   protected abstract boolean isInSamplingMode();
@@ -50,7 +54,7 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   protected abstract int insertKey(long key);
   protected abstract int findOrInsertKey(long key);
 
-  /*
+  /**
    * Rebuilds reducing the actual number of entries to the nominal number of entries if needed
    */
   public void trim() {

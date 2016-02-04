@@ -16,10 +16,28 @@ import com.yahoo.sketches.memory.Memory;
  */
 
 public abstract class ArrayOfDoublesUnion {
-  protected int nomEntries_;
-  protected int numValues_;
+  protected final int nomEntries_;
+  protected final int numValues_;
+  protected final long seed_;
+  protected final short seedHash_;
   protected ArrayOfDoublesQuickSelectSketch sketch_;
   protected long theta_;
+
+  protected ArrayOfDoublesUnion(int nomEntries, int numValues, long seed) {
+    nomEntries_ = nomEntries;
+    numValues_ = numValues;
+    seed_ = seed;
+    seedHash_ = Util.computeSeedHash(seed);
+  }
+
+  protected ArrayOfDoublesUnion(ArrayOfDoublesQuickSelectSketch sketch) {
+    nomEntries_ = sketch.getNominalEntries();
+    numValues_ = sketch.getNumValues();
+    seed_ = sketch.getSeed();
+    seedHash_ = Util.computeSeedHash(seed_);
+    sketch_ = sketch;
+    theta_ = sketch.getThetaLong();
+  }
 
   /**
    * Updates the union by adding a set of entries from a given sketch
@@ -27,6 +45,7 @@ public abstract class ArrayOfDoublesUnion {
    */
   public void update(ArrayOfDoublesSketch sketchIn) {
     if (sketchIn == null || sketchIn.isEmpty()) return;
+    Util.checkSeedHashes(seedHash_, sketchIn.getSeedHash());
     if (sketchIn.getThetaLong() < theta_) theta_ = sketchIn.getThetaLong();
     ArrayOfDoublesSketchIterator it = sketchIn.iterator();
     while (it.next()) {

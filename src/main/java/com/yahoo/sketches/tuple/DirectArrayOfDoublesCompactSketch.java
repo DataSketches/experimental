@@ -27,6 +27,7 @@ public class DirectArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSket
    * @param dstMem the given destination Memory.
    */
   DirectArrayOfDoublesCompactSketch(final UpdatableArrayOfDoublesSketch sketch, Memory dstMem) {
+    super(sketch.getNumValues());
     mem_ = dstMem;
     mem_.putByte(PREAMBLE_LONGS_BYTE, (byte) 1);
     mem_.putByte(SERIAL_VERSION_BYTE, serialVersionUID);
@@ -40,8 +41,8 @@ public class DirectArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSket
       (isEmpty_ ? 1 << Flags.IS_EMPTY.ordinal() : 0) |
       (count > 0 ? 1 << Flags.HAS_ENTRIES.ordinal(): 0)
     ));
-    numValues_ = sketch.getNumValues();
     mem_.putByte(NUM_VALUES_BYTE, (byte) numValues_);
+    mem_.putShort(SEED_HASH_SHORT, Util.computeSeedHash(sketch.getSeed()));
     theta_ = sketch.getThetaLong();
     mem_.putLong(THETA_LONG, theta_);
     if (count > 0) {
@@ -63,6 +64,7 @@ public class DirectArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSket
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public DirectArrayOfDoublesCompactSketch(Memory mem) {
+    super(mem.getByte(NUM_VALUES_BYTE));
     mem_ = mem;
     SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem_.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesCompactSketch);
@@ -72,7 +74,6 @@ public class DirectArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSket
     if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     isEmpty_ = mem_.isAnyBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
     theta_ = mem_.getLong(THETA_LONG);
-    numValues_ = mem_.getByte(NUM_VALUES_BYTE);
   }
 
   @Override
@@ -113,6 +114,11 @@ public class DirectArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSket
   @Override
   ArrayOfDoublesSketchIterator iterator() {
     return new DirectArrayOfDoublesSketchIterator(mem_, ENTRIES_START, getRetainedEntries(), numValues_);
+  }
+
+  @Override
+  short getSeedHash() {
+    return mem_.getShort(SEED_HASH_SHORT);
   }
 
 }

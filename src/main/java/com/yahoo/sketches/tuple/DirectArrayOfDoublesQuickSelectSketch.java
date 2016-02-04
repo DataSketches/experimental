@@ -10,6 +10,7 @@ package com.yahoo.sketches.tuple;
  */
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
+import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -29,15 +30,15 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   private int valuesOffset_;
   
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int numValues, Memory dstMem) {
-    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, 1f, numValues, dstMem);
+    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, 1f, numValues, DEFAULT_UPDATE_SEED, dstMem);
   }
 
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, float samplingProbability, int numValues, Memory dstMem) {
-    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, numValues, dstMem);
+    this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, numValues, DEFAULT_UPDATE_SEED, dstMem);
   }
 
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, int numValues, Memory dstMem) {
-    this(nomEntries, lgResizeFactor, 1f, numValues, dstMem);
+    this(nomEntries, lgResizeFactor, 1f, numValues, DEFAULT_UPDATE_SEED, dstMem);
   }
 
   /**
@@ -47,7 +48,8 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
    * @param numValues
    * @param dstMem
    */
-  public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, int numValues, Memory dstMem) {
+  public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, int numValues, long seed, Memory dstMem) {
+    super(numValues, seed);
     mem_ = dstMem;
     int startingCapacity = 1 << Util.startingSubMultiple(
       Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
@@ -64,8 +66,8 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
       (samplingProbability < 1f ? 1 << Flags.IS_IN_SAMPLING_MODE.ordinal() : 0) |
       (1 << Flags.IS_EMPTY.ordinal())
     ));
-    numValues_ = numValues;
     mem_.putByte(NUM_VALUES_BYTE, (byte) numValues);
+    mem_.putShort(SEED_HASH_SHORT, Util.computeSeedHash(seed));
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
     mem_.putLong(THETA_LONG, theta_);
     mem_.putByte(LG_NOM_ENTRIES_BYTE, (byte) Integer.numberOfTrailingZeros(nomEntries));
@@ -82,10 +84,20 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   }
 
   /**
-   * Wraps the given Memory.
+   * Wraps the given Memory assuming the default update seed
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public DirectArrayOfDoublesQuickSelectSketch(Memory mem) {
+    this(mem, DEFAULT_UPDATE_SEED);
+  }
+
+  /**
+   * Wraps the given Memory.
+   * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+   * @param seed update seed
+   */
+  public DirectArrayOfDoublesQuickSelectSketch(Memory mem, long seed) {
+    super(mem.getByte(NUM_VALUES_BYTE), seed);
     mem_ = mem;
     SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem_.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesQuickSelectSketch);
@@ -93,10 +105,10 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
     boolean isBigEndian = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_BIG_ENDIAN.ordinal()));
     if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
+    Util.checkSeedHashes(mem.getShort(SEED_HASH_SHORT), Util.computeSeedHash(seed));
     keysOffset_ = ENTRIES_START;
     valuesOffset_ = keysOffset_ + SIZE_OF_KEY_BYTES * getCurrentCapacity();
     // to do: make parent take care of its own parts
-    numValues_ = mem_.getByte(NUM_VALUES_BYTE);
     mask_ = getCurrentCapacity() - 1;
     lgCurrentCapacity_ = Integer.numberOfTrailingZeros(getCurrentCapacity());
     theta_ = mem_.getLong(THETA_LONG);

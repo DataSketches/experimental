@@ -8,12 +8,17 @@ package com.yahoo.sketches.tuple;
  * The top level for updatable sketches
  */
 
-import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
-
 import com.yahoo.sketches.hash.MurmurHash3;
 import com.yahoo.sketches.memory.Memory;
 
 public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch {
+
+  protected final long seed_;
+
+  protected UpdatableArrayOfDoublesSketch(int numValues, long seed) {
+    super(numValues);
+    seed_ = seed;
+  }
 
   /**
    * Updates this sketch with a long key and double values.
@@ -57,7 +62,7 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
    */
   public void update(byte[] key, double[] values) {
     if (key == null || key.length == 0) return;
-    insertOrIgnore(MurmurHash3.hash(key, DEFAULT_UPDATE_SEED)[0] >>> 1, values);
+    insertOrIgnore(MurmurHash3.hash(key, seed_)[0] >>> 1, values);
   }
 
   /**
@@ -69,7 +74,7 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
    */
   public void update(int[] key, double[] values) {
     if (key == null || key.length == 0) return;
-    insertOrIgnore(MurmurHash3.hash(key, DEFAULT_UPDATE_SEED)[0] >>> 1, values);
+    insertOrIgnore(MurmurHash3.hash(key, seed_)[0] >>> 1, values);
   }
 
   /**
@@ -81,7 +86,7 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
    */
   public void update(long[] key, double[] values) {
     if (key == null || key.length == 0) return;
-    insertOrIgnore(MurmurHash3.hash(key, DEFAULT_UPDATE_SEED)[0] >>> 1, values);
+    insertOrIgnore(MurmurHash3.hash(key, seed_)[0] >>> 1, values);
   }
 
   /**
@@ -106,6 +111,15 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
   public ArrayOfDoublesCompactSketch compact(Memory dstMem) {
     if (dstMem == null) return new HeapArrayOfDoublesCompactSketch(this);
     return new DirectArrayOfDoublesCompactSketch(this, dstMem);
+  }
+
+  long getSeed() {
+    return seed_;
+  }
+
+  @Override
+  short getSeedHash() {
+    return Util.computeSeedHash(seed_);
   }
 
   protected abstract void insertOrIgnore(long key, double[] values);

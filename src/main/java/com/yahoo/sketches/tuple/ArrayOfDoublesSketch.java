@@ -28,13 +28,20 @@ public abstract class ArrayOfDoublesSketch {
   static final int SEED_HASH_SHORT = 6;
   static final int THETA_LONG = 8;
 
+  protected final int numValues_;
+
   protected long theta_;
-  protected int numValues_;
   protected boolean isEmpty_ = true;
 
   public abstract int getRetainedEntries();
   public abstract byte[] toByteArray();
   public abstract double[][] getValues();
+
+  abstract short getSeedHash();
+
+  protected ArrayOfDoublesSketch(int numValues) {
+    numValues_ = numValues;
+  }
 
   /**
    * Estimates the cardinality of the set (number of unique values presented to the sketch)

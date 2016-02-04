@@ -6,6 +6,8 @@ package com.yahoo.sketches.tuple;
 
 import java.nio.ByteOrder;
 
+import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
+
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
@@ -15,17 +17,21 @@ import com.yahoo.sketches.memory.NativeMemory;
  */
 public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch {
 
-  protected long[] keys_;
-  protected double[][] values_;
+  private final short seedHash_;
+  private long[] keys_;
+  private double[][] values_;
 
-  public HeapArrayOfDoublesCompactSketch() {
+  public HeapArrayOfDoublesCompactSketch(int numValues) {
+    super(numValues);
     theta_ = Long.MAX_VALUE;
+    seedHash_ = Util.computeSeedHash(DEFAULT_UPDATE_SEED);
   }
 
   HeapArrayOfDoublesCompactSketch(UpdatableArrayOfDoublesSketch sketch) {
+    super(sketch.getNumValues());
     isEmpty_ = sketch.isEmpty();
-    numValues_ = sketch.getNumValues();
     theta_ = sketch.getThetaLong();
+    seedHash_ = Util.computeSeedHash(sketch.getSeed());
     int count = sketch.getRetainedEntries();
     if (count > 0) {
       keys_ = new long[count];
@@ -45,6 +51,8 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public HeapArrayOfDoublesCompactSketch(Memory mem) {
+    super(mem.getByte(NUM_VALUES_BYTE));
+    seedHash_ = mem.getShort(SEED_HASH_SHORT);
     SerializerDeserializer.validateFamily(mem.getByte(FAMILY_ID_BYTE), mem.getByte(PREAMBLE_LONGS_BYTE));
     SerializerDeserializer.validateType(mem.getByte(SKETCH_TYPE_BYTE), SerializerDeserializer.SketchType.ArrayOfDoublesCompactSketch);
     byte version = mem.getByte(SERIAL_VERSION_BYTE);
@@ -52,7 +60,6 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
     boolean isBigEndian = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_BIG_ENDIAN.ordinal()));
     if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
     isEmpty_ = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
-    numValues_ = mem.getByte(NUM_VALUES_BYTE);
     theta_ = mem.getLong(THETA_LONG);
     boolean hasEntries = mem.isAllBitsSet(FLAGS_BYTE, (byte) (1 << Flags.HAS_ENTRIES.ordinal()));
     if (hasEntries) {
@@ -96,6 +103,7 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
       ((count > 0 ? 1 : 0) << Flags.HAS_ENTRIES.ordinal())
     ));
     mem.putByte(NUM_VALUES_BYTE, (byte) numValues_);
+    mem.putShort(SEED_HASH_SHORT, seedHash_);
     mem.putLong(THETA_LONG, theta_);
     if (count > 0) {
       mem.putInt(RETAINED_ENTRIES_INT, count);
@@ -125,6 +133,11 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
   @Override
   ArrayOfDoublesSketchIterator iterator() {
     return new HeapArrayOfDoublesSketchIterator(keys_, values_);
+  }
+
+  @Override
+  short getSeedHash() {
+    return seedHash_;
   }
 
 }

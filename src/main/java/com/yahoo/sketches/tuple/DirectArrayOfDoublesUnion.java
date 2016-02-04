@@ -9,25 +9,28 @@ package com.yahoo.sketches.tuple;
  * The purpose is to avoid garbage collection.
  */
 
+import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
+
 import com.yahoo.sketches.memory.Memory;
 
 public class DirectArrayOfDoublesUnion extends ArrayOfDoublesUnion {
   private Memory mem_;
 
   public DirectArrayOfDoublesUnion(int nomEntries, int numValues, Memory dstMem) {
-    nomEntries_ = nomEntries;
-    numValues_ = numValues;
-    sketch_ = new DirectArrayOfDoublesQuickSelectSketch(nomEntries, numValues, dstMem);
-    theta_ = sketch_.getThetaLong();
+    this(nomEntries, numValues, DEFAULT_UPDATE_SEED, dstMem);
+  }
+
+  public DirectArrayOfDoublesUnion(int nomEntries, int numValues, long seed, Memory dstMem) {
+    super(new DirectArrayOfDoublesQuickSelectSketch(nomEntries, 3, 1f, numValues, seed, dstMem));
     mem_ = dstMem;
   }
 
   public DirectArrayOfDoublesUnion(Memory mem) {
-    mem_ = mem;
-    sketch_ = new DirectArrayOfDoublesQuickSelectSketch(mem);
-    nomEntries_ = sketch_.getNominalEntries();
-    numValues_ = sketch_.getNumValues();
-    theta_ = sketch_.getThetaLong();
+    this(mem, DEFAULT_UPDATE_SEED);
+  }
+
+  public DirectArrayOfDoublesUnion(Memory mem, long seed) {
+    super(new DirectArrayOfDoublesQuickSelectSketch(mem, seed));
     mem_ = mem;
   }
 

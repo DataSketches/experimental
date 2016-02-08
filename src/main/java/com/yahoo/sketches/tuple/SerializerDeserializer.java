@@ -12,7 +12,7 @@ import com.yahoo.sketches.memory.NativeMemory;
 
 public class SerializerDeserializer {
   public static enum SketchType { QuickSelectSketch, CompactSketch, ArrayOfDoublesQuickSelectSketch, ArrayOfDoublesCompactSketch }
-  static final int TYPE_BYTE_OFFSET = 1;
+  static final int TYPE_BYTE_OFFSET = 3;
 
   private static final Map<String, Method> deserializeMethodCache = new HashMap<String, Method>();
 

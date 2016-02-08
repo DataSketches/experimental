@@ -4,14 +4,13 @@
  */
 package com.yahoo.sketches.tuple;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
+import com.yahoo.sketches.memory.NativeMemory;
+
 public class CompactSketchWithDoubleSummaryTest {
-  //@Test
+  @Test
   public void emptyFromNonPublicConstructorNullArray() {
     CompactSketch<DoubleSummary> sketch = new CompactSketch<DoubleSummary>(null, null, Long.MAX_VALUE, true);
     Assert.assertTrue(sketch.isEmpty());
@@ -86,10 +85,7 @@ public class CompactSketchWithDoubleSummaryTest {
     qss.update("b", 1.0);
     qss.update("c", 1.0);
     CompactSketch<DoubleSummary> sketch1 = qss.compact();
-    ByteBuffer buffer = sketch1.serializeToByteBuffer();
-    Assert.assertTrue(buffer.order().equals(ByteOrder.nativeOrder()));
-    buffer.rewind();
-    CompactSketch<DoubleSummary> sketch2 = new CompactSketch<DoubleSummary>(buffer);
+    CompactSketch<DoubleSummary> sketch2 = new CompactSketch<DoubleSummary>(new NativeMemory(sketch1.toByteArray()));
     Assert.assertFalse(sketch2.isEmpty());
     Assert.assertFalse(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate(), 3.0);
@@ -108,7 +104,7 @@ public class CompactSketchWithDoubleSummaryTest {
     UpdatableQuickSelectSketch<Double, DoubleSummary> qss = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
     for (int i = 0; i < 8192; i++) qss.update(i, 1.0);
     CompactSketch<DoubleSummary> sketch1 = qss.compact();
-    CompactSketch<DoubleSummary> sketch2 = new CompactSketch<DoubleSummary>((ByteBuffer)sketch1.serializeToByteBuffer().rewind());
+    CompactSketch<DoubleSummary> sketch2 = new CompactSketch<DoubleSummary>(new NativeMemory(sketch1.toByteArray()));
     Assert.assertFalse(sketch2.isEmpty());
     Assert.assertTrue(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate(), sketch1.getEstimate());

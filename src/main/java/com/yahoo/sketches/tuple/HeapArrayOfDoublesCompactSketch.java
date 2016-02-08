@@ -21,12 +21,20 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
   private long[] keys_;
   private double[][] values_;
 
+  /**
+   * This is to create an instance of empty compact sketch 
+   * @param numValues number of double values associated with a key (not really needed except for consistency) 
+   */
   public HeapArrayOfDoublesCompactSketch(int numValues) {
     super(numValues);
     theta_ = Long.MAX_VALUE;
     seedHash_ = Util.computeSeedHash(DEFAULT_UPDATE_SEED);
   }
 
+  /**
+   * Converts the given UpdatableArrayOfDoublesSketch to this compact form.
+   * @param sketch the given UpdatableArrayOfDoublesSketch
+   */
   HeapArrayOfDoublesCompactSketch(UpdatableArrayOfDoublesSketch sketch) {
     super(sketch.getNumValues());
     isEmpty_ = sketch.isEmpty();
@@ -75,6 +83,9 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
     }
   }
 
+  /**
+   * @return number of retained entries
+   */
   @Override
   public int getRetainedEntries() {
     return keys_ == null ? 0 : keys_.length;

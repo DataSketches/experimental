@@ -4,28 +4,28 @@
  */
 package com.yahoo.sketches.tuple;
 
-import java.nio.ByteBuffer;
 import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
+
 import com.yahoo.sketches.hash.MurmurHash3;
+import com.yahoo.sketches.memory.Memory;
 
 /**
- * This is an equivalent to com.yahoo.sketches.theta.HeapQuickSelectSketch with
- * addition of a user-defined Summary object associated with every unique entry
- * in the sketch. Summary objects are created using a user-defined
- * SummaryFactory class, which should allow very flexible parameterization if
- * needed. Keys are presented to a sketch along with values of a user-defined
+ * This is an extension of QuickSelectSketch, which can be updated with many types of keys.
+ * Summary objects are created using a user-defined SummaryFactory class,
+ * which should allow very flexible parameterization if needed.
+ * Keys are presented to a sketch along with values of a user-defined
  * update type U. When an entry is inserted into a sketch or a duplicate key is
  * presented to a sketch then summary.update(U value) method will be called. So
  * any kind of user-defined accumulation is possible. Summaries also must know
  * how to copy themselves. Also union and intersection of summaries can be
  * implemented in a sub-class of SummarySetOperations, which will be used in
  * case Union or Intersection of two instances of Tuple Sketch is needed
+ * @param U type of the value, which is passed to update method of a Summary
  */
-
 public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extends QuickSelectSketch<S> {
 
   /**
-   * This is to create an instance of a QuickSelectSketch with default resize factor.
+   * This is to create an instance of an UpdatableQuickSelectSketch with default resize factor.
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
    * @param summaryFactory An instance of a SummaryFactory.
    */
@@ -34,7 +34,7 @@ public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extend
   }
 
   /**
-   * This is to create an instance of a QuickSelectSketch with default resize factor and a given sampling probability.
+   * This is to create an instance of an UpdatableQuickSelectSketch with default resize factor and a given sampling probability.
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
    * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability, <i>p</i></a>
    * @param summaryFactory An instance of a SummaryFactory.
@@ -44,7 +44,7 @@ public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extend
   }
 
   /**
-   * This is to create an instance of a QuickSelectSketch with custom resize factor
+   * This is to create an instance of an UpdatableQuickSelectSketch with custom resize factor
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
    * @param lgResizeRatio log2(resizeRatio) - value from 0 to 3:
    * 0 - no resizing (max size allocated),
@@ -58,7 +58,7 @@ public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extend
   }
 
   /**
-   * This is to create an instance of a QuickSelectSketch with default resize factor and a given sampling probability.
+   * This is to create an instance of an UpdatableQuickSelectSketch with default resize factor and a given sampling probability.
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
    * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability, <i>p</i></a>
    * @param summaryFactory An instance of a SummaryFactory.
@@ -67,8 +67,12 @@ public class UpdatableQuickSelectSketch<U, S extends UpdatableSummary<U>> extend
     super(nomEntries, lgResizeRatio, samplingProbability, summaryFactory);
   }
 
-  public UpdatableQuickSelectSketch(ByteBuffer buffer) {
-    super(buffer);
+  /**
+   * This is to create an instance of a sketch given a serialized form
+   * @param mem Memory object with serialized UpdatableQukckSelectSketch
+   */
+  public UpdatableQuickSelectSketch(Memory mem) {
+    super(mem);
   }
 
   /**

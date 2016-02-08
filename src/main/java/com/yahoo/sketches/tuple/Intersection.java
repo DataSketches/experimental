@@ -15,7 +15,6 @@ import java.lang.reflect.Array;
  * and can only reduce the internal set.
  * @param <S> Type of Summary
  */
-
 public class Intersection<S extends Summary> {
 
   private SummaryFactory<S> summaryFactory_;

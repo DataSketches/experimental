@@ -2,11 +2,13 @@ package com.yahoo.sketches.tuple;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.yahoo.sketches.Family;
+import com.yahoo.sketches.memory.Memory;
+import com.yahoo.sketches.memory.MemoryRegion;
+import com.yahoo.sketches.memory.NativeMemory;
 
 public class SerializerDeserializer {
   public static enum SketchType { QuickSelectSketch, CompactSketch, ArrayOfDoublesQuickSelectSketch, ArrayOfDoublesCompactSketch }
@@ -25,20 +27,9 @@ public class SerializerDeserializer {
     }
   }
 
-  static void validateType(ByteBuffer buffer, SketchType expectedType) {
-    byte sketchTypeByte = buffer.get();
-    SketchType sketchType = getSketchType(sketchTypeByte);
-    if (!sketchType.equals(expectedType)) throw new RuntimeException("Sketch Type mismatch. Expected " + expectedType.name() + ", got " + sketchType.name());
-  }
-
   static void validateType(byte sketchTypeByte, SketchType expectedType) {
     SketchType sketchType = getSketchType(sketchTypeByte);
     if (!sketchType.equals(expectedType)) throw new RuntimeException("Sketch Type mismatch. Expected " + expectedType.name() + ", got " + sketchType.name());
-  }
-
-  public static SketchType getSketchTypeAbsolute(ByteBuffer buffer) {
-    byte sketchTypeByte = buffer.get(TYPE_BYTE_OFFSET);
-    return getSketchType(sketchTypeByte);
   }
 
   public static SketchType getSketchTypeAbsolute(byte[] buffer) {
@@ -46,37 +37,43 @@ public class SerializerDeserializer {
     return getSketchType(sketchTypeByte);
   }
 
-  static ByteBuffer serializeToByteBuffer(Object object) {
+  static byte[] toByteArray(Object object) {
     try {
       String className = object.getClass().getName();
-      ByteBuffer objectBuffer = ((ByteBuffer) object.getClass().getMethod("serializeToByteBuffer", (Class<?>[])null).invoke(object));
-      ByteBuffer buffer = ByteBuffer.allocate(1 + className.length() + objectBuffer.capacity());
-      buffer.put((byte)className.length()).put(className.getBytes());
-      buffer.put(objectBuffer.array());
-      return buffer;
+      byte[] objectBytes = ((byte[]) object.getClass().getMethod("toByteArray", (Class<?>[])null).invoke(object));
+      byte[] bytes = new byte[1 + className.length() + objectBytes.length];
+      Memory mem = new NativeMemory(bytes);
+      int offset = 0;
+      mem.putByte(offset++, (byte)className.length());
+      mem.putByteArray(offset, className.getBytes(), 0, className.length());
+      offset += className.length();
+      mem.putByteArray(offset, objectBytes, 0, objectBytes.length);
+      return bytes;
     } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }
 
-  static Object deserializeFromByteBuffer(ByteBuffer buffer) {
-    int classNameLength = buffer.get();
+  static <T> DeserializeResult<T> deserializeFromMemory(Memory mem, int offset) {
+    int classNameLength = mem.getByte(offset);
     byte[] classNameBuffer = new byte[classNameLength];
-    buffer.get(classNameBuffer);
+    mem.getByteArray(offset + 1, classNameBuffer, 0, classNameLength);
     String className = new String(classNameBuffer);
-    return deserializeFromByteBuffer(buffer, className);
+    DeserializeResult<T> result = deserializeFromMemory(mem, offset + classNameLength + 1, className);
+    return new DeserializeResult<T>(result.getObject(), result.getSize() + classNameLength + 1);
   }
 
-  static Object deserializeFromByteBuffer(ByteBuffer buffer, String className) {
+  @SuppressWarnings("unchecked")
+  static <T> DeserializeResult<T> deserializeFromMemory(Memory mem, int offset, String className) {
     try {
       Method method = deserializeMethodCache.get(className);
       if (method == null) {
-          method = Class.forName(className).getMethod("deserializeFromByteBuffer", ByteBuffer.class);
+          method = Class.forName(className).getMethod("fromMemory", Memory.class);
           deserializeMethodCache.put(className, method);
       }
-      return method.invoke(null, buffer);
+      return (DeserializeResult<T>) method.invoke(null, new MemoryRegion(mem, offset, mem.getCapacity() - offset));
     } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Couldn't deserialize class " + className + " " + e);
     }
   }
 

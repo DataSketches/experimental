@@ -5,7 +5,6 @@
 package com.yahoo.sketches.tuple;
 
 import java.lang.reflect.Array;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
@@ -15,7 +14,15 @@ import static com.yahoo.sketches.HashOperations.hashInsertOnly;
 
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.QuickSelect;
+import com.yahoo.sketches.memory.Memory;
+import com.yahoo.sketches.memory.MemoryRegion;
+import com.yahoo.sketches.memory.NativeMemory;
 
+/**
+ * This is a hash table based implementation of a tuple sketch.
+ *
+ * @param <S> type of Summary
+ */
 public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
   public static final byte serialVersionUID = 1;
@@ -76,18 +83,27 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    * @param samplingProbability
    * @param summaryFactory An instance of a SummaryFactory.
    */
-  @SuppressWarnings("unchecked")
   QuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, SummaryFactory<S> summaryFactory) {
+    this(
+      nomEntries,
+      lgResizeFactor,
+      samplingProbability,
+      summaryFactory,
+      1 << Util.startingSubMultiple(
+        Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
+        lgResizeFactor,
+        Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
+      )
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  QuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, SummaryFactory<S> summaryFactory, int startingSize) {
     nomEntries_ = ceilingPowerOf2(nomEntries);
     lgResizeFactor_ = lgResizeFactor;
     samplingProbability_ = samplingProbability;
     summaryFactory_ = summaryFactory;
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
-    int startingSize = 1 << Util.startingSubMultiple(
-      Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
-      lgResizeFactor,
-      Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
-    );
     lgCurrentCapacity_ = Integer.numberOfTrailingZeros(startingSize);
     keys_ = new long[startingSize];
     summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), startingSize);
@@ -96,30 +112,35 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
   /**
    * This is to create an instance of a QuickSelectSketch given a serialized form
-   * @param buffer ByteBuffer with serialized QukckSelectSketch
+   * @param mem Memory object with serialized QukckSelectSketch
    */
   @SuppressWarnings("unchecked")
-  public QuickSelectSketch(ByteBuffer buffer) {
-    byte preambleLongs = buffer.get();
-    byte version = buffer.get();
-    byte familyId = buffer.get();
+  public QuickSelectSketch(Memory mem) {
+    int offset = 0;
+    byte preambleLongs = mem.getByte(offset++);
+    byte version = mem.getByte(offset++);
+    byte familyId = mem.getByte(offset++);
     SerializerDeserializer.validateFamily(familyId, preambleLongs);
     if (version != serialVersionUID) throw new RuntimeException("Serial version mismatch. Expected: " + serialVersionUID + ", actual: " + version);
-    SerializerDeserializer.validateType(buffer, SerializerDeserializer.SketchType.QuickSelectSketch);
-    byte flags = buffer.get();
+    SerializerDeserializer.validateType(mem.getByte(offset++), SerializerDeserializer.SketchType.QuickSelectSketch);
+    byte flags = mem.getByte(offset++);
     boolean isBigEndian = (flags & (1 << Flags.IS_BIG_ENDIAN.ordinal())) > 0;
-    if (isBigEndian ^ buffer.order().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
-    nomEntries_ = 1 << buffer.get();
-    lgCurrentCapacity_ = buffer.get();
-    lgResizeFactor_ = buffer.get();
+    if (isBigEndian ^ ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN)) throw new RuntimeException("Byte order mismatch");
+    nomEntries_ = 1 << mem.getByte(offset++);
+    lgCurrentCapacity_ = mem.getByte(offset++);
+    lgResizeFactor_ = mem.getByte(offset++);
 
     boolean isInSamplingMode = (flags & (1 << Flags.IS_IN_SAMPLING_MODE.ordinal())) > 0;
     samplingProbability_ = 1f;
-    if (isInSamplingMode) samplingProbability_ = buffer.getFloat();
+    if (isInSamplingMode) {
+      samplingProbability_ = mem.getFloat(offset);
+      offset += 4;
+    }
 
     boolean isThetaIncluded = (flags & (1 << Flags.IS_THETA_INCLUDED.ordinal())) > 0;
     if (isThetaIncluded) {
-      theta_ = buffer.getLong();
+      theta_ = mem.getLong(offset);
+      offset += 8;
     } else {
       theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability_);
     }
@@ -127,21 +148,33 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     int count = 0;
     boolean hasEntries = (flags & (1 << Flags.HAS_ENTRIES.ordinal())) > 0;
     if (hasEntries) {
-      count = buffer.getInt();
+      count = mem.getInt(offset);
+      offset += 4;
     }
-    summaryFactory_ = (SummaryFactory<S>) SerializerDeserializer.deserializeFromByteBuffer(buffer);
+    DeserializeResult<SummaryFactory<S>> factoryResult = SerializerDeserializer.deserializeFromMemory(mem, offset);
+    summaryFactory_ = factoryResult.getObject();
+    offset += factoryResult.getSize();
     int currentCapacity = 1 << lgCurrentCapacity_;
     keys_ = new long[currentCapacity];
     summaries_ = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), currentCapacity);
+
+    MemoryRegion memRegion = new MemoryRegion(mem, 0, mem.getCapacity());
     for (int i = 0; i < count; i++) {
-      long key = buffer.getLong();
-      S summary = summaryFactory_.deserializeSummaryFromByteBuffer(buffer);
+      long key = mem.getLong(offset);
+      offset += 8;
+      memRegion.reassign(offset, mem.getCapacity() - offset);
+      DeserializeResult<S> summaryResult = summaryFactory_.summaryFromMemory(memRegion);
+      S summary = summaryResult.getObject();
+      offset += summaryResult.getSize();
       insert(key, summary);
     }
     setIsEmpty((flags & (1 << Flags.IS_EMPTY.ordinal())) > 0);
     setRebuildThreshold();
   }
 
+  /**
+   * @return an array of Summary objects from the sketch
+   */
   @Override
   public S[] getSummaries() {
     @SuppressWarnings("unchecked")
@@ -153,12 +186,15 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return summaries;
   }
 
+  /**
+   * @return number of retained entries
+   */
   @Override
   public int getRetainedEntries() {
     return count_;
   }
 
-  /*
+  /**
    * Rebuilds reducing the actual number of entries to the nominal number of entries if needed
    */
   public void trim() {
@@ -168,6 +204,10 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     }
   }
 
+  /**
+   * Converts the current state of the sketch into a compact sketch
+   * @return compact sketch
+   */
   public CompactSketch<S> compact() {
     long[] keys = new long[getRetainedEntries()];
     @SuppressWarnings("unchecked")
@@ -189,8 +229,8 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
    * @return serialized representation of QuickSelectSketch
    */
   @Override
-  public ByteBuffer serializeToByteBuffer() {
-    byte[] summaryFactoryBytes = SerializerDeserializer.serializeToByteBuffer(summaryFactory_).array();
+  public byte[] toByteArray() {
+    byte[] summaryFactoryBytes = SerializerDeserializer.toByteArray(summaryFactory_);
     byte[][] summariesBytes = null;
     int summariesBytesLength = 0;
     if (count_ > 0) {
@@ -198,13 +238,12 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
       int i = 0;
       for (int j = 0; j < summaries_.length; j++) {
         if (summaries_[j] != null) {
-          summariesBytes[i] = summaries_[j].serializeToByteBuffer().array();
+          summariesBytes[i] = summaries_[j].toByteArray();
           summariesBytesLength += summariesBytes[i].length;
           i++;
         }
       }
     }
-
     int sizeBytes = 
         1 // preamble longs
       + 1 // serial version
@@ -219,37 +258,51 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     if (isThetaIncluded) sizeBytes += 8;
     if (count_ > 0) sizeBytes += 4; // count
     sizeBytes += 8 * count_ + summaryFactoryBytes.length + summariesBytesLength;
-    ByteBuffer buffer = ByteBuffer.allocate(sizeBytes).order(ByteOrder.nativeOrder());
-    buffer.put((byte) 1);
-    buffer.put(serialVersionUID);
-    buffer.put((byte) Family.TUPLE.getID());
-    buffer.put((byte) SerializerDeserializer.SketchType.QuickSelectSketch.ordinal());
-    boolean isBigEndian = buffer.order().equals(ByteOrder.BIG_ENDIAN);
-    buffer.put((byte) (
+    byte[] bytes = new byte[sizeBytes];
+    Memory mem = new NativeMemory(bytes);
+    int offset = 0;
+    mem.putByte(offset++, (byte) 1);
+    mem.putByte(offset++, serialVersionUID);
+    mem.putByte(offset++, (byte) Family.TUPLE.getID());
+    mem.putByte(offset++, (byte) SerializerDeserializer.SketchType.QuickSelectSketch.ordinal());
+    boolean isBigEndian = ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
+    mem.putByte(offset++, (byte) (
       (isBigEndian ? 1 << Flags.IS_BIG_ENDIAN.ordinal() : 0) |
       (isInSamplingMode() ? 1 << Flags.IS_IN_SAMPLING_MODE.ordinal() : 0) |
       (isEmpty_ ? 1 << Flags.IS_EMPTY.ordinal() : 0) |
       (count_ > 0 ? 1 << Flags.HAS_ENTRIES.ordinal() : 0) |
       (isThetaIncluded ? 1<< Flags.IS_THETA_INCLUDED.ordinal() : 0)
     ));
-    buffer.put((byte) Integer.numberOfTrailingZeros(nomEntries_));
-    buffer.put((byte) lgCurrentCapacity_);
-    buffer.put((byte) lgResizeFactor_);
-    if (samplingProbability_ < 1f) buffer.putFloat(samplingProbability_);
-    if (isThetaIncluded) buffer.putLong(theta_);
-    if (count_ > 0) buffer.putInt(count_);
-    buffer.put(summaryFactoryBytes);
+    mem.putByte(offset++, (byte) Integer.numberOfTrailingZeros(nomEntries_));
+    mem.putByte(offset++, (byte) lgCurrentCapacity_);
+    mem.putByte(offset++, (byte) lgResizeFactor_);
+    if (samplingProbability_ < 1f) {
+      mem.putFloat(offset, samplingProbability_);
+      offset += 4;
+    }
+    if (isThetaIncluded) {
+      mem.putLong(offset, theta_);
+      offset += 8;
+    }
+    if (count_ > 0) {
+      mem.putInt(offset, count_);
+      offset += 4;
+    }
+    mem.putByteArray(offset, summaryFactoryBytes, 0, summaryFactoryBytes.length);
+    offset += summaryFactoryBytes.length;
     if (count_ > 0) {
       int i = 0;
       for (int j = 0; j < keys_.length; j++) {
         if (summaries_[j] != null) {
-          buffer.putLong(keys_[j]);
-          buffer.put(summariesBytes[i]);
+          mem.putLong(offset, keys_[j]);
+          offset += 8;
+          mem.putByteArray(offset, summariesBytes[i], 0, summariesBytes[i].length);
+          offset += summariesBytes[i].length;
           i++;
         }
       }
     }
-    return buffer;
+    return bytes;
   }
 
   // non-public methods below

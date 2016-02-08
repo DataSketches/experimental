@@ -4,10 +4,22 @@
  */
 package com.yahoo.sketches.tuple;
 
-import java.nio.ByteBuffer;
-
+/**
+ * Interface for user-defined Summary, which is associated with every key in a tuple sketch
+ */
 public interface Summary {
+
+  /**
+   * @return copy of the Summary
+   */
   public <S extends Summary> S copy();
-  public ByteBuffer serializeToByteBuffer();
-  // For deserialization there is a convention to have a constructor which takes ByteBuffer
+
+  /**
+   * This is to serialize an instance to a byte array.
+   * For deserialization there must be a static method
+   * DeserializeResult<T> fromMemory(Memory mem)
+   * @return serialized representation of the Summary
+   */
+  public byte[] toByteArray();
+
 }

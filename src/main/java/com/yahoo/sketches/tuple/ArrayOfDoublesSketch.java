@@ -33,12 +33,6 @@ public abstract class ArrayOfDoublesSketch {
   protected long theta_;
   protected boolean isEmpty_ = true;
 
-  public abstract int getRetainedEntries();
-  public abstract byte[] toByteArray();
-  public abstract double[][] getValues();
-
-  abstract short getSeedHash();
-
   protected ArrayOfDoublesSketch(int numValues) {
     numValues_ = numValues;
   }
@@ -90,7 +84,7 @@ public abstract class ArrayOfDoublesSketch {
   public int getNumValues() {
     return numValues_;
   }
-  
+
   /**
    * Returns true if the sketch is Estimation Mode (as opposed to Exact Mode).
    * This is true if theta &lt; 1.0 AND isEmpty() is false.
@@ -109,11 +103,28 @@ public abstract class ArrayOfDoublesSketch {
   }
 
   /**
+   * @return number of retained entries
+   */
+  public abstract int getRetainedEntries();
+
+  /**
+   * @return serialized representation of the sketch
+   */
+  public abstract byte[] toByteArray();
+
+  /**
+   * @return array of arrays of double values in the sketch
+   */
+  public abstract double[][] getValues();
+
+  /**
    * @return the value of theta as a long
    */
   long getThetaLong() {
     return theta_;
   }
+
+  abstract short getSeedHash();
 
   /**
    * @return iterator over the sketch

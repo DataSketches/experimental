@@ -7,8 +7,7 @@ package com.yahoo.sketches.tuple;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import com.yahoo.sketches.memory.NativeMemory;
 
 public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
   @Test
@@ -160,7 +159,7 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(32, new DoubleSummaryFactory());
     sketch1.update(1, 1.0);
 
-    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>((java.nio.ByteBuffer)sketch1.serializeToByteBuffer().rewind());
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(new NativeMemory(sketch1.toByteArray()));
 
     Assert.assertEquals(sketch2.getEstimate(), 1.0);
     DoubleSummary[] summaries = sketch2.getSummaries();
@@ -182,12 +181,10 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
       for (int i = 0; i < 8192; i++) sketch1.update(i, 1.0);
     }
     sketch1.trim();
-    ByteBuffer buffer = sketch1.serializeToByteBuffer();
-    Assert.assertTrue(buffer.order().equals(ByteOrder.nativeOrder()));
-    buffer.rewind();
-    TestUtil.writeBytesToFile(buffer.array(), "TupleSketchWithDoubleSummary4K.data");
+    byte[] bytes = sketch1.toByteArray();
+    TestUtil.writeBytesToFile(bytes, "TupleSketchWithDoubleSummary4K.data");
 
-    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(buffer);
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(new NativeMemory(bytes));
     Assert.assertTrue(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate(), 8192, 8192 * 0.99);
     Assert.assertEquals(sketch1.getTheta(), sketch2.getTheta());
@@ -202,10 +199,7 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
     int numberOfUniques = sketchSize;
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(sketchSize, 0.5f, new DoubleSummaryFactory());
     for (int i = 0; i < numberOfUniques; i++) sketch1.update(i, 1.0);
-    ByteBuffer buffer = sketch1.serializeToByteBuffer();
-    Assert.assertTrue(buffer.order().equals(ByteOrder.nativeOrder()));
-    buffer.rewind();
-    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(buffer);
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(new NativeMemory(sketch1.toByteArray()));
     Assert.assertTrue(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate() / numberOfUniques, 1.0, 0.01);
     Assert.assertEquals(sketch2.getRetainedEntries() / (double) numberOfUniques, 0.5, 0.01);
@@ -471,6 +465,6 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
     Assert.assertTrue(result.getUpperBound(1) > result.getEstimate());
     summaries = sketchB.getSummaries();
     for (DoubleSummary summary: summaries) Assert.assertEquals(summary.getValue(), 1.0);
-}
+  }
 
 }

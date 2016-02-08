@@ -57,11 +57,14 @@ public class SpaceSaving extends FrequencyEstimator{
   private long stream_length;
   
   /**
-   * @param maxSize (must be positive)
-   * Gives the maximal number of counters the sketch is allowed to keep.
-   * This should be thought of as the limit on its space usage. The size is dynamic.
-   * If fewer than maxSize different keys are inserted the size will be smaller 
-   * than maxSize and the counts will be exact.  
+   * Constructs a min-heap-based SpaceSaving sketch.
+   * The sketch is guaranteed to (deterministically) return frequency estimates
+   * with additive error bounded by errorTolerance*n, where n is the sum of all item frequencies
+   * in the stream. Note that the space usage of the sketch is proportional
+   * to the inverse of errorTolerance
+   * 
+   * @param errorTolerance (must be positive). The sketch is guaranteed to (deterministically) return frequency estimates
+   * with additive error bounded by errorTolerance*n, where n is the sum of all item frequencies.
    */    
   public SpaceSaving(double errorTolerance) {
     super(errorTolerance);
@@ -183,6 +186,7 @@ public class SpaceSaving extends FrequencyEstimator{
    * If the real count is realCount(key) then
    * get(key) + getMaxError() >= realCount(key) >= get(key) - getMaxError().
    */
+   @Override
   public long getMaxError() {
     if(counts.size() < maxSize)
       return mergeError;
@@ -198,10 +202,11 @@ public class SpaceSaving extends FrequencyEstimator{
   }
   
   /**
-   * @param that
-   * Another SpaceSaving sketch. Potentially of different size. 
-   * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
+   * Merge two SpaceSaving Sketches. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
+   * 
+   * @param other Another SpaceSaving sketch. Potentially of different size. 
+   * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    */
   @Override
   public FrequencyEstimator merge(FrequencyEstimator other) {
@@ -210,12 +215,10 @@ public class SpaceSaving extends FrequencyEstimator{
     
     this.stream_length += otherCasted.stream_length;
     this.mergeError += otherCasted.getMaxError();
-    int count = 0;
+
     for (Map.Entry<Long, Long> entry : otherCasted.counts.entrySet()) { 
       this.update(entry.getKey(), entry.getValue());
-      count++;
     }
-    //System.out.format("count in merge for SpaceSaving was: %d\n", count);
     return this;
   }
   

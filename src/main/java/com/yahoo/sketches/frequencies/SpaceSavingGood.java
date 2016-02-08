@@ -55,11 +55,14 @@ public class SpaceSavingGood extends FrequencyEstimator{
   private long stream_length;
   
   /**
-   * @param maxSize (must be positive)
-   * Gives the maximal number of counters the sketch is allowed to keep.
-   * This should be thought of as the limit on its space usage. The size is dynamic.
-   * If fewer than maxSize different keys are inserted the size will be smaller 
-   * than maxSize and the counts will be exact.  
+   * Constructs a min-heap-based SpaceSaving sketch.
+   * The sketch is guaranteed to (deterministically) return frequency estimates
+   * with additive error bounded by errorTolerance*n, where n is the sum of all item frequencies
+   * in the stream. Note that the space usage of the sketch is proportional
+   * to the inverse of errorTolerance
+   * 
+   * @param errorTolerance (must be positive). The sketch is guaranteed to (deterministically) return frequency estimates
+   * with additive error bounded by errorTolerance*n, where n is the sum of all item frequencies.
    */    
   public SpaceSavingGood(double errorTolerance) {
     super(errorTolerance);
@@ -136,8 +139,9 @@ public class SpaceSavingGood extends FrequencyEstimator{
   }
   
   /**
-   * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
+   * 
+   * @param key key whose frequency should be incremented
    */
    @Override  
   public void update(long key) {
@@ -145,8 +149,10 @@ public class SpaceSavingGood extends FrequencyEstimator{
   }
 
   /**
-   * @param key 
    * Process a key (specified as a long) and a non-negative increment.
+   * 
+   * @param key A key specified as a long, whose frequency should be incremented
+   * @param increment The amount by which to increment the frequency of key
    */  
    @Override
   public void update(long key, long increment) {
@@ -229,6 +235,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * If the real count is realCount(key) then
    * get(key) + getMaxError() >= realCount(key) >= get(key) - getMaxError().
    */
+   @Override 
   public long getMaxError() {
     return counts[1] + mergeError;
   }
@@ -241,10 +248,11 @@ public class SpaceSavingGood extends FrequencyEstimator{
   }
   
   /**
-   * @param that
-   * Another SpaceSavingTrove sketch. Potentially of different size. 
-   * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
+   * Merge two SpaceSavingGood Sketches. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
+   * 
+   * @param other Another SpaceSavingGood sketch. Potentially of different size. 
+   * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    */
   @Override
   public FrequencyEstimator merge(FrequencyEstimator other) {

@@ -42,7 +42,6 @@ public abstract class HashMap {
    * @param key the key of the value to increment
    * @param adjustAmount the amount to adjust the value by 
    * @param putAmount the value put into the map if the key is not initial present
-   * @return the value present in the map after the adjustment or put operation
    */
   abstract public void adjustOrPutValue(long key, long adjustAmount, long putAmount);
   
@@ -58,7 +57,7 @@ public abstract class HashMap {
   abstract public long get(long key);
     
   /**
-   * @param value by which to shift all values.
+   * @param adjustAmount value by which to shift all values.
    * Only keys corresponding to positive values are retained.  
    */
   public void adjustAllValuesBy(long adjustAmount) {
@@ -67,7 +66,7 @@ public abstract class HashMap {
   }
   
   /**
-   * @param value by which to shift all values.
+   * @param thresholdValue value by which to shift all values.
    * Only keys corresponding to positive values are retained.  
    */
   abstract public void keepOnlyLargerThan(long thresholdValue);

@@ -5,7 +5,7 @@
 package com.yahoo.sketches.frequencies;
 
 /**
- * @author Edo Liberty
+ * @author Edo Liberty, Justin Thaler
  */
 public abstract class FrequencyEstimator {
  
@@ -15,10 +15,12 @@ public abstract class FrequencyEstimator {
   protected final double ACCEPTABLE_FAILURE_PROBABILITY = 1E-10; // delta 
   
   /**
+   * Constructs a FrequencyEstimator sketch
+   * 
    * @param errorTolerance the acceptable relative error in the estimates of 
    * the sketch. The maximal error in the frequency estimate should not 
    * by more than the error tolerance times the number of updates.
-   * @param failureprob the acceptable failure probability for any point query.
+   * @param failureProb the acceptable failure probability for any point query.
    * For some instantiations of the abstract class, the algorithm will be deterministic
    * and hence the failure probability will be 0.
    * **Warning**: the memory footprint of this class is inversely proportional
@@ -30,6 +32,8 @@ public abstract class FrequencyEstimator {
   
   
   /**
+   * Constructs a FrequencyEstimator sketch
+   * 
    * @param errorTolerance the acceptable relative error in the estimates of 
    * the sketch. The maximal error in the frequency estimate should not 
    * by more than the error tolerance times the number of updates.

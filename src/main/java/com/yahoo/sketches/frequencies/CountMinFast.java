@@ -49,13 +49,17 @@ public class CountMinFast{
   
   
   /**
-   * @param eps, delta
+   * Constructs and initializes a CountMin sketch, with various optimizations for speed.
    * The guarantee of the sketch is that the answer returned to any individual
    * point query will, with probability at least 1-delta, 
-   * be accurate to error plus or minus eps*update_sum, where 
-   * update_sum is the sum of all the increments the sketch has processed.
+   * be accurate to error plus or minus eps*F, where 
+   * F is the sum of all the increments the sketch has processed.
    * 
-   */    
+   * @param eps Estimates are guaranteed to have error eps*n 
+   * with probability at least 1-delta, where n is sum of item frequencies
+   * @param delta Estimates are guaranteed to have error eps*n 
+   * with probability at least 1-delta, where n is sum of item frequencies
+   */     
   public CountMinFast(double eps, double delta) {
     if (eps <= 0 || delta <= 0){
       throw new IllegalArgumentException("Received negative or zero value for eps or delta.");

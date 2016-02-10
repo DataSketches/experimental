@@ -42,6 +42,7 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
 
   protected abstract void updateValues(int index, double[] values);
   protected abstract void setNotEmpty();
+  protected abstract void setIsEmpty(boolean isEmpty);
   protected abstract boolean isInSamplingMode();
   protected abstract int getResizeFactor();
   protected abstract int getCurrentCapacity();
@@ -53,6 +54,7 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   protected abstract void setThetaLong(long theta);
   protected abstract int insertKey(long key);
   protected abstract int findOrInsertKey(long key);
+  protected abstract double[] find(long key);
 
   /**
    * Rebuilds reducing the actual number of entries to the nominal number of entries if needed

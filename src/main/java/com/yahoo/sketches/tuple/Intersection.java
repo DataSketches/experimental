@@ -48,7 +48,10 @@ public class Intersection<S extends Summary> {
     }
     theta_ = min(theta_, sketchIn.getThetaLong());
     isEmpty_ |= sketchIn.isEmpty();
-    if (sketchIn.getRetainedEntries() == 0) return;
+    if (sketchIn.getRetainedEntries() == 0) {
+      sketch_ = null;
+      return;
+    }
     // assumes that constructor of QuickSelectSketch bumps the requested size up to the nearest power of 2
     if (isFirstCall) {
       sketch_ = new QuickSelectSketch<S>(sketchIn.getRetainedEntries(), 0, summaryFactory_);

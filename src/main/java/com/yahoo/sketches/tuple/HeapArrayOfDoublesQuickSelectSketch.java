@@ -14,7 +14,6 @@ import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
 
 import com.yahoo.sketches.Family;
-import com.yahoo.sketches.HashOperations;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.NativeMemory;
 
@@ -40,7 +39,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
   /**
    * This is to create an instance of a QuickSelectSketch with default resize factor and a given sampling probability.
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
-   * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability, <i>p</i></a>
+   * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability</a>
    * @param numValues number of double values to keep for each key
    */
   public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, float samplingProbability, int numValues) {
@@ -69,8 +68,9 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * 1 - double internal hash table each time it reaches a threshold
    * 2 - grow four times
    * 3 - grow eight times (default)
-   * @param samplingProbability
+   * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability</a>
    * @param numValues number of double values to keep for each key
+   * @param seed <a href="{@docRoot}/resources/dictionary.html#seed">See seed</a>
    */
   public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, int numValues, long seed) {
     super(numValues, seed);
@@ -101,7 +101,7 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
   /**
    * This is to create an instance given a serialized form
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
-   * @param seed update seed
+   * @param seed <a href="{@docRoot}/resources/dictionary.html#seed">See seed</a>
    */
   public HeapArrayOfDoublesQuickSelectSketch(Memory mem, long seed) {
     super(mem.getByte(NUM_VALUES_BYTE), seed);
@@ -240,6 +240,11 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
   }
 
   @Override
+  protected void setIsEmpty(boolean isEmpty) {
+    isEmpty_ = isEmpty;
+  }
+
+  @Override
   protected boolean isInSamplingMode() {
     return samplingProbability_ < 1f;
   }
@@ -282,6 +287,13 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
   @Override
   protected int findOrInsertKey(long key) {
     return HashOperations.hashSearchOrInsert(keys_, lgCurrentCapacity_, key);
+  }
+
+  @Override
+  protected double[] find(long key) {
+    int index = HashOperations.hashSearch(keys_, lgCurrentCapacity_, key);
+    if (index == -1) return null;
+    return values_[index].clone();
   }
 
   @Override

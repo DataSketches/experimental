@@ -272,6 +272,26 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
   }
 
   @Test
+  public void intersectionExactWithEmpty() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketch1.update(1, 1.0);
+    sketch1.update(2, 1.0);
+    sketch1.update(3, 1.0);
+
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+
+    Intersection<DoubleSummary> intersection = new Intersection<DoubleSummary>(new DoubleSummaryFactory());
+    intersection.update(sketch1);
+    intersection.update(sketch2);
+    CompactSketch<DoubleSummary> result = intersection.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+  }
+
+  @Test
   public void intersectionExactMode() {
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
     sketch1.update(1, 1.0);

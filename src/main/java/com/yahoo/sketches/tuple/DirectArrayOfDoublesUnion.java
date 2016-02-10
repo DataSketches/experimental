@@ -4,16 +4,16 @@
  */
 package com.yahoo.sketches.tuple;
 
-/**
- * This implementation keeps data in a given memory.
- * The purpose is to avoid garbage collection.
- */
-
 import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
 
 import com.yahoo.sketches.memory.Memory;
 
+/**
+ * This implementation keeps data in a given memory.
+ * The purpose is to avoid garbage collection.
+ */
 public class DirectArrayOfDoublesUnion extends ArrayOfDoublesUnion {
+
   private Memory mem_;
 
   public DirectArrayOfDoublesUnion(int nomEntries, int numValues, Memory dstMem) {

@@ -16,7 +16,6 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import com.yahoo.sketches.Family;
-import com.yahoo.sketches.HashOperations;
 import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.MemoryUtil;
 import com.yahoo.sketches.memory.NativeMemory;
@@ -131,12 +130,12 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
       int i = 0;
       for (int j = 0; j < getCurrentCapacity(); j++) {
         if (mem_.getLong(keyOffset) != 0) {
-          double[] array = new double[getNumValues()];
-          mem_.getDoubleArray(valuesOffset, array, 0, getNumValues());
+          double[] array = new double[numValues_];
+          mem_.getDoubleArray(valuesOffset, array, 0, numValues_);
           values[i++] = array;
         }
         keyOffset += SIZE_OF_KEY_BYTES;
-        valuesOffset += SIZE_OF_VALUE_BYTES * getNumValues();
+        valuesOffset += SIZE_OF_VALUE_BYTES * numValues_;
       }
     }
     return values;
@@ -144,7 +143,7 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
 
   @Override
   public byte[] toByteArray() {
-    int sizeBytes = valuesOffset_ + SIZE_OF_VALUE_BYTES * getNumValues() * getCurrentCapacity();
+    int sizeBytes = valuesOffset_ + SIZE_OF_VALUE_BYTES * numValues_ * getCurrentCapacity();
     byte[] byteArray = new byte[sizeBytes];
     Memory mem = new NativeMemory(byteArray);
     MemoryUtil.copy(mem_, 0, mem, 0, sizeBytes);
@@ -192,8 +191,8 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   @Override
   // this method copies values regardless of isCopyRequired
   protected void setValues(int index, double[] values, boolean isCopyRequired) {
-    long offset = valuesOffset_ + SIZE_OF_VALUE_BYTES * getNumValues() * index;
-    for (int i = 0; i < getNumValues(); i++) {
+    long offset = valuesOffset_ + SIZE_OF_VALUE_BYTES * numValues_ * index;
+    for (int i = 0; i < numValues_; i++) {
       mem_.putDouble(offset, values[i]);
       offset += SIZE_OF_VALUE_BYTES;
     }
@@ -201,7 +200,7 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
 
   @Override
   protected void updateValues(int index, double[] values) {
-    long offset = valuesOffset_ + SIZE_OF_VALUE_BYTES * getNumValues() * index;
+    long offset = valuesOffset_ + SIZE_OF_VALUE_BYTES * numValues_ * index;
     for (int i = 0; i < numValues_; i++) {
       mem_.putDouble(offset, mem_.getDouble(offset) + values[i]);
       offset += SIZE_OF_VALUE_BYTES;
@@ -213,6 +212,17 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     if (isEmpty_) {
       isEmpty_ = false;
       mem_.clearBits(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
+    }
+  }
+
+  @Override
+  protected void setIsEmpty(boolean isEmpty) {
+    if (isEmpty_ && !isEmpty) {
+      isEmpty_ = false;
+      mem_.clearBits(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
+    } else if (!isEmpty_ && isEmpty) {
+      isEmpty_ = true;
+      mem_.setBits(FLAGS_BYTE, (byte) (1 << Flags.IS_EMPTY.ordinal()));
     }
   }
 
@@ -252,6 +262,15 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   @Override
   protected int findOrInsertKey(long key) {
     return HashOperations.hashSearchOrInsert(mem_, lgCurrentCapacity_, key, ENTRIES_START);
+  }
+
+  @Override
+  protected double[] find(long key) {
+    int index = HashOperations.hashSearch(mem_, lgCurrentCapacity_, key, ENTRIES_START);
+    if (index == -1) return null;
+    double[] array = new double[numValues_];
+    mem_.getDoubleArray(valuesOffset_ + SIZE_OF_VALUE_BYTES * numValues_ * index, array, 0, numValues_);
+    return array;
   }
 
   @Override

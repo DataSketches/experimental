@@ -234,6 +234,8 @@ public class HeapArrayOfDoublesQuickSelectSketchTest {
     Assert.assertEquals(result.getUpperBound(1), 0.0);
     Assert.assertEquals(result.getLowerBound(1), 0.0);
     Assert.assertEquals(result.getTheta(), 1.0);
+    double[][] values = result.getValues();
+    for (int i = 0; i < values.length; i++) Assert.assertEquals(values[i][0], 2.0);
   }
 
 }

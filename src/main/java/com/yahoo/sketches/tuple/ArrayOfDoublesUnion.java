@@ -22,13 +22,6 @@ public abstract class ArrayOfDoublesUnion {
   protected ArrayOfDoublesQuickSelectSketch sketch_;
   protected long theta_;
 
-  protected ArrayOfDoublesUnion(int nomEntries, int numValues, long seed) {
-    nomEntries_ = nomEntries;
-    numValues_ = numValues;
-    seed_ = seed;
-    seedHash_ = Util.computeSeedHash(seed);
-  }
-
   protected ArrayOfDoublesUnion(ArrayOfDoublesQuickSelectSketch sketch) {
     nomEntries_ = sketch.getNominalEntries();
     numValues_ = sketch.getNumValues();

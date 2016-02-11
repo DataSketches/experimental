@@ -128,6 +128,9 @@ public class HeapArrayOfDoublesCompactSketch extends ArrayOfDoublesCompactSketch
     return bytes;
   }
 
+  /**
+   * @return Array of double[] arrays of values from the sketch.
+   */
   @Override
   public double[][] getValues() {
     int count = getRetainedEntries();

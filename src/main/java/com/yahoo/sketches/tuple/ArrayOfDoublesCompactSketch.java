@@ -12,7 +12,6 @@ package com.yahoo.sketches.tuple;
  * corresponding list of double values, and a value for theta. The lists may or may
  * not be ordered. Compact sketch is read-only.
  */
-
 public abstract class ArrayOfDoublesCompactSketch extends ArrayOfDoublesSketch {
 
   public static final byte serialVersionUID = 1;

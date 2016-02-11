@@ -4,8 +4,16 @@
  */
 package com.yahoo.sketches.tuple;
 
+/**
+ * Interface for updating user-defined Summary
+ * @param <U> type of update value
+ */
 public interface UpdatableSummary<U> extends Summary {
 
-  void update(U value);
+  /**
+   * This is to provide a method of updating summaries
+   * @param value update value
+   */
+  public void update(U value);
 
 }

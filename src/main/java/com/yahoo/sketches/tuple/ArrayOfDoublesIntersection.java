@@ -33,6 +33,11 @@ public abstract class ArrayOfDoublesIntersection {
     isFirstCall_ = true;
   }
 
+  /**
+   * Updates the internal set by intersecting it with the given sketch.
+   * @param sketchIn Input sketch to intersect with the internal set.
+   * @param combiner Method of combining two arrays of double values
+   */
   public void update(ArrayOfDoublesSketch sketchIn, ArrayOfDoublesCombiner combiner) {
     boolean isFirstCall = isFirstCall_;
     isFirstCall_ = false;
@@ -80,16 +85,28 @@ public abstract class ArrayOfDoublesIntersection {
     }
   }
 
+  /**
+   * Gets the internal set as an off-heap compact sketch using the given memory.
+   * @param dstMem Memory for the compact sketch (can be null).
+   * @return Result of the intersections so far as a compact sketch.
+   */
   public ArrayOfDoublesCompactSketch getResult(Memory mem) {
     if (isFirstCall_) throw new IllegalStateException("getResult() with no intervening intersections is not a legal result.");
     if (sketch_ == null) return new HeapArrayOfDoublesCompactSketch(numValues_);
     return sketch_.compact(mem);
   }
 
+  /**
+   * Gets the internal set as an on-heap compact sketch.
+   * @return Result of the intersections so far as a compact sketch.
+   */
   public ArrayOfDoublesCompactSketch getResult() {
     return getResult(null);
   }
 
+  /**
+   * Resets the internal set to the initial state, which represents the Universal Set
+   */
   public void reset() {
     isEmpty_ = false;
     theta_ = Long.MAX_VALUE;
@@ -98,4 +115,5 @@ public abstract class ArrayOfDoublesIntersection {
   }
 
   protected abstract ArrayOfDoublesQuickSelectSketch createSketch(int size, int numValues, long seed);
+
 }

@@ -8,7 +8,6 @@ package com.yahoo.sketches.tuple;
  * This is a base class for a specialized version of a tuple sketch, where an array of double values is associated with each key.
  * A primitive array is used here, as opposed to a generic Summary object, for performance reasons.
  */
-
 public abstract class ArrayOfDoublesSketch {
 
   // The concept of being empty is about representing an empty set.

@@ -28,14 +28,41 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   private int keysOffset_;
   private int valuesOffset_;
   
+  /**
+   * Construct a new sketch using the given Memory as its backing store.
+   * 
+   * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
+   * @param numValues Number of double values to keep for each key.
+   * @param dstMem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+   */
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int numValues, Memory dstMem) {
     this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, 1f, numValues, DEFAULT_UPDATE_SEED, dstMem);
   }
 
+  /**
+   * Construct a new sketch using the given Memory as its backing store.
+   * 
+   * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
+   * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability</a>
+   * @param numValues Number of double values to keep for each key.
+   * @param dstMem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+   */
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, float samplingProbability, int numValues, Memory dstMem) {
     this(nomEntries, DEFAULT_LG_RESIZE_FACTOR, samplingProbability, numValues, DEFAULT_UPDATE_SEED, dstMem);
   }
 
+  /**
+   * Construct a new sketch using the given Memory as its backing store.
+   * 
+   * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
+   * @param lgResizeFactor log2(resize factor) - value from 0 to 3:
+   * 0 - no resizing (max size allocated),
+   * 1 - double internal hash table each time it reaches a threshold
+   * 2 - grow four times
+   * 3 - grow eight times (default)
+   * @param numValues Number of double values to keep for each key.
+   * @param dstMem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+   */
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, int numValues, Memory dstMem) {
     this(nomEntries, lgResizeFactor, 1f, numValues, DEFAULT_UPDATE_SEED, dstMem);
   }
@@ -43,9 +70,16 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
   /**
    * Construct a new sketch using the given Memory as its backing store.
    * 
-   * @param nomEntries
-   * @param numValues
-   * @param dstMem
+   * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
+   * @param lgResizeFactor log2(resize factor) - value from 0 to 3:
+   * 0 - no resizing (max size allocated),
+   * 1 - double internal hash table each time it reaches a threshold
+   * 2 - grow four times
+   * 3 - grow eight times (default)
+   * @param samplingProbability <a href="{@docRoot}/resources/dictionary.html#p">See Sampling Probability</a>
+   * @param numValues Number of double values to keep for each key.
+   * @param seed <a href="{@docRoot}/resources/dictionary.html#seed">See seed</a>
+   * @param dstMem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public DirectArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, int numValues, long seed, Memory dstMem) {
     super(numValues, seed);
@@ -115,11 +149,9 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     setRebuildThreshold();
   }
 
-  @Override
-  public int getRetainedEntries() {
-    return mem_.getInt(RETAINED_ENTRIES_INT);
-  }
-
+  /**
+   * @return Array of double[] arrays of values from the sketch.
+   */
   @Override
   public double[][] getValues() {
     int count = getRetainedEntries();
@@ -141,6 +173,26 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     return values;
   }
 
+  /**
+   * @return Number of retained entries.
+   */
+  @Override
+  public int getRetainedEntries() {
+    return mem_.getInt(RETAINED_ENTRIES_INT);
+  }
+
+  /**
+   * Gets the configured nominal number of entries
+   * @return nominal number of entries
+   */
+  @Override
+  public int getNominalEntries() {
+    return 1 << mem_.getByte(LG_NOM_ENTRIES_BYTE);
+  }
+
+  /**
+   * @return serialized representation of the sketch
+   */
   @Override
   public byte[] toByteArray() {
     int sizeBytes = valuesOffset_ + SIZE_OF_VALUE_BYTES * numValues_ * getCurrentCapacity();
@@ -148,11 +200,6 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     Memory mem = new NativeMemory(byteArray);
     MemoryUtil.copy(mem_, 0, mem, 0, sizeBytes);
     return byteArray;
-  }
-
-  @Override
-  public int getNominalEntries() {
-    return 1 << mem_.getByte(LG_NOM_ENTRIES_BYTE);
   }
 
   @Override

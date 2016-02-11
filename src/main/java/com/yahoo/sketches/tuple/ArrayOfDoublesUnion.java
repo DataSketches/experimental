@@ -14,7 +14,6 @@ import com.yahoo.sketches.memory.Memory;
  * in getResult(). This is done for performance since we cannot lower the theta
  * inside the sketch without an expensive rebuild.
  */
-
 public abstract class ArrayOfDoublesUnion {
   protected final int nomEntries_;
   protected final int numValues_;

@@ -6,14 +6,27 @@ package com.yahoo.sketches.tuple;
 
 import com.yahoo.sketches.tuple.DoubleSummary.Mode;
 
+/**
+ * Methods for producing unions and intersections of two DoubleSummary objects.
+ */
 public class DoubleSummarySetOperations implements SummarySetOperations<DoubleSummary> {
 
   private Mode summaryMode_;
 
+  /**
+   * Creates an instance given a DoubleSummary update mode.
+   * @param summaryMode DoubleSummary update mode.
+   */
   public DoubleSummarySetOperations(Mode summaryMode) {
     summaryMode_ = summaryMode;
   }
 
+  /**
+   * Method of producing a union of two DoubleSummary objects.
+   * @param a DoubleSummary A.
+   * @param b DoubleSummary B.
+   * @return Union of A and B.
+   */
   @Override
   public DoubleSummary union(DoubleSummary a, DoubleSummary b) {
     DoubleSummary result = new DoubleSummary(summaryMode_); 
@@ -22,6 +35,12 @@ public class DoubleSummarySetOperations implements SummarySetOperations<DoubleSu
     return result;
   }
 
+  /**
+   * Method of producing an intersection of two DoubleSummary objects.
+   * @param a DoubleSummary A.
+   * @param b DoubleSummary B.
+   * @return Intersection of A and B.
+   */
   @Override
   public DoubleSummary intersection(DoubleSummary a, DoubleSummary b) {
     return union(a, b);

@@ -49,21 +49,21 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
   /**
    * This is to create an instance of a QuickSelectSketch with custom resize factor
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
-   * @param lgResizeRatio log2(resizeRatio) - value from 0 to 3:
+   * @param lgResizeFactor log2(resize factor) - value from 0 to 3:
    * 0 - no resizing (max size allocated),
    * 1 - double internal hash table each time it reaches a threshold
    * 2 - grow four times
    * 3 - grow eight times (default)
    * @param numValues number of double values to keep for each key
    */
-  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, int numValues) {
-    this(nomEntries, lgResizeRatio, 1f, numValues, DEFAULT_UPDATE_SEED);
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, int numValues) {
+    this(nomEntries, lgResizeFactor, 1f, numValues, DEFAULT_UPDATE_SEED);
   }
 
   /**
    * This is to create an instance of a QuickSelectSketch with custom resize factor and sampling probability
    * @param nomEntries Nominal number of entries. Forced to the nearest power of 2 greater than given value.
-   * @param lgResizeRatio log2(resizeRatio) - value from 0 to 3:
+   * @param lgResizeFactor log2(resize factor) - value from 0 to 3:
    * 0 - no resizing (max size allocated),
    * 1 - double internal hash table each time it reaches a threshold
    * 2 - grow four times
@@ -72,15 +72,15 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
    * @param numValues number of double values to keep for each key
    * @param seed <a href="{@docRoot}/resources/dictionary.html#seed">See seed</a>
    */
-  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeRatio, float samplingProbability, int numValues, long seed) {
+  public HeapArrayOfDoublesQuickSelectSketch(int nomEntries, int lgResizeFactor, float samplingProbability, int numValues, long seed) {
     super(numValues, seed);
     nomEntries_ = ceilingPowerOf2(nomEntries);
-    lgResizeFactor_ = lgResizeRatio;
+    lgResizeFactor_ = lgResizeFactor;
     samplingProbability_ = samplingProbability;
     theta_ = (long) (Long.MAX_VALUE * (double) samplingProbability);
     int startingCapacity = 1 << Util.startingSubMultiple(
       Integer.numberOfTrailingZeros(ceilingPowerOf2(nomEntries) * 2), // target table size is twice the number of nominal entries
-      lgResizeRatio,
+      lgResizeFactor,
       Integer.numberOfTrailingZeros(MIN_NOM_ENTRIES)
     );
     keys_ = new long[startingCapacity];
@@ -141,6 +141,9 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     lgCurrentCapacity_ = Integer.numberOfTrailingZeros(currentCapacity);
   }
 
+  /**
+   * @return Array of double[] arrays of values from the sketch.
+   */
   @Override
   public double[][] getValues() {
     int count = getRetainedEntries();
@@ -154,26 +157,18 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     return values;
   }
 
+  /**
+   * @return Number of retained entries.
+   */
   @Override
   public int getRetainedEntries() {
     return count_;
   }
 
-  @Override
-  protected long getKey(int index) {
-    return keys_[index];
-  }
-
-  @Override
-  protected void setKey(int index, long key) {
-    keys_[index] = key;
-  }
-
-  @Override
-  protected void incrementCount() {
-    count_++;
-  }
-
+  /**
+   * Gets the configured nominal number of entries
+   * @return nominal number of entries
+   */
   @Override
   public int getNominalEntries() {
     return nomEntries_;
@@ -218,6 +213,21 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
       }
     }
     return byteArray;
+  }
+
+  @Override
+  protected long getKey(int index) {
+    return keys_[index];
+  }
+
+  @Override
+  protected void setKey(int index, long key) {
+    keys_[index] = key;
+  }
+
+  @Override
+  protected void incrementCount() {
+    count_++;
   }
 
   @Override

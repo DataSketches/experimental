@@ -89,9 +89,6 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     }
   }
 
-  /**
-   * @return an array of Summary objects from the sketch
-   */
   @Override
   public S[] getSummaries() {
     if (keys_ == null || keys_.length == 0) return null;
@@ -101,17 +98,11 @@ public class CompactSketch<S extends Summary> extends Sketch<S> {
     return summaries;
   }
 
-  /**
-   * @return number of retained entries
-   */
   @Override
   public int getRetainedEntries() {
     return keys_ == null ? 0 : keys_.length;
   }
 
-  /**
-   * @return serialized representation of CompactSketch
-   */
   @Override
   public byte[] toByteArray() {
     int summariesBytesLength = 0;

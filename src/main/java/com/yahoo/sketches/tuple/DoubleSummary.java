@@ -54,9 +54,6 @@ public class DoubleSummary implements UpdatableSummary<Double> {
     mode_ = mode;
   }
 
-  /**
-   * Updates the value with the given value depending on the mode
-   */
   @Override
   public void update(Double value) {
     switch(mode_) {
@@ -72,9 +69,6 @@ public class DoubleSummary implements UpdatableSummary<Double> {
     }
   }
 
-  /**
-   * @return copy of the DoubleSummary
-   */
   @SuppressWarnings("unchecked")
   @Override
   public DoubleSummary copy() {
@@ -92,9 +86,6 @@ public class DoubleSummary implements UpdatableSummary<Double> {
   private static final int VALUE_DOUBLE = 0;
   private static final int MODE_BYTE = 8;
 
-  /**
-   * @return serialized representation of the DoubleSummary
-   */
   @Override
   public byte[] toByteArray() {
     byte[] bytes = new byte[SERIALIZED_SIZE_BYTES];

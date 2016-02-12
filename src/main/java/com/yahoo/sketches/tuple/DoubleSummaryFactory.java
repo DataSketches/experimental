@@ -31,19 +31,11 @@ public class DoubleSummaryFactory implements SummaryFactory<DoubleSummary> {
     summaryMode_ = summaryMode;
   }
 
-  /**
-   * Creates a new instance of a DoubleSummary
-   * @return new DoubleSummary
-   */
   @Override
   public DoubleSummary newSummary() {
     return new DoubleSummary(summaryMode_);
   }
 
-  /**
-   * This is to obtain methods of producing unions and intersections of two DoubleSummary objects
-   * @return DoubleSummarySetOperations object
-   */
   @Override
   public DoubleSummarySetOperations getSummarySetOperations() {
     return new DoubleSummarySetOperations(summaryMode_);
@@ -52,9 +44,6 @@ public class DoubleSummaryFactory implements SummaryFactory<DoubleSummary> {
   private static final int SERIALIZED_SIZE_BYTES = 1;
   private static final int MODE_BYTE = 0;
 
-  /**
-   * @return serialized representation of the DoubleSummaryFactory
-   */
   @Override
   public byte[] toByteArray() {
     byte[] bytes = new byte[SERIALIZED_SIZE_BYTES];
@@ -72,11 +61,6 @@ public class DoubleSummaryFactory implements SummaryFactory<DoubleSummary> {
     return new DeserializeResult<DoubleSummaryFactory>(new DoubleSummaryFactory(Mode.values()[mem.getByte(MODE_BYTE)]), SERIALIZED_SIZE_BYTES);
   }
 
-  /**
-   * This is to create an instance of a DoubleSummary given a serialized representation
-   * @param mem Memory object with serialized representation of a DoubleSummary
-   * @return DeserializedResult object, which contains a DoubleSummary object and number of bytes read from the Memory
-   */
   @Override
   public DeserializeResult<DoubleSummary> summaryFromMemory(Memory mem) {
     return DoubleSummary.fromMemory(mem);

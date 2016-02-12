@@ -4,11 +4,6 @@
  */
 package com.yahoo.sketches.tuple;
 
-/**
- * This implementation keeps the data in a given memory.
- * It is generally slower than on-heap implementation, but allows to avoid garbage collection
- */
-
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
 import static com.yahoo.sketches.Util.DEFAULT_UPDATE_SEED;
 
@@ -20,6 +15,10 @@ import com.yahoo.sketches.memory.Memory;
 import com.yahoo.sketches.memory.MemoryUtil;
 import com.yahoo.sketches.memory.NativeMemory;
 
+/**
+ * This implementation keeps the data in a given memory.
+ * It is generally slower than on-heap implementation, but allows to avoid garbage collection
+ */
 public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSelectSketch {
 
   // these values exist only on heap, never serialized
@@ -149,9 +148,6 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     setRebuildThreshold();
   }
 
-  /**
-   * @return Array of double[] arrays of values from the sketch.
-   */
   @Override
   public double[][] getValues() {
     int count = getRetainedEntries();
@@ -173,26 +169,16 @@ public class DirectArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSe
     return values;
   }
 
-  /**
-   * @return Number of retained entries.
-   */
   @Override
   public int getRetainedEntries() {
     return mem_.getInt(RETAINED_ENTRIES_INT);
   }
 
-  /**
-   * Gets the configured nominal number of entries
-   * @return nominal number of entries
-   */
   @Override
   public int getNominalEntries() {
     return 1 << mem_.getByte(LG_NOM_ENTRIES_BYTE);
   }
 
-  /**
-   * @return serialized representation of the sketch
-   */
   @Override
   public byte[] toByteArray() {
     int sizeBytes = valuesOffset_ + SIZE_OF_VALUE_BYTES * numValues_ * getCurrentCapacity();

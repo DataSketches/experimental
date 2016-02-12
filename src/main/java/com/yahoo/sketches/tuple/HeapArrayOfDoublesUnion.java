@@ -49,9 +49,6 @@ public class HeapArrayOfDoublesUnion extends ArrayOfDoublesUnion {
     super(new HeapArrayOfDoublesQuickSelectSketch(mem, seed));
   }
 
-  /**
-   * Resets the internal set to the initial state, which represents an empty set
-   */
   @Override
   public void reset() {
     sketch_ = new HeapArrayOfDoublesQuickSelectSketch(nomEntries_, 3, 1f, numValues_, seed_);

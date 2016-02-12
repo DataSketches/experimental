@@ -141,9 +141,6 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     lgCurrentCapacity_ = Integer.numberOfTrailingZeros(currentCapacity);
   }
 
-  /**
-   * @return Array of double[] arrays of values from the sketch.
-   */
   @Override
   public double[][] getValues() {
     int count = getRetainedEntries();
@@ -157,26 +154,16 @@ public class HeapArrayOfDoublesQuickSelectSketch extends ArrayOfDoublesQuickSele
     return values;
   }
 
-  /**
-   * @return Number of retained entries.
-   */
   @Override
   public int getRetainedEntries() {
     return count_;
   }
 
-  /**
-   * Gets the configured nominal number of entries
-   * @return nominal number of entries
-   */
   @Override
   public int getNominalEntries() {
     return nomEntries_;
   }
 
-  /**
-   * @return serialized representation of the sketch
-   */
   @Override
   public byte[] toByteArray() {
     int sizeBytes = ENTRIES_START + (SIZE_OF_KEY_BYTES + SIZE_OF_VALUE_BYTES * numValues_) * getCurrentCapacity();

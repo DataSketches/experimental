@@ -172,9 +172,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     setRebuildThreshold();
   }
 
-  /**
-   * @return an array of Summary objects from the sketch
-   */
   @Override
   public S[] getSummaries() {
     @SuppressWarnings("unchecked")
@@ -186,9 +183,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
     return summaries;
   }
 
-  /**
-   * @return number of retained entries
-   */
   @Override
   public int getRetainedEntries() {
     return count_;
@@ -225,9 +219,6 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
 
   private enum Flags { IS_BIG_ENDIAN, IS_IN_SAMPLING_MODE, IS_EMPTY, HAS_ENTRIES, IS_THETA_INCLUDED }
 
-  /**
-   * @return serialized representation of QuickSelectSketch
-   */
   @Override
   public byte[] toByteArray() {
     byte[] summaryFactoryBytes = SerializerDeserializer.toByteArray(summaryFactory_);

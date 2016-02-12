@@ -56,9 +56,6 @@ public class DirectArrayOfDoublesUnion extends ArrayOfDoublesUnion {
     mem_ = mem;
   }
 
-  /**
-   * Resets the union to an empty state
-   */
   @Override
   public void reset() {
     sketch_ = new DirectArrayOfDoublesQuickSelectSketch(nomEntries_, numValues_, mem_);

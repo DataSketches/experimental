@@ -4,12 +4,11 @@
  */
 package com.yahoo.sketches.tuple;
 
+import com.yahoo.sketches.memory.Memory;
+
 /**
  * Iterator over the off-heap ArrayOfDoublesSketch (compact or hash table)
  */
-
-import com.yahoo.sketches.memory.Memory;
-
 public class DirectArrayOfDoublesSketchIterator implements ArrayOfDoublesSketchIterator {
 
   private Memory mem_;

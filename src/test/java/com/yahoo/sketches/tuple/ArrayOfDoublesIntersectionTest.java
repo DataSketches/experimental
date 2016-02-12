@@ -19,6 +19,19 @@ public class ArrayOfDoublesIntersectionTest {
   };
 
   @Test
+  public void nullInput() {
+    ArrayOfDoublesIntersection intersection = new HeapArrayOfDoublesIntersection(1);
+    intersection.update(null, null);
+    ArrayOfDoublesCompactSketch result = intersection.getResult();
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertEquals(result.getValues().length, 0);
+  }
+
+  @Test
   public void empty() {
     UpdatableArrayOfDoublesSketch sketch1 = new HeapArrayOfDoublesQuickSelectSketch(32, 1);
     ArrayOfDoublesIntersection intersection = new HeapArrayOfDoublesIntersection(1);
@@ -92,6 +105,15 @@ public class ArrayOfDoublesIntersectionTest {
     Assert.assertEquals(result.getUpperBound(1), 1.0);
     double[][] values = result.getValues();
     for (int i = 0; i < values.length; i++) Assert.assertEquals(values[i][0], 4.0);
+
+    intersection.reset();
+    intersection.update(null, null);
+    result = intersection.getResult();
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
   }
 
   @Test

@@ -272,6 +272,24 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
   }
 
   @Test
+  public void intersectionExactWithNull() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
+    sketch1.update(1, 1.0);
+    sketch1.update(2, 1.0);
+    sketch1.update(3, 1.0);
+
+    Intersection<DoubleSummary> intersection = new Intersection<DoubleSummary>(new DoubleSummaryFactory());
+    intersection.update(sketch1);
+    intersection.update(null);
+    CompactSketch<DoubleSummary> result = intersection.getResult();
+    Assert.assertEquals(result.getRetainedEntries(), 0);
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+  }
+
+  @Test
   public void intersectionExactWithEmpty() {
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
     sketch1.update(1, 1.0);
@@ -316,7 +334,17 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
     Assert.assertEquals(result.getUpperBound(1), 1.0);
     DoubleSummary[] summaries = result.getSummaries();
     Assert.assertEquals(summaries[0].getValue(), 4.0);
-  }
+
+    intersection.reset();
+    intersection.update(null);
+    result = intersection.getResult();
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertFalse(result.isEstimationMode());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getTheta(), 1.0);
+}
 
   @Test
   public void intersectionDisjointEstimationMode() {

@@ -13,49 +13,11 @@ import com.yahoo.sketches.memory.Memory;
  * @author Kevin Lang
  */
 final class HashOperations {
+
   private static final int STRIDE_HASH_BITS = 7; 
   static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
 
   private HashOperations() {}
-
-  /**
-   * Counts the cardinality of the first Log2 values of the given source array.
-   * @param srcArr the given source array
-   * @param lgArrLongs <a href="{@docRoot}/resources/dictionary.html#lgArrLongs">See lgArrLongs</a>
-   * @param thetaLong <a href="{@docRoot}/resources/dictionary.html#thetaLong">See Theta Long</a>
-   * @return the cardinality
-   */
-  static int countPart(long[] srcArr, int lgArrLongs, long thetaLong) {
-    int cnt = 0;
-    int len = 1 << lgArrLongs;
-    for (int i = len; i-- > 0;) {
-      long hash = srcArr[i];
-      if (continueCondition(thetaLong, hash) ) { 
-        continue; 
-      }
-      cnt++ ;
-    }
-    return cnt;
-  }
-  
-  /**
-   * Counts the cardinality of the given source array.
-   * @param srcArr the given source array
-   * @param thetaLong <a href="{@docRoot}/resources/dictionary.html#thetaLong">See Theta Long</a>
-   * @return the cardinality
-   */
-  static int count(long[] srcArr, long thetaLong) {
-    int cnt = 0;
-    int len = srcArr.length;
-    for (int i = len; i-- > 0;) {
-      long hash = srcArr[i];
-      if (continueCondition(thetaLong, hash) ) { 
-        continue; 
-      }
-      cnt++ ;
-    }
-    return cnt;
-  }
 
   // make odd and independent of index assuming lgArrLongs lowest bits of the hash were used for index
   private static int getStride(long hash, int lgArrLongs) {
@@ -82,38 +44,6 @@ final class HashOperations {
       curProbe = (curProbe + stride) & arrayMask;
     }
     return -1;
-  }
-  
-  /**
-   * Inserts the given long array into the given hash table array of the target size,
-   * removes any negative input values, ignores duplicates and counts the values inserted. 
-   * The given hash table may have values, but they must have been inserted by this method or one 
-   * of the other OADH insert methods in this class and they may not be dirty. 
-   * This method performs additional checks against potentially invalid hash values or theta values.
-   * 
-   * @param srcArr the source hash array to be potentially inserted
-   * @param hashTable The correctly sized target hash table that must be a power of two. 
-   * @param lgArrLongs <a href="{@docRoot}/resources/dictionary.html#lgArrLongs">See lgArrLongs</a>.
-   * lgArrLongs &le; log2(hashTable.length).
-   * @param thetaLong must greater than zero 
-   * <a href="{@docRoot}/resources/dictionary.html#thetaLong">See Theta Long</a>
-   * @return the count of values actually inserted
-   */
-  static int hashArrayInsert(long[] srcArr, long[] hashTable, int lgArrLongs, long thetaLong) {
-    int count = 0;
-    int arrLen = srcArr.length;
-    checkThetaCorruption(thetaLong); //TODO only place used
-    for (int i = 0; i < arrLen; i++ ) { // scan source array, build target array
-      long hash = srcArr[i];
-      checkHashCorruption(hash);
-      if (continueCondition(thetaLong, hash) ) { 
-        continue; 
-      }
-      if (hashSearchOrInsert(hashTable, lgArrLongs, hash) < 0) {
-        count++ ;
-      }
-    }
-    return count;
   }
 
   /**
@@ -193,7 +123,7 @@ final class HashOperations {
     mem.putLong(curProbeOffsetBytes, hash);
     return ~curProbe;
   }
-  
+
   /**
    * This is a classical Knuth-style Open Addressing, Double Hash search scheme.
    * 
@@ -218,7 +148,7 @@ final class HashOperations {
     }
     return -1;
   }
-  
+
   /**
    * This is a classical Knuth-style Open Addressing, Double Hash insert scheme, but inserts
    * values directly into a Memory.
@@ -246,7 +176,7 @@ final class HashOperations {
     mem.putLong(curProbeOffsetBytes, hash);
     return curProbe;
   }
-  
+
   /**
    * @param thetaLong must be greater than zero otherwise throws an exception.
    * <a href="{@docRoot}/resources/dictionary.html#thetaLong">See Theta Long</a>
@@ -258,7 +188,7 @@ final class HashOperations {
           "Data Corruption: thetaLong was negative or zero: "+ "ThetaLong: "+thetaLong);
     }
   }
-  
+
   /**
    * @param hash must be greater than -1 otherwise throws an exception.
    * Note a hash of zero is normally ignored, but a negative hash is never allowed.
@@ -270,7 +200,7 @@ final class HashOperations {
           "Data Corruption: hash was negative: "+ "Hash: "+hash);
     }
   }
-  
+
   /**
    * Return true (continue) if hash is greater than or equal to thetaLong, or if hash == 0, 
    * or if hash == Long.MAX_VALUE.
@@ -284,7 +214,7 @@ final class HashOperations {
     //if any one of the groups go negative it returns true
     return (( (hash-1L) | (thetaLong - hash -1L)) < 0L );
   }
-  
+
   /**
    * Checks for invalid values of both a hash value and of a theta value.
    * @param thetaLong cannot be negative or zero, otherwise it throws an exception

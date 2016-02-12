@@ -56,7 +56,10 @@ public class Intersection<S extends Summary> {
     if (isFirstCall) {
       sketch_ = new QuickSelectSketch<S>(sketchIn.getRetainedEntries(), 0, summaryFactory_);
       SketchIterator<S> it = sketchIn.iterator();
-      while (it.next()) sketch_.insert(it.getKey(), it.getSummary().copy());
+      while (it.next()) {
+        S summary = it.getSummary().copy();
+        sketch_.insert(it.getKey(), summary);
+      }
     } else {
       int matchSize = min(sketch_.getRetainedEntries(), sketchIn.getRetainedEntries());
       long[] matchKeys = new long[matchSize];

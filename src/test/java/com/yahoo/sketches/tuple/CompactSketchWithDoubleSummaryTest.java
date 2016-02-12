@@ -109,5 +109,9 @@ public class CompactSketchWithDoubleSummaryTest {
     Assert.assertTrue(sketch2.isEstimationMode());
     Assert.assertEquals(sketch2.getEstimate(), sketch1.getEstimate());
     Assert.assertEquals(sketch2.getThetaLong(), sketch1.getThetaLong());
+    SketchIterator<DoubleSummary> it = sketch2.iterator();
+    while (it.next()) {
+      Assert.assertEquals(it.getSummary().getValue(), 1.0);
+    }
   }
 }

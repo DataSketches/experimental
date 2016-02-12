@@ -91,6 +91,10 @@ public abstract class Sketch<S extends Summary> {
    */
   public abstract byte[] toByteArray();
 
+  public SketchIterator<S> iterator() {
+    return new SketchIterator<S>(keys_, summaries_);
+  }
+
   long getThetaLong() {
     return theta_;
   }

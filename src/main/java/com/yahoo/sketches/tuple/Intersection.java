@@ -55,23 +55,21 @@ public class Intersection<S extends Summary> {
     // assumes that constructor of QuickSelectSketch bumps the requested size up to the nearest power of 2
     if (isFirstCall) {
       sketch_ = new QuickSelectSketch<S>(sketchIn.getRetainedEntries(), 0, summaryFactory_);
-      for (int i = 0; i < sketchIn.keys_.length; i++) {
-        if (sketchIn.summaries_[i] != null) sketch_.insert(sketchIn.keys_[i], sketchIn.summaries_[i]);
-      }
+      SketchIterator<S> it = sketchIn.iterator();
+      while (it.next()) sketch_.insert(it.getKey(), it.getSummary().copy());
     } else {
       int matchSize = min(sketch_.getRetainedEntries(), sketchIn.getRetainedEntries());
       long[] matchKeys = new long[matchSize];
       @SuppressWarnings("unchecked")
       S[] matchSummaries = (S[]) Array.newInstance(summaryFactory_.newSummary().getClass(), matchSize);
       int matchCount = 0;
-      for (int i = 0; i < sketchIn.keys_.length; i++) {
-        if (sketchIn.summaries_[i] != null) {
-          S summary = sketch_.find(sketchIn.keys_[i]);
-          if (summary != null) {
-            matchKeys[matchCount] = sketchIn.keys_[i];
-            matchSummaries[matchCount] = summaryFactory_.getSummarySetOperations().intersection(summary, sketchIn.summaries_[i]);
-            matchCount++;
-          }
+      SketchIterator<S> it = sketchIn.iterator();
+      while (it.next()) {
+        S summary = sketch_.find(it.getKey());
+        if (summary != null) {
+          matchKeys[matchCount] = it.getKey();
+          matchSummaries[matchCount] = summaryFactory_.getSummarySetOperations().intersection(summary, it.getSummary());
+          matchCount++;
         }
       }
       sketch_ = null;

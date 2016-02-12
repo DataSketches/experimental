@@ -36,11 +36,8 @@ public class Union<S extends Summary> {
   public void update(Sketch<S> sketchIn) {
     if (sketchIn == null || sketchIn.isEmpty()) return;
     if (sketchIn.theta_ < theta_) theta_ = sketchIn.theta_;
-    for (int i = 0; i < sketchIn.keys_.length; i++) {
-      if (sketchIn.summaries_[i] != null) {
-        sketch_.merge(sketchIn.keys_[i], sketchIn.summaries_[i]);
-      }
-    }
+    SketchIterator<S> it = sketchIn.iterator();
+    while (it.next()) sketch_.merge(it.getKey(), it.getSummary());
   }
 
   /**

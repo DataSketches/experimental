@@ -16,7 +16,7 @@ public class HeapArrayOfDoublesIntersection extends ArrayOfDoublesIntersection {
    * @param numValues number of double values associated with each key
    */
   public HeapArrayOfDoublesIntersection(int numValues) {
-    super(numValues, DEFAULT_UPDATE_SEED);
+    this(numValues, DEFAULT_UPDATE_SEED);
   }
 
   /**

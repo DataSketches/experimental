@@ -22,8 +22,7 @@ public class DirectArrayOfDoublesIntersection extends ArrayOfDoublesIntersection
    * @param mem <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
    */
   public DirectArrayOfDoublesIntersection(int numValues, Memory mem) {
-    super(numValues, DEFAULT_UPDATE_SEED);
-    mem_ = mem;
+    this(numValues, DEFAULT_UPDATE_SEED, mem);
   }
 
   /**

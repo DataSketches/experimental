@@ -243,6 +243,25 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
   }
 
   @Test
+  public void unionEstimationMode() {
+    int key = 0;
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    for (int i = 0; i < 8192; i++) sketch1.update(key++, 1.0);
+
+    key -= 4096; // overlap half of the entries
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch2 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+    for (int i = 0; i < 8192; i++) sketch2.update(key++, 1.0);
+
+    Union<DoubleSummary> union = new Union<DoubleSummary>(4096, new DoubleSummaryFactory());
+    union.update(sketch1);
+    union.update(sketch2);
+    CompactSketch<DoubleSummary> result = union.getResult();
+    Assert.assertEquals(result.getEstimate(), 12288.0, 12288 * 0.01);
+    Assert.assertTrue(result.getLowerBound(1) <= result.getEstimate());
+    Assert.assertTrue(result.getUpperBound(1) > result.getEstimate());
+  }
+
+  @Test
   public void intersectionEmpty() {
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(8, new DoubleSummaryFactory());
     Intersection<DoubleSummary> intersection = new Intersection<DoubleSummary>(new DoubleSummaryFactory());

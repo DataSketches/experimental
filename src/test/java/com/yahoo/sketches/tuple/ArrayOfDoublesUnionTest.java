@@ -75,6 +75,36 @@ public class ArrayOfDoublesUnionTest {
   }
 
   @Test
+  public void heapSerializeDeserialize() {
+    int key = 0;
+    ArrayOfDoublesQuickSelectSketch sketch1 = new HeapArrayOfDoublesQuickSelectSketch(4096, 1);
+    for (int i = 0; i < 8192; i++) sketch1.update(key++, new double[] {1.0});
+
+    key -= 4096; // overlap half of the entries
+    ArrayOfDoublesQuickSelectSketch sketch2 = new HeapArrayOfDoublesQuickSelectSketch(4096, 1);
+    for (int i = 0; i < 8192; i++) sketch2.update(key++, new double[] {1.0});
+
+    ArrayOfDoublesUnion union1 = new HeapArrayOfDoublesUnion(4096, 1);
+    union1.update(sketch1);
+    union1.update(sketch2);
+
+    ArrayOfDoublesUnion union2 = new HeapArrayOfDoublesUnion(new NativeMemory(union1.toByteArray()));
+    ArrayOfDoublesCompactSketch result = union2.getResult();
+    Assert.assertEquals(result.getEstimate(), 12288.0, 12288 * 0.01);
+  
+    union2.reset();
+    result = union2.getResult();
+    Assert.assertTrue(result.isEmpty());
+    Assert.assertFalse(result.isEstimationMode());
+    Assert.assertEquals(result.getEstimate(), 0.0);
+    Assert.assertEquals(result.getUpperBound(1), 0.0);
+    Assert.assertEquals(result.getLowerBound(1), 0.0);
+    Assert.assertEquals(result.getTheta(), 1.0);
+    double[][] values = result.getValues();
+    for (int i = 0; i < values.length; i++) Assert.assertEquals(values[i][0], 2.0);
+  }
+
+  @Test
   public void directExactMode() {
     ArrayOfDoublesQuickSelectSketch sketch1 = new DirectArrayOfDoublesQuickSelectSketch(8, 1, new NativeMemory(new byte[1000000]));
     sketch1.update(1, new double[] {1.0});

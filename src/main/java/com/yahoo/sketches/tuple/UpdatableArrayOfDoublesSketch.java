@@ -96,6 +96,11 @@ public abstract class UpdatableArrayOfDoublesSketch extends ArrayOfDoublesSketch
   public abstract int getNominalEntries();
 
   /**
+   * Rebuilds reducing the actual number of entries to the nominal number of entries if needed
+   */
+  public abstract void trim();
+
+  /**
    * Gets an on-heap compact representation of the sketch
    * @return compact sketch
    */

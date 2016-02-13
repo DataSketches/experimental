@@ -55,9 +55,7 @@ public abstract class ArrayOfDoublesQuickSelectSketch extends UpdatableArrayOfDo
   protected abstract int findOrInsertKey(long key);
   protected abstract double[] find(long key);
 
-  /**
-   * Rebuilds reducing the actual number of entries to the nominal number of entries if needed
-   */
+  @Override
   public void trim() {
     if (getRetainedEntries() > getNominalEntries()) {
       updateTheta();

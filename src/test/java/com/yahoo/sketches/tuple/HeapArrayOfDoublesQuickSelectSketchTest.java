@@ -84,9 +84,11 @@ public class HeapArrayOfDoublesQuickSelectSketchTest {
     Assert.assertEquals(sketch.getEstimate(), sketch.getUpperBound(0));
     Assert.assertTrue(sketch.getEstimate() >= sketch.getLowerBound(1));
     Assert.assertTrue(sketch.getEstimate() <= sketch.getUpperBound(1));
+    Assert.assertTrue(sketch.getRetainedEntries() > 4096);
+    sketch.trim();
+    Assert.assertEquals(sketch.getRetainedEntries(), 4096);
 
     double[][] values = sketch.getValues();
-    Assert.assertTrue(values.length >= 4096);
     int count = 0;
     for (double[] array: values) {
       if (array != null) {

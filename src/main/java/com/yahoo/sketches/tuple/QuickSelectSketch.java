@@ -8,9 +8,6 @@ import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
-import static com.yahoo.sketches.HashOperations.hashSearch;
-import static com.yahoo.sketches.HashOperations.hashSearchOrInsert;
-import static com.yahoo.sketches.HashOperations.hashInsertOnly;
 
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.QuickSelect;
@@ -330,13 +327,13 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   }
 
   int findOrInsert(long key) {
-    int index = hashSearchOrInsert(keys_, lgCurrentCapacity_, key);
+    int index = HashOperations.hashSearchOrInsert(keys_, lgCurrentCapacity_, key);
     if (index < 0) count_++;
     return index;
   }
 
   S find(long key) {
-    int index = hashSearch(keys_, lgCurrentCapacity_, key);
+    int index = HashOperations.hashSearch(keys_, lgCurrentCapacity_, key);
     if (index == -1) return null;
     return summaries_[index];
   }
@@ -357,7 +354,7 @@ public class QuickSelectSketch<S extends Summary> extends Sketch<S> {
   }
 
   void insert(long key, S summary) {
-    int index = hashInsertOnly(keys_, lgCurrentCapacity_, key);
+    int index = HashOperations.hashInsertOnly(keys_, lgCurrentCapacity_, key);
     summaries_[index] = summary;
     count_++;
   }

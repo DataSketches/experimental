@@ -5,8 +5,6 @@
 package com.yahoo.sketches.tuple;
 
 import static com.yahoo.sketches.Util.ceilingPowerOf2;
-import static com.yahoo.sketches.HashOperations.hashSearch;
-import static com.yahoo.sketches.HashOperations.hashArrayInsert;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -52,7 +50,7 @@ public class AnotB<S extends Summary> {
       summaries_ = (S[]) Array.newInstance(a.summaries_.getClass().getComponentType(), noMatchSize);
       for (int i = 0; i < a.keys_.length; i++) {
         if (a.keys_[i] != 0) {
-          int index = hashSearch(hashTable, lgHashTableSize, a.keys_[i]);
+          int index = HashOperations.hashSearch(hashTable, lgHashTableSize, a.keys_[i]);
           if (index == -1) {
             keys_[count] = a.keys_[i];
             summaries_[count] = a.summaries_[i];
@@ -80,7 +78,7 @@ public class AnotB<S extends Summary> {
       QuickSelectSketch.MIN_NOM_ENTRIES
     );
     long[] hashTable = new long[size];
-    hashArrayInsert(sketch.keys_, hashTable, Integer.numberOfTrailingZeros(size), theta_);
+    HashOperations.hashArrayInsert(sketch.keys_, hashTable, Integer.numberOfTrailingZeros(size), theta_);
     return hashTable;
   }
 

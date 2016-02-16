@@ -47,6 +47,38 @@ final class HashOperations {
   }
 
   /**
+   * Inserts the given long array into the given hash table array of the target size,
+   * removes any negative input values, ignores duplicates and counts the values inserted. 
+   * The given hash table may have values, but they must have been inserted by this method or one 
+   * of the other OADH insert methods in this class and they may not be dirty. 
+   * This method performs additional checks against potentially invalid hash values or theta values.
+   * 
+   * @param srcArr the source hash array to be potentially inserted
+   * @param hashTable The correctly sized target hash table that must be a power of two. 
+   * @param lgArrLongs <a href="{@docRoot}/resources/dictionary.html#lgArrLongs">See lgArrLongs</a>.
+   * lgArrLongs &le; log2(hashTable.length).
+   * @param thetaLong must greater than zero 
+   * <a href="{@docRoot}/resources/dictionary.html#thetaLong">See Theta Long</a>
+   * @return the count of values actually inserted
+   */
+  public static int hashArrayInsert(long[] srcArr, long[] hashTable, int lgArrLongs, long thetaLong) {
+    int count = 0;
+    int arrLen = srcArr.length;
+    checkThetaCorruption(thetaLong); //TODO only place used
+    for (int i = 0; i < arrLen; i++ ) { // scan source array, build target array
+      long hash = srcArr[i];
+      checkHashCorruption(hash);
+      if (continueCondition(thetaLong, hash) ) { 
+        continue; 
+      }
+      if (hashSearchOrInsert(hashTable, lgArrLongs, hash) < 0) {
+        count++ ;
+      }
+    }
+    return count;
+  }
+
+  /**
    * This is a classical Knuth-style Open Addressing, Double Hash insert scheme.
    * 
    * @param hashTable the hash table to insert into.

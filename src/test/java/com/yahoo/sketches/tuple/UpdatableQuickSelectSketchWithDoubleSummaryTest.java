@@ -98,6 +98,16 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
   }
 
   @Test
+  public void estimationModeWithSamplingNoResizing() {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, 0, 0.5f, new DoubleSummaryFactory());
+    for (int i = 0; i < 16384; i++) sketch.update(i, 1.0);
+    Assert.assertTrue(sketch.isEstimationMode());
+    Assert.assertEquals(sketch.getEstimate(), 16384, 16384 * 0.01);
+    Assert.assertTrue(sketch.getEstimate() >= sketch.getLowerBound(1));
+    Assert.assertTrue(sketch.getEstimate() < sketch.getUpperBound(1));
+  }
+
+  @Test
   public void updatesOfAllKeyTypes() {
     UpdatableQuickSelectSketch<Double, DoubleSummary> sketch = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
     sketch.update(1L, 1.0);
@@ -175,8 +185,8 @@ public class UpdatableQuickSelectSketchWithDoubleSummaryTest {
   }
 
   @Test
-  public void serializeDeserializeEstimation() throws Exception {
-    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, new DoubleSummaryFactory());
+  public void serializeDeserializeEstimationNoResizing() throws Exception {
+    UpdatableQuickSelectSketch<Double, DoubleSummary> sketch1 = new UpdatableQuickSelectSketch<Double, DoubleSummary>(4096, 0, new DoubleSummaryFactory());
     for (int j = 0; j < 10; j++) {
       for (int i = 0; i < 8192; i++) sketch1.update(i, 1.0);
     }

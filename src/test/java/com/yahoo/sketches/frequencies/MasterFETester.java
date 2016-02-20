@@ -431,6 +431,7 @@ public class MasterFETester{
     }
   }
   
+  @SuppressWarnings("unused")
   static private FrequencyEstimator newFrequencyEstimator(double error_parameter, double failure_prob, int i){
     switch (i){
       //case 2: return new SpaceSaving(error_parameter);

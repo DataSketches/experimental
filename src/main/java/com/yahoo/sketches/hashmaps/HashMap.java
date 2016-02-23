@@ -1,10 +1,21 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
 package com.yahoo.sketches.hashmaps;
 
 /**
- * @author edo
- *
+ * @author Edo Liberty
+ * @author Justin Thaler
  */
 
+/**
+ * Abstract class for a hashmap data structure, which stores (key, value)
+ * pairs, and supports the following non-standard operations: decrement all values
+ * by a given amount, and purge all (key, value) pairs whose key is below a specified
+ * threshold.
+ * 
+ */
 public abstract class HashMap {
   
   // The load factor is decided upon by the abstract class.
@@ -17,14 +28,14 @@ public abstract class HashMap {
   protected int size=0;
   protected long[] keys;
   protected long[] values;
-  protected byte[] states;
+  protected short[] states;
   
   public HashMap () {}
   
   /**
    * @param capacity
    * Determines the number of (key, value) pairs the hashmap is expected to store.
-   * Constructor will create arrays of sizecapacity/LOAD_FACTOR, rounded up to a power of 2.
+   * Constructor will create arrays of size capacity/LOAD_FACTOR, rounded up to a power of 2.
    */
   public HashMap (int capacity) {
     if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
@@ -33,18 +44,25 @@ public abstract class HashMap {
     arrayMask = length-1; 
     keys = new long[length];
     values = new long[length];
-    states = new byte[length];
+    states = new short[length];
   }
      
   /**
-   * Adjusts the primitive value mapped to the key if the key is present in the map. 
-   * Otherwise, the key is inserted with the value.
+   * Increments the primitive value mapped to the key if the key is present in the map. 
+   * Otherwise, the key is inserted with the putAmount.
    * @param key the key of the value to increment
-   * @param adjustAmount the amount to adjust the value by 
+   * @param adjustAmount the amount by which to increment the value 
    * @param putAmount the value put into the map if the key is not initial present
    */
   abstract public void adjustOrPutValue(long key, long adjustAmount, long putAmount);
   
+  
+  /**
+   * Increments the primitive value mapped to the key if the key is present in the map. 
+   * Otherwise, the key is inserted with the value.
+   * @param key the key of the value to increment
+   * @param value the value increment by, or to put into the map if the key is not initial present
+   */
   public void adjust(long key, long value){
     adjustOrPutValue(key, value, value);
   }
@@ -82,15 +100,15 @@ public abstract class HashMap {
    */
   public long[] getKeys() {
     if (size==0) return null;
-    long [] retrunedKeys = new long[size];
+    long [] returnedKeys = new long[size];
     int j = 0;
     for (int i=0; i<length; i++)
       if (isActive(i)){
-        retrunedKeys[j] = keys[i];
+        returnedKeys[j] = keys[i];
         j++;
       }
     assert(j == size);
-    return retrunedKeys;
+    return returnedKeys;
   }
    
   /**
@@ -99,15 +117,15 @@ public abstract class HashMap {
    */
   public long[] getValues() {
     if (size==0) return null;
-    long [] retrunedValues = new long[size];
+    long [] returnedValues = new long[size];
     int j = 0;
     for (int i=0; i<length; i++)
       if (isActive(i)) {
-        retrunedValues[j] = values[i];
+        returnedValues[j] = values[i];
         j++;
       }
     assert(j == size);
-    return retrunedValues;
+    return returnedValues;
   }  
   
   /**
@@ -147,9 +165,10 @@ public abstract class HashMap {
     }
     System.out.format("=====================\n");
   }
+  
 
   /**
-   * @return the load factor of the hash table, the ratio
+   * @return the load factor of the hash table, i.e, the ratio
    * between the capacity and the array length
    */
   protected double getLoadFactor(){
@@ -158,7 +177,9 @@ public abstract class HashMap {
   
   /**
    * @param key to be hashed
-   * @return an index into the hash table 
+   * @return an index into the hash table
+   * This hash function is taken from the internals 
+   * of the Trove open source library.
    */
   protected long hash(long key){
     key ^= key >>> 33;

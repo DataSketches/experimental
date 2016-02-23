@@ -1,13 +1,20 @@
 package com.yahoo.sketches.frequencies;
 
 import java.util.Collection;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 
 
 public class MasterFETester{
 
   public static void main(String[] args) {
+    HashMapRESerialTest();
+    System.out.println("Done Serialization Test");
+    FrequentItemsSerialTest();
+    System.out.println("Done FrequentItems Serialization Test");
     FETest();
     System.out.println("Done FE Test");
     realCountsInBoundsAfterMerge();
@@ -22,6 +29,50 @@ public class MasterFETester{
     System.out.println("Done Error Test Small Param");
     ErrorTestZipfBigParamSmallSketch();
     System.out.println("Done Error Test BigParamSmallSketch");
+  }
+  
+  @Test
+  static private void HashMapRESerialTest(){
+    HashMapReverseEfficient map = new HashMapReverseEfficient(10);
+    map.adjustOrPutValue(10, 15, 15);
+    map.adjustOrPutValue(10, 5, 5);
+    map.adjustOrPutValue(1, 1, 1);
+    map.adjustOrPutValue(2, 3, 3);
+    String string = map.hashMapReverseEfficientToString();
+    HashMapReverseEfficient new_map = HashMapReverseEfficient.StringToHashMapReverseEfficient(string);
+    String new_string = new_map.hashMapReverseEfficientToString();
+    assert(string.equals(new_string));
+  }
+  
+  @Test
+  static private void FrequentItemsSerialTest(){
+    FrequentItems sketch = new FrequentItems(.0001);
+    FrequentItems sketch2 = new FrequentItems(.1);
+    sketch.update(10, 100);
+    sketch.update(10, 100);
+    sketch.update(15, 3443);
+    sketch.update(1000001, 1010230);
+    
+    sketch2.update(190, 12902390);
+    sketch2.update(191, 12902390);
+    sketch2.update(192, 12902390);
+    sketch2.update(193, 12902390);
+    sketch2.update(194, 12902390);
+    sketch2.update(195, 12902390);
+    sketch2.update(196, 12902390);
+    sketch2.update(197, 12902390);
+    sketch2.update(198, 12902390);
+    sketch2.update(199, 12902390);
+    sketch2.update(200, 12902390);
+    sketch2.update(201, 12902390);
+    sketch2.update(202, 12902390);
+    
+    sketch.merge(sketch2);
+    
+    String string = sketch.FrequentItemsToString();
+    FrequentItems new_sketch = FrequentItems.StringToFrequentItems(string);
+    String new_string = new_sketch.FrequentItemsToString();
+    assert(string.equals(new_string));
   }
   
   @Test

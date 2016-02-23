@@ -7,6 +7,27 @@ package com.yahoo.sketches.frequencies;
 /**
  * @author Edo Liberty, Justin Thaler
  */
+
+/**
+ * Abstract class for a FrequencyEstimator algorithm. Supports
+ * the ability to process a data stream of (item, increment) pairs,
+ * where item is an identifier, specified as a long, and increment is a 
+ * non-negative integer that is also specified as a long. The frequency
+ * of an identifier is defined to be the sum of associated the increments.
+ * Any FrequencyEstimator algorithm must be able to:
+ *  1) estimate the frequency of an identifier, 
+ *  2) return upper and lower bounds on the frequency (depending on the 
+ *     implementation, these bounds may hold deterministically, or with 
+ *     high probability), 
+ *  3) return an upper bound on the maximum error in any estimate 
+ *     (which also might hold deterministically or with high probability, 
+ *     depending on implementation)
+ *   4) Return an array of keys whose frequencies might be above a certain 
+ *      threshold (specifically, the threshold is 1/errorTolerance + 1)
+ *   5) merge itself with another FrequencyEstimator algorithm from the same 
+ *      instantiation of the abstract class.
+ * 
+ */
 public abstract class FrequencyEstimator {
  
   private double errorTolerance;
@@ -24,7 +45,7 @@ public abstract class FrequencyEstimator {
    * For some instantiations of the abstract class, the algorithm will be deterministic
    * and hence the failure probability will be 0.
    * **Warning**: the memory footprint of this class is inversely proportional
-   * to the error tolerance and failure probability!
+   * to the error tolerance (and possibly the failure probability).
    */
   public FrequencyEstimator(double errorTolerance, double failureProb){
     setErrorTolerance(errorTolerance, failureProb);

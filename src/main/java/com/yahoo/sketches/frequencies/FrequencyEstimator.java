@@ -29,50 +29,7 @@ package com.yahoo.sketches.frequencies;
  * 
  */
 public abstract class FrequencyEstimator {
- 
-  private double errorTolerance;
-  private boolean errorToleranceAlreadyAssigned = false;
-  protected final double SMALLEST_ERROR_TOLERANCE_ALLOWED = 1E-7; // epsilon
-  protected final double ACCEPTABLE_FAILURE_PROBABILITY = 1E-10; // delta 
   
-  /**
-   * Constructs a FrequencyEstimator sketch
-   * 
-   * @param errorTolerance the acceptable relative error in the estimates of 
-   * the sketch. The maximal error in the frequency estimate should not 
-   * by more than the error tolerance times the number of updates.
-   * @param failureProb the acceptable failure probability for any point query.
-   * For some instantiations of the abstract class, the algorithm will be deterministic
-   * and hence the failure probability will be 0.
-   * **Warning**: the memory footprint of this class is inversely proportional
-   * to the error tolerance (and possibly the failure probability).
-   */
-  public FrequencyEstimator(double errorTolerance, double failureProb){
-    setErrorTolerance(errorTolerance, failureProb);
-  }
-  
-  
-  /**
-   * Constructs a FrequencyEstimator sketch
-   * 
-   * @param errorTolerance the acceptable relative error in the estimates of 
-   * the sketch. The maximal error in the frequency estimate should not 
-   * by more than the error tolerance times the number of updates.
-   * Sets failure probability to default value of .1.
-   * **Warning**: the memory footprint of this class is inversely proportional
-   * to the error tolerance!
-   */
-  public FrequencyEstimator(double errorTolerance){
-    setErrorTolerance(errorTolerance, .1);
-  }
-  
-  /**
-   * Default constructor uses error tolerance of 1%. 
-   */
-  public FrequencyEstimator(){
-    this(0.01);
-  }
- 
   /**
    * @param key for which the frequency should be increased.  
    * The frequency of a key is equal to the number of times
@@ -130,27 +87,33 @@ public abstract class FrequencyEstimator {
    */
   abstract public FrequencyEstimator merge(FrequencyEstimator other);
 
+  /**
+   * Returns the current number of counters the sketch is configured to store.
+   * @return the current number of counters the sketch is configured to store.
+   */
+  abstract public int getK();
   
   /**
-   * @return the error tolerance
+   * Returns the maximum number of counters the sketch will ever be configured to store.
+   * @return the maximum number of counters the sketch will ever be configured to store.
    */
-  public double getErrorTolerance() {
-    return errorTolerance;
-  }
+  abstract public int getMaxK();
   
   /**
-   * @param errorTolerance sets the error tolerance if smaller than 1.0 and larger than the minimal allowed value.  
+   * Returns true if this sketch is empty
+   * @return true if this sketch is empty
    */
-  protected void setErrorTolerance(double errorTolerance, double failureProb){
-    if (errorTolerance > 1.0) throw new IllegalArgumentException("Received error tolerance larger than 1.0");
-    if (failureProb > 1.0) throw new IllegalArgumentException("Received failure probability larger than 1.0");
-    if (errorTolerance < SMALLEST_ERROR_TOLERANCE_ALLOWED) throw new 
-       IllegalArgumentException("Received error tolerance smaller than minimla allowed value of " + SMALLEST_ERROR_TOLERANCE_ALLOWED);
-    if (failureProb < ACCEPTABLE_FAILURE_PROBABILITY) throw new 
-    IllegalArgumentException("Received failure probability smaller than minimla allowed value of " + ACCEPTABLE_FAILURE_PROBABILITY);
-    if (errorToleranceAlreadyAssigned) throw new IllegalStateException("The error tolerance of a sketch can only be set once per sketch object.");
-    this.errorToleranceAlreadyAssigned = true;
-    this.errorTolerance = errorTolerance;
-  }
- 
+  abstract public boolean isEmpty(); 
+  
+  /**
+   * Returns the sum of the frequencies in the stream seen so far by the sketch
+   * @return the sum of the frequencies in the stream seen so far by the sketch
+   */
+  abstract public int getStreamLength(); 
+  
+  /**
+   * Resets this sketch to a virgin state, but retains the original value of the error parameter
+   */
+  public abstract void reset();
+  
 }

@@ -20,7 +20,7 @@ public abstract class HashMap {
   
   // The load factor is decided upon by the abstract class.
   // This cannot be modified by inheriting classes!
-  final private double LOAD_FACTOR = 0.75; 
+  final public double LOAD_FACTOR = 0.75; 
   
   protected int capacity;
   protected int length;
@@ -36,11 +36,14 @@ public abstract class HashMap {
    * @param capacity
    * Determines the number of (key, value) pairs the hashmap is expected to store.
    * Constructor will create arrays of size capacity/LOAD_FACTOR, rounded up to a power of 2.
+   * The size of the hash table is set to be a power of two for fast hashing.
+   * The protected variable this.capacity is set to the largest value that will not 
+   * overload the hash table.
    */
   public HashMap (int capacity) {
     if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
-    this.capacity = capacity;
     length = Integer.highestOneBit(2*(int)(capacity/LOAD_FACTOR)-1);
+    this.capacity = (int) (length * LOAD_FACTOR);
     arrayMask = length-1; 
     keys = new long[length];
     values = new long[length];
@@ -155,7 +158,7 @@ public abstract class HashMap {
   public int getSize(){
     return size;
   }
-    
+      
   /**
    * prints the hash table
    */

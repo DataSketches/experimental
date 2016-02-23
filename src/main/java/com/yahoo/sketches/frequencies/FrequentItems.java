@@ -13,18 +13,24 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
  * Implements frequent items sketch on the Java heap.
  * 
  * The frequent-items sketch is useful for keeping approximate counters for keys 
- * (map from key (long) to value (long)).  The sketch is initialized with an error 
- * parameter eps. The sketch will keep roughly 1/eps counters. When the sketch is 
- * updated with a key and increment, the corresponding counter is incremented or, 
+ * (map from key (long) to value (long)).  The sketch is initialized with a value 
+ * k. The sketch will keep roughly k counters when it is full size. More specifically,
+ * when k is a power of 2, a HashMap will be created with 2*k cells, and the number 
+ * of counters will oscillate between roughly k and 1.5*k. The space usage of the sketch
+ * is therefore proportional to k when it reaches full size.
+ * 
+ * When the sketch is updated with a key and increment, the corresponding counter is incremented or, 
  * if there is no counter for that key, a new counter is created. If the sketch 
- * reaches its maximal allowed size, it removes some counter and decrements others.
+ * reaches its maximal allowed size, it decrements all of the counters
+ * (by an approximately computed median), and removes any non-positive counters.
+ * 
  * The logic of the frequent-items sketch is such that the stored counts and real 
- * counts are never too different. More specifically, for any key k, the sketch 
- * can return an estimate of the true frequency of k, along with upper and lower 
+ * counts are never too different. More specifically, for any key KEY, the sketch 
+ * can return an estimate of the true frequency of KEY, along with upper and lower 
  * bounds on the frequency (that hold deterministically). For our implementation,
  * it is guaranteed that, with high probability over the randomness of the 
  * implementation, the difference between the upper bound and the estimate is 
- * at most 2*eps*n, where n denotes the stream length (i.e, sum of all the frequencies), 
+ * at most n/k, where n denotes the stream length (i.e, sum of all the frequencies), 
  * and similarly for the lower bound and the estimate. In practice, the difference 
  * is usually smaller.
  * 
@@ -45,14 +51,31 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 public class FrequentItems extends FrequencyEstimator{
 
   /**
+   *  We start by allocating a small data structure capable of explicitly
+   *  storing very small streams in full, and growing it as the stream grows.
+   *  The following constant controls the size of the initial data structure
+   */
+  static final int MIN_FREQUENT_ITEMS_SIZE = 4; //This is somewhat arbitrary
+  
+  /**
+   *  The current number of counters that the data structure can support
+   */
+  private int K;
+
+  /**
    * Hash map mapping stored keys to approximate counts
    */
   private HashMapReverseEfficient counters;
   
   /**
-   *  The maximum number of counters stored
+   *  The number of counters to be stored when sketch is full size
    */
-  private int maxSize;
+  private int maxK;
+  
+  /**
+   *  The value of K passed to the constructor
+   */
+  private int k;
   
   /**
    *  Tracks the total number of decrements performed on sketch.
@@ -75,26 +98,44 @@ public class FrequentItems extends FrequencyEstimator{
    */
   private int sample_size;
   
-  /**
-   *  The error parameter with which the sketch was constructed
-   */
-  private double eps;
   
   //**CONSTRUCTOR********************************************************** 
   /**
-   * @param eps
+   * @param k
    * Determines the accuracy of the estimates returned by the sketch.
-   * The space usage of the sketch is proportional to the inverse of eps. 
-   * If fewer than ~1/eps different keys are inserted then the counts will be exact.  
+   * The guarantee of the sketch is that any returned estimate will have error
+   * at most eps*N, where N is the true sum of frequencies in the stream,
+   * and eps:=1/k.
+   * The space usage of the sketch is proportional to k.
+   * If fewer than ~k different keys are inserted then the counts will be exact. 
+   * More precisely, if k is a power of 2,then when the sketch reaches full size,
+   * the data structure's HashMap will contain 2*k cells. 
+   * Assuming that the LOAD_FACTOR of the HashMap is set to 0.75, the number of cells
+   * of the hash table that are actually filled should oscillate between 
+   * k and 1.5 * k. The guarantee of the sketch is that (with high probability)
+   * the error of any estimate will be at most (1/k) * n, where n is the stream length.
+   * In practice, the error is usually much smaller.
    */
-  public FrequentItems(double eps) {
-    if (eps <= 0) throw new IllegalArgumentException("Received negative or zero value for maxSize.");
-    this.eps = eps;
-    this.maxSize = (int) (1/eps)+1;
-    counters = new HashMapReverseEfficient(this.maxSize);
+  public FrequentItems(int k) {
+    if (k <= 0) throw new IllegalArgumentException("Received negative or zero value for k.");
+    
+    //set initial size of counters data structure so it can exactly store a stream with 
+    //MIN_FREQUENT_ITEMS_SIZE distinct elements
+    this.K = MIN_FREQUENT_ITEMS_SIZE;
+    counters = new HashMapReverseEfficient(this.K);
+    
+    this.k=k;
+    
+    //set maxK to be the maximum number of counters that can be supported
+    //by a HashMap with the appropriate number of cells (specifically, 
+    //2*k cells if k is a power of 2) and a load that does not exceed 
+    //the designated load factor
+    int maxHashMapLength = Integer.highestOneBit(4*k-1);
+    this.maxK = (int) (maxHashMapLength * counters.LOAD_FACTOR);
+    
     this.offset = 0;
-    if (this.maxSize < 250) 
-      this.sample_size = this.maxSize;
+    if (this.maxK < 250) 
+      this.sample_size = this.maxK;
     else
       this.sample_size = 250;
   }
@@ -113,7 +154,7 @@ public class FrequentItems extends FrequencyEstimator{
   @Override
   public long getEstimate(long key) { 
     //the logic below returns the count of associated counter if key is tracked.
-    //If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
+    //If the key is not tracked and fewer than maxK counters are in use, 0 is returned.
     //Otherwise, the minimum counter value is returned.
     if(counters.get(key) > 0) 
       return counters.get(key) + offset;
@@ -178,10 +219,26 @@ public class FrequentItems extends FrequencyEstimator{
   @Override
   public void update(long key, long increment) {
     this.streamLength += increment;
-    counters.adjust(key, increment);  
-    if(counters.getSize() > this.maxSize) {
+    counters.adjust(key, increment);
+    int size = counters.getSize();  
+    
+    //if the data structure needs to be grown
+    if ((size >= this.K) && (this.K < this.maxK)) {
+      //grow the size of the data structure
+      int newSize = Math.max(Math.min(this.maxK, 2*this.K), 1);
+      this.K = newSize;
+      HashMapReverseEfficient newTable = new HashMapReverseEfficient(newSize);
+      long[] keys = this.counters.getKeys();
+      long[] values = this.counters.getValues();
+      for(int i = 0; i < size; i++) {
+        newTable.adjust(keys[i], values[i]);
+      }
+      this.counters = newTable;
+    } 
+    
+    if(size > this.maxK) {
       purge();
-      assert(counters.getSize() <= this.maxSize);
+      assert(size <= this.maxK);
     }
   }
 
@@ -193,12 +250,12 @@ public class FrequentItems extends FrequencyEstimator{
    */
   private void purge()
   {
-    int limit = this.sample_size;
+    int limit = Math.min(this.sample_size, counters.getSize());
     
     long[] values = counters.ProtectedGetValues();
     int num_samples = 0;
     int i = 0;
-    long[] samples = new long[sample_size];
+    long[] samples = new long[limit];
 
     while(num_samples < limit){
       if(counters.isActive(i)){
@@ -221,7 +278,8 @@ public class FrequentItems extends FrequencyEstimator{
     * @param other
     * Another FrequentItems sketch. Potentially of different size. 
     * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
-    * This method does not create a new sketch. The sketch whose function is executed is changed.
+    * This method does not create a new sketch. The sketch whose function is executed is changed
+    * and a reference to it is returned.
     */
     @Override
    public FrequencyEstimator merge(FrequencyEstimator other) {
@@ -250,7 +308,7 @@ public class FrequentItems extends FrequencyEstimator{
      
      //first, count the number of candidate frequent keys
      for(int i = counters.getLength(); i-->0;) {
-       if(counters.isActive(i) && (getEstimate(keys[i]) >= (this.streamLength / this.maxSize))) {
+       if(counters.isActive(i) && (getEstimate(keys[i]) >= (this.streamLength / this.maxK))) {
          count++;
        }
      }
@@ -259,7 +317,7 @@ public class FrequentItems extends FrequencyEstimator{
      long[] freq_keys = new long[count];
      count = 0;
      for(int i = counters.getLength(); i-->0;) {
-       if(counters.isActive(i) && (getEstimate(keys[i]) >= (this.streamLength / this.maxSize))) {
+       if(counters.isActive(i) && (getEstimate(keys[i]) >= (this.streamLength / this.maxK))) {
          freq_keys[count] = keys[i];
          count++;
        }
@@ -273,7 +331,7 @@ public class FrequentItems extends FrequencyEstimator{
     */
    public String FrequentItemsToString() {
      StringBuilder sb = new StringBuilder();
-     sb.append(String.format("%f,%d,%d,", eps, mergeError, offset));
+     sb.append(String.format("%d,%d,%d,", k, mergeError, offset));
 
      sb.append(counters.hashMapReverseEfficientToString());
      return sb.toString();
@@ -283,7 +341,7 @@ public class FrequentItems extends FrequencyEstimator{
     * Turns a string specifying a FrequentItems object 
     * into a FrequentItems object.
     * @param string String specifying a FrequentItems object
-    * @return a FrquentItems object corresponding to the string
+    * @return a FrequentItems object corresponding to the string
     */
    public static FrequentItems StringToFrequentItems(String string) {
      String[] tokens = string.split(",");
@@ -291,15 +349,71 @@ public class FrequentItems extends FrequencyEstimator{
        throw new IllegalArgumentException("Tried to make FrequentItems out of string not long enough to specify relevant parameters.");
      }
      
-     double eps = Double.parseDouble(tokens[0]);
+     int k = Integer.parseInt(tokens[0]);
      int mergeError = Integer.parseInt(tokens[1]);
      int offset = Integer.parseInt(tokens[2]);
      
-     FrequentItems sketch = new FrequentItems(eps);
+     FrequentItems sketch = new FrequentItems(k);
      sketch.mergeError=mergeError;
      sketch.offset = offset;
      
      sketch.counters = HashMapReverseEfficient.StringArrayToHashMapReverseEfficient(tokens, 3);
      return sketch;
    }
+   
+   
+   /**
+    * Returns the current number of counters the sketch is configured to store.
+    * @return the current number of counters the sketch is configured to store.
+    */
+    @Override
+   public int getK() {
+     return this.K;
+   }
+   
+    /**
+     * Returns the sum of the frequencies in the stream seen so far by the sketch
+     * @return the sum of the frequencies in the stream seen so far by the sketch
+     */
+     @Override
+    public int getStreamLength() {
+      return this.streamLength;
+    }
+   
+   /**
+    * Returns the maximum number of counters the sketch will ever be configured to store.
+    * @return the maximum number of counters the sketch will ever be configured to store.
+    */
+    @Override
+   public int getMaxK() {
+     return this.maxK;
+   }
+   
+    /**
+     * Returns true if this sketch is empty
+     * @return true if this sketch is empty
+     */
+     @Override
+    public boolean isEmpty() {
+     return this.counters.getSize() == 0; 
+    }
+    
+     /**
+      * Resets this sketch to a virgin state, but retains the original value of the error parameter
+      */
+      @Override
+     public void reset() {
+       this.K = MIN_FREQUENT_ITEMS_SIZE;
+       counters = new HashMapReverseEfficient(this.K);
+       this.offset = 0;
+     }
+     
+      /**
+       * Returns the number of bytes required to store this sketch as an array of bytes.
+       * @return the number of bytes required to store this sketch as an array of bytes.
+       */
+      public int getStorageBytes() {
+        if (isEmpty()) return 20;
+        return 28 + 16 * this.counters.getSize();
+      }
 }

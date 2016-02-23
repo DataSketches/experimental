@@ -11,8 +11,8 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 public class MasterFETester{
 
   public static void main(String[] args) {
-    HashMapRESerialTest();
-    System.out.println("Done Serialization Test");
+    //HashMapRESerialTest();
+    //System.out.println("Done Serialization Test");
     FrequentItemsSerialTest();
     System.out.println("Done FrequentItems Serialization Test");
     FETest();
@@ -41,17 +41,25 @@ public class MasterFETester{
     String string = map.hashMapReverseEfficientToString();
     HashMapReverseEfficient new_map = HashMapReverseEfficient.StringToHashMapReverseEfficient(string);
     String new_string = new_map.hashMapReverseEfficientToString();
-    assert(string.equals(new_string));
+    assert(string.equals(new_string));    
   }
   
   @Test
   static private void FrequentItemsSerialTest(){
-    FrequentItems sketch = new FrequentItems(.0001);
-    FrequentItems sketch2 = new FrequentItems(.1);
+    FrequentItems sketch = new FrequentItems(10);
+    FrequentItems sketch2 = new FrequentItems(100);
     sketch.update(10, 100);
     sketch.update(10, 100);
     sketch.update(15, 3443);
     sketch.update(1000001, 1010230);
+    sketch.update(1000002, 1010230);
+    
+    String string0 = sketch.FrequentItemsToString();
+    FrequentItems new_sketch0 = FrequentItems.StringToFrequentItems(string0);
+    String new_string0 = new_sketch0.FrequentItemsToString();
+    assert(string0.equals(new_string0));
+    assert(new_sketch0.getMaxK() == sketch.getMaxK());
+    assert(new_sketch0.getK() == sketch.getK());
     
     sketch2.update(190, 12902390);
     sketch2.update(191, 12902390);
@@ -66,13 +74,29 @@ public class MasterFETester{
     sketch2.update(200, 12902390);
     sketch2.update(201, 12902390);
     sketch2.update(202, 12902390);
+    sketch2.update(203, 12902390);
+    sketch2.update(204, 12902390);
+    sketch2.update(205, 12902390);
+    sketch2.update(206, 12902390);
+    sketch2.update(207, 12902390);
+    sketch2.update(208, 12902390);
     
-    sketch.merge(sketch2);
+    String string2 = sketch2.FrequentItemsToString();
+    FrequentItems new_sketch2 = FrequentItems.StringToFrequentItems(string2);
+    String new_string2 = new_sketch2.FrequentItemsToString();
+    assert(string2.equals(new_string2));
+    assert(new_sketch2.getMaxK() == sketch2.getMaxK());
+    assert(new_sketch2.getK() == sketch2.getK());
     
-    String string = sketch.FrequentItemsToString();
+    System.out.println("about to perform merge.");
+    FrequentItems merged_sketch = (FrequentItems) sketch.merge(sketch2);
+    
+    String string = merged_sketch.FrequentItemsToString();
     FrequentItems new_sketch = FrequentItems.StringToFrequentItems(string);
     String new_string = new_sketch.FrequentItemsToString();
     assert(string.equals(new_string));
+    assert(new_sketch.getMaxK() == merged_sketch.getMaxK());
+    assert(new_sketch.getK() == merged_sketch.getK());
   }
   
   @Test
@@ -80,7 +104,7 @@ public class MasterFETester{
     int size = 100;
     double error_tolerance = 1.0/size;
     double delta = .01;
-    int numEstimators = 6;
+    int numEstimators = 1;
     for (int h=0; h<numEstimators; h++){
       FrequencyEstimator estimator = newFrequencyEstimator(error_tolerance, delta, h);
       Assert.assertEquals(estimator.getEstimateUpperBound(13L), 0);
@@ -160,7 +184,7 @@ public class MasterFETester{
   
   @Test
   private static void FETest(){
-    int numEstimators = 6; 
+    int numEstimators = 1; 
     int n = 138222;
     double error_tolerance = 1.0/100000;
     
@@ -219,7 +243,7 @@ public class MasterFETester{
       realCounts.increment(stream[i]);
     }
     
-    int numEstimators = 6;
+    int numEstimators = 1;
     
     for (int h=0; h<numEstimators; h++){
       FrequencyEstimator estimator = newFrequencyEstimator(error_tolerance, .1, h);
@@ -283,7 +307,7 @@ public class MasterFETester{
     }
     System.out.println("done loop");
     
-    int numEstimators = 6;
+    int numEstimators = 1;
     
     for (int h=0; h<numEstimators; h++){
       FrequencyEstimator estimator = newFrequencyEstimator(error_tolerance, .1, h);
@@ -343,7 +367,7 @@ public class MasterFETester{
     }
     System.out.println("done loop");
     
-    int numEstimators = 6;
+    int numEstimators = 1;
     
     for (int h=0; h<numEstimators; h++){
       FrequencyEstimator estimator = newFrequencyEstimator(error_tolerance, .1, h);
@@ -393,7 +417,7 @@ public class MasterFETester{
   
     double prob1 = .01;
     double prob2 = .005;
-    int numEstimators = 6;
+    int numEstimators = 1;
     
     System.out.println("start");
     for(int h=0; h<numEstimators; h++) {
@@ -440,7 +464,7 @@ public class MasterFETester{
     FrequencyEstimator[] estimators = new FrequencyEstimator[num_to_merge];
   
     double prob = .01;
-    int numEstimators = 6;
+    int numEstimators = 1;
     
     System.out.println("start of more stringent merge test");
     for(int h=0; h<numEstimators; h++) {
@@ -489,12 +513,12 @@ public class MasterFETester{
       //case 3: return new SpaceSavingTrove(error_parameter);
       //case 0: return new CountMinFastFE(error_parameter, failure_prob);
       //case 1: return new CountMinFastFECU(error_parameter, failure_prob);
-      case 0: return new SpaceSavingGood(error_parameter);
-      case 1: return new FrequentItems(error_parameter);
-      case 2: return new FrequentItemsLPWR(error_parameter);
-      case 3: return new FrequentItemsDHWR(error_parameter);
-      case 4: return new FrequentItemsEfficientDeletes(error_parameter);
-      case 5: return new FrequentItemsID(error_parameter);
+      //case 0: return new SpaceSavingGood(error_parameter);
+      case 0: return new FrequentItems((int) (1.0/error_parameter));
+      //case 2: return new FrequentItemsLPWR(error_parameter);
+      //case 3: return new FrequentItemsDHWR(error_parameter);
+      //case 4: return new FrequentItemsEfficientDeletes(error_parameter);
+      //case 5: return new FrequentItemsID(error_parameter);
     }
     return null;
   }

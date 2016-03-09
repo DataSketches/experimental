@@ -37,7 +37,7 @@ public abstract class HashMap {
    * Determines the number of (key, value) pairs the hashmap is expected to store.
    * Constructor will create arrays of size capacity/LOAD_FACTOR, rounded up to a power of 2.
    * The size of the hash table is set to be a power of two for fast hashing.
-   * The protected variable this.capacity is set to the largest value that will not 
+   * The protected variable this.capacity is then set to the largest value that will not 
    * overload the hash table.
    */
   public HashMap (int capacity) {
@@ -150,6 +150,14 @@ public abstract class HashMap {
    */
   public int getLength(){
     return length;
+  }
+  
+  /**
+   * @return capacity of hash table internal arrays (i.e., max
+   * number of keys that can be stored)
+   */
+  public int getCapacity(){
+    return capacity;
   }
   
   /**

@@ -74,10 +74,12 @@ public abstract class FrequencyEstimator {
   
   
   /**
+   * @param threshold This function is guaranteed to return an array that contains 
+   * a superset of all keys with frequency above the threshold.
    * @return an array of keys containing all keys whose frequencies are
    * are least the error tolerance.   
    */
-  abstract public long[] getFrequentKeys();
+  abstract public long[] getFrequentKeys(long threshold);
   
   /**
    * @param other another FrequenciesEstimator of the same class  
@@ -109,7 +111,7 @@ public abstract class FrequencyEstimator {
    * Returns the sum of the frequencies in the stream seen so far by the sketch
    * @return the sum of the frequencies in the stream seen so far by the sketch
    */
-  abstract public int getStreamLength(); 
+  abstract public long getStreamLength(); 
   
   /**
    * Resets this sketch to a virgin state, but retains the original value of the error parameter

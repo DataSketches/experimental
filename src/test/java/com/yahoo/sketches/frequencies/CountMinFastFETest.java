@@ -198,7 +198,7 @@ public class CountMinFastFETest {
       realCounts.increment(key1);
       realCounts.increment(key2);
     }
-    CountMinFastFE countmin = (CountMinFastFE) countmin1.merge(countmin2);
+    CountMinFastFE countmin = countmin1.merge(countmin2);
 
 	int bad = 0;
 	int i = 0;
@@ -234,9 +234,10 @@ public class CountMinFastFETest {
       countmin.update(key); 
       realCounts.increment(key);
     }
-    long[] freq = countmin.getFrequentKeys();
+    long threshold = (long) error_tolerance * n;
+    long[] freq = countmin.getFrequentKeys(threshold);
     for(int i = 0; i < freq.length; i++) {
-      if(countmin.getEstimate(freq[i]) < (long)(error_tolerance * n)) {
+      if(countmin.getEstimate(freq[i]) < threshold) {
         System.out.format("length is: %d, i is %d, freq[i] is: %d, Estimate is %d, threshold is %f", freq.length, i, freq[i], countmin.getEstimate(freq[i]), error_tolerance*n);
       }
       Assert.assertTrue(countmin.getEstimate(freq[i]) >= (long)(error_tolerance * n)); 
@@ -281,7 +282,7 @@ public class CountMinFastFETest {
       realCounts.increment(key1);
       realCounts.increment(key2);
     }
-    CountMinFastFE countmin = (CountMinFastFE) countmin1.merge(countmin2);
+    CountMinFastFE countmin = countmin1.merge(countmin2);
 
 	  int bad = 0;
 	  int i = 0;

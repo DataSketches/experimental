@@ -28,7 +28,7 @@ import com.yahoo.sketches.hashmaps.HashMapWithImplicitDeletes;
  * 
  * @author Justin8712
  */
-public class FrequentItemsID extends FrequencyEstimator{
+public class FrequentItemsID {
 
   private HashMapWithImplicitDeletes counters;
   //maxSize is maximum number of counters stored
@@ -70,7 +70,7 @@ public class FrequentItemsID extends FrequencyEstimator{
    * @param key whose count estimate is returned.
    * @return an estimate of the count for the key.
    */
-  @Override
+  
   public long getEstimate(long key) { 
     //the logic below returns the count of associated counter if key is tracked.
     //If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -86,7 +86,7 @@ public class FrequentItemsID extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return an upper bound on the count for the key.
     */
-   @Override
+   
    public long getEstimateUpperBound(long key)
    {
      long estimate = getEstimate(key);
@@ -101,7 +101,7 @@ public class FrequentItemsID extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return a lower bound on the count for the key.
     */
-   @Override
+   
    public long getEstimateLowerBound(long key)
    {
      if(getEstimate(key) == 0)
@@ -117,7 +117,7 @@ public class FrequentItemsID extends FrequencyEstimator{
    * @return the maximal error of the estimate one gets from get(key).
    * 
    */
-  @Override
+  
   public long getMaxError() {
       return offset + mergeError;
   }
@@ -126,7 +126,7 @@ public class FrequentItemsID extends FrequencyEstimator{
    * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
    */
-  @Override  
+    
   public void update(long key) {
     update(key, 1);
   }
@@ -134,10 +134,10 @@ public class FrequentItemsID extends FrequencyEstimator{
 
   
   /**
-   * @param key 
-   * A key (as long) to be added to the sketch. The key cannot be null.
+   * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
+   * @param increment Amount to increment frequency by.
+   * 
    */
-  @Override
   public void update(long key, long increment) {
     this.streamLength += increment;
     counters.adjust(key, increment);  
@@ -184,16 +184,13 @@ public class FrequentItemsID extends FrequencyEstimator{
     * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
     * This method does not create a new sketch. The sketch whose function is executed is changed.
     */
-    @Override
-   public FrequencyEstimator merge(FrequencyEstimator other) {
-     if (!(other instanceof FrequentItemsID)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-       FrequentItemsID otherCasted = (FrequentItemsID) other;
-       
-     this.streamLength += otherCasted.streamLength;
-     this.mergeError += otherCasted.getMaxError();
+    
+   public FrequentItemsID merge(FrequentItemsID other) {       
+     this.streamLength += other.streamLength;
+     this.mergeError += other.getMaxError();
      
-     long[] other_keys = otherCasted.counters.getKeys();
-     long[] other_values = otherCasted.counters.getValues();
+     long[] other_keys = other.counters.getKeys();
+     long[] other_values = other.counters.getValues();
       
      for (int i=other_keys.length; i-->0;) { 
        this.update(other_keys[i], other_values[i]);
@@ -206,7 +203,7 @@ public class FrequentItemsID extends FrequencyEstimator{
     * @return an array containing all keys exceed the frequency threshold of roughly 1/errorParameter+1
     * 
     */
-   @Override
+   
    public long[] getFrequentKeys() {
      int count = 0;
      long[] keys = counters.ProtectedGetKey();

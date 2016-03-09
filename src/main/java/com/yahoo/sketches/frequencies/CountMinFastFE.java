@@ -26,7 +26,7 @@ import gnu.trove.set.hash.TLongHashSet;
 
 
 //@SuppressWarnings("cast")
-public class CountMinFastFE extends FrequencyEstimator{
+public class CountMinFastFE {
   
   //hashes denotes the number of cells in the sketcheach key is hashed to
   private int hashes;
@@ -113,7 +113,7 @@ public class CountMinFastFE extends FrequencyEstimator{
    * Process a key (specified as a long) update and treat the increment as 1,
    * using the update function specified by Cormode and Muthukrishnan
    */
-   @Override  
+     
   public void update(long key) {
     update(key, 1);
   }
@@ -134,7 +134,7 @@ public class CountMinFastFE extends FrequencyEstimator{
    * Process a key (specified as a long) and an increment (also specified as a long).
    * Increment CANNOT be negative, because of the way we are tracking frequent items.
    */  
-   @Override
+   
   public void update(long key, long increment) {
     if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
     
@@ -258,7 +258,7 @@ public class CountMinFastFE extends FrequencyEstimator{
    * 1) get(key) >= real count
    * 2) get(key) <= real count + getMaxError() 
    */
-   @Override
+   
   public long getEstimate(long key) { 
     keyArr[0] = key;
     long min_count = Long.MAX_VALUE;
@@ -285,7 +285,7 @@ public class CountMinFastFE extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return an upper bound on the count for the key (upper bound holds deterministically)
     */
-  @Override
+  
   public long getEstimateUpperBound(long key) { 
     return getEstimate(key);
   }
@@ -294,7 +294,7 @@ public class CountMinFastFE extends FrequencyEstimator{
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key (lower bound holds with probability at least 1-delta)
    */
-  @Override
+  
   public long getEstimateLowerBound(long key) { 
     return getEstimate(key) - getMaxError();
   }
@@ -305,7 +305,7 @@ public class CountMinFastFE extends FrequencyEstimator{
    * get(key) >= realCount(key). The guarantee of the sketch is that, for any fixed key, 
    * with probability at least 1-delta, realCount(key) is also at most get(key) + getMaxError() 
    */
-   @Override
+   
   public long getMaxError() {
     return (long) (Math.ceil(this.eps * this.update_sum)); 
   }
@@ -318,20 +318,18 @@ public class CountMinFastFE extends FrequencyEstimator{
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    * This method does not create a new sketch. The sketch whose function is executed is changed.
    */
-  @Override
-  public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof CountMinFastFE)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-    CountMinFastFE otherCasted = (CountMinFastFE)other;
-    if(this.hashes != otherCasted.hashes || this.length != otherCasted.length){
+  
+  public CountMinFastFE merge(CountMinFastFE other) {
+    if(this.hashes != other.hashes || this.length != other.length){
       throw new IllegalArgumentException("Trying to merge two CountMin data structures of different sizes.");
     }
     
     //add the counters from the two sketches
     for(int i = 0; i < this.length; i++){
-      this.counts[i] +=otherCasted.counts[i];
+      this.counts[i] +=other.counts[i];
     }
     
-    this.update_sum += otherCasted.update_sum;
+    this.update_sum += other.update_sum;
     
     //compute the set of items considered frequent in the new (merged) sketch
     TLongHashSet newset = new TLongHashSet(this.freq_limit);
@@ -343,8 +341,8 @@ public class CountMinFastFE extends FrequencyEstimator{
         newset.add(key);
       }
     }
-    it = otherCasted.freq_keys.iterator();
-    for ( int i = otherCasted.freq_keys.size(); i-- > 0; ) {
+    it = other.freq_keys.iterator();
+    for ( int i = other.freq_keys.size(); i-- > 0; ) {
       long key = it.next();
       if(getEstimate(key) >= threshold){
         newset.add(key);
@@ -356,15 +354,11 @@ public class CountMinFastFE extends FrequencyEstimator{
   }
   
   
-  /**
-   * @return an array of keys containing all keys whose estimated frequencies are
-   * are least the error tolerance.   
-   */
-  @Override
-  public long[] getFrequentKeys() {
+  
+  public long[] getFrequentKeys(long threshold) {
     TLongIterator it = this.freq_keys.iterator();
     int count = 0;
-    long threshold = (long) (eps*this.update_sum);
+
     for ( int i = this.freq_keys.size(); i-- > 0; ) {
       long key = it.next();
       if(getEstimate(key) >= threshold){

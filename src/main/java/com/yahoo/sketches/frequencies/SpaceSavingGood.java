@@ -39,7 +39,7 @@ import gnu.trove.map.hash.TLongIntHashMap;
 
 
 //@SuppressWarnings("cast")
-public class SpaceSavingGood extends FrequencyEstimator{
+public class SpaceSavingGood {
   
   //queue will store counters and their associated keys 
   //for fast access to smallest counter. 
@@ -65,11 +65,10 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * with additive error bounded by errorTolerance*n, where n is the sum of all item frequencies.
    */    
   public SpaceSavingGood(double errorTolerance) {
-    super(errorTolerance);
     this.errorTolerance = errorTolerance;
     //make sure maxSize is odd to ensure that all heap nodes either have
     //two children or no children
-    this.maxSize = ((int)(1.0/getErrorTolerance())+1) | 1;
+    this.maxSize = ((int)(1.0/errorTolerance)+1) | 1;
     this.heap_indices = new TLongIntHashMap(maxSize);
     //keys and counts will be indexed from 1, to maintain easy min-heap arithmetic
     //i.e., children of index i will be indices 2*i and 2*i+1
@@ -143,7 +142,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * 
    * @param key key whose frequency should be incremented
    */
-   @Override  
+     
   public void update(long key) {
     update(key, 1);
   }
@@ -154,7 +153,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * @param key A key specified as a long, whose frequency should be incremented
    * @param increment The amount by which to increment the frequency of key
    */  
-   @Override
+   
   public void update(long key, long increment) {
     if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
     
@@ -194,7 +193,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * Note that in the absence of merging (i.e., if mergeError == 0)
    * then getEstimate returns an upper bound on real count.
    */
-   @Override
+   
   public long getEstimate(long key) { 
     //the logic below returns the count of associated counter if key is tracked.
     //If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -210,7 +209,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return an upper bound on the count for the key.
     */
-   @Override
+   
    public long getEstimateUpperBound(long key)
    {
      return (getEstimate(key) + mergeError + counts[1]);
@@ -220,7 +219,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return a lower bound on the count for the key.
     */
-   @Override
+   
    public long getEstimateLowerBound(long key)
    {
        
@@ -235,7 +234,7 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * If the real count is realCount(key) then
    * get(key) + getMaxError() >= realCount(key) >= get(key) - getMaxError().
    */
-   @Override 
+    
   public long getMaxError() {
     return counts[1] + mergeError;
   }
@@ -254,22 +253,19 @@ public class SpaceSavingGood extends FrequencyEstimator{
    * @param other Another SpaceSavingGood sketch. Potentially of different size. 
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    */
-  @Override
-  public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof SpaceSavingGood)) throw new IllegalArgumentException("SpaceSavingTrove can only merge with other SpaceSavingTrove");
-      SpaceSavingGood otherCasted = (SpaceSavingGood)other;
+  
+  public SpaceSavingGood merge(SpaceSavingGood other) {
+    this.stream_length += other.stream_length;
+    this.mergeError += other.getMaxError();
     
-    this.stream_length += otherCasted.stream_length;
-    this.mergeError += otherCasted.getMaxError();
-    
-    for ( int i = otherCasted.maxSize; i >= 1; i-- ) {
-      if(otherCasted.counts[i] > 0)
-        this.update(otherCasted.keys[i], otherCasted.counts[i]);
+    for ( int i = other.maxSize; i >= 1; i-- ) {
+      if(other.counts[i] > 0)
+        this.update(other.keys[i], other.counts[i]);
     }
     return this;
   }
   
-  @Override
+  
   public long[] getFrequentKeys() {    
     int count = 0;
     long threshold = (long) (this.stream_length * this.errorTolerance);

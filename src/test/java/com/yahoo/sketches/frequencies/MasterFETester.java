@@ -47,13 +47,9 @@ public class MasterFETester{
     sketch.update(1000001, 1010230);
     sketch.update(1000002, 1010230);
     
-    System.out.println("Here we go!");
     byte[] bytearray0 = sketch.toByteArray();
-    System.out.println("Done!");
     Memory mem0 = new NativeMemory(bytearray0);
-    System.out.println("Done again!");
     FrequentItems new_sketch0 = FrequentItems.getInstance(mem0);
-    System.out.println("Done yet again!");
     
     String string0 = sketch.toString();
     String new_string0 = new_sketch0.toString();
@@ -93,7 +89,6 @@ public class MasterFETester{
     assert(new_sketch2.getK() == sketch2.getK());
     assert(new_sketch2.getStreamLength() == sketch2.getStreamLength());
     
-    System.out.println("about to perform merge.");
     FrequentItems merged_sketch = (FrequentItems) sketch.merge(sketch2);
     
     byte[] bytearray = sketch.toByteArray();
@@ -168,7 +163,6 @@ public class MasterFETester{
     assert(new_sketch2.getK() == sketch2.getK());
     assert(new_sketch2.getStreamLength() == sketch2.getStreamLength());
     
-    System.out.println("about to perform merge.");
     FrequentItems merged_sketch = (FrequentItems) sketch.merge(sketch2);
     
     String string = merged_sketch.toString();
@@ -383,12 +377,10 @@ public class MasterFETester{
     double zet=zeta(n,1.1);
     PositiveCountersMap realCounts = new PositiveCountersMap();
     
-    System.out.println("starting loop");
     for(int i = 0; i <n; i++) {
       stream[i] = zipf(1.1, n, zet);
       realCounts.increment(stream[i]);
     }
-    System.out.println("done loop");
     
     int numEstimators = 1;
     
@@ -443,12 +435,10 @@ public class MasterFETester{
     double zet=zeta(n,1.1);
     PositiveCountersMap realCounts = new PositiveCountersMap();
     
-    System.out.println("starting loop");
     for(int i = 0; i <n; i++) {
       stream[i] = zipf(1.1, n, zet);
       realCounts.increment(stream[i]);
     }
-    System.out.println("done loop");
     
     int numEstimators = 1;
     
@@ -502,7 +492,6 @@ public class MasterFETester{
     double prob2 = .005;
     int numEstimators = 1;
     
-    System.out.println("start");
     for(int h=0; h<numEstimators; h++) {
       FrequencyEstimator estimator1 = newFrequencyEstimator(error_tolerance, delta, h);
       FrequencyEstimator estimator2 = newFrequencyEstimator(error_tolerance, delta, h);
@@ -549,7 +538,6 @@ public class MasterFETester{
     double prob = .01;
     int numEstimators = 1;
     
-    System.out.println("start of more stringent merge test");
     for(int h=0; h<numEstimators; h++) {
       for(int z = 0; z < num_to_merge; z++) 
         estimators[z] = newFrequencyEstimator(error_tolerance, delta, h);

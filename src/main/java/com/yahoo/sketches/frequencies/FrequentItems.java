@@ -417,7 +417,7 @@ public class FrequentItems extends FrequencyEstimator{
        */
       public int getStorageBytes() {
         if (isEmpty()) return 20;
-        return 32 + 16 * this.counters.getSize();
+        return 48 + 16 * this.counters.getSize();
       }
       
       /**
@@ -519,12 +519,11 @@ public class FrequentItems extends FrequencyEstimator{
           
           long pre2 = 0L;
           pre2 = insertBufferLength(this.counters.getSize(), pre2);
-          
           preArr[5] = pre2;
           
           mem.putLongArray(0, preArr, 0, 6);
-          mem.putLongArray(32, counters.getKeys(), 0, this.counters.getSize());
-          mem.putLongArray(32, counters.getValues(), 0, this.counters.getSize());
+          mem.putLongArray(48, counters.getKeys(), 0, this.counters.getSize());
+          mem.putLongArray(48, counters.getValues(), 0, this.counters.getSize());
         }
         return outArr;
       }
@@ -551,6 +550,7 @@ public class FrequentItems extends FrequencyEstimator{
         if (memCapBytes < 8) {
           throw new IllegalArgumentException("Memory too small: "+memCapBytes);
         }
+
         long pre0 = srcMem.getLong(0);
         int preambleLongs = extractPreLongs(pre0);
         assert((preambleLongs == 1) || (preambleLongs == 5) );
@@ -561,10 +561,9 @@ public class FrequentItems extends FrequencyEstimator{
         int emptyFlag = extractEmptyFlag(pre0);
         int k = extractLowerK(pre0);
         
-          
         if (emptyFlag == 1) 
           return new FrequentItems(k);
-        
+          
         //Not empty, must have valid preamble
         long[] remainderPreArr = new long[5];
         srcMem.getLongArray(8, remainderPreArr, 0, 5);
@@ -588,8 +587,8 @@ public class FrequentItems extends FrequencyEstimator{
         long[] keyArray = new long[bufferLength];
         long[] valueArray = new long[bufferLength];
         
-        srcMem.getLongArray(40, keyArray, 0, bufferLength);
-        srcMem.getLongArray(40 + 8 * bufferLength, valueArray, 0, bufferLength);
+        srcMem.getLongArray(48, keyArray, 0, bufferLength);
+        srcMem.getLongArray(48 + 8 * bufferLength, valueArray, 0, bufferLength);
         
         for(int i = 0; i < bufferLength; i++)
         {

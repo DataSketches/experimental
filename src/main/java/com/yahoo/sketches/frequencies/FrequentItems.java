@@ -462,22 +462,26 @@ public class FrequentItems extends FrequencyEstimator{
         return sketch;
       }
       
-      /** @return byte array that looks as follows: 
-      *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
-      *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | Preamble_Longs |  
-      *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
-      *  1   ||---------------------------------mergeError--------------------------------------|
-      *      ||    23    |   22   |   21   |   20   |   19   |   18   |   17   |    16          |
-      *  2   ||---------------------------------offset------------------------------------------|      
-      *      ||    31    |   30   |   29   |   28   |   27   |   26   |   25   |    24          |
-      *  3   ||-----------------------------------streamLength----------------------------------| 
-      *      ||    39    |   38   |   37   |   36   |   35   |   34   |   33   |    32          |
-      *  4   ||------initialSize--------------------|-------------------K-----------------------| 
-      *      ||    47    |   46   |   45   |   44   |   43   |   42   |   41   |   40           |
-      *  5   ||------------(unused)-----------------|--------bufferlength-----------------------| 
-      *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
-      *  6   ||----------start of keys buffer, followed by values buffer------------------------|
-      **/
+      //@formatter:off
+      /** @return byte array that looks as follows:
+       * <pre> 
+       *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
+       *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | Preamble_Longs |  
+       *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
+       *  1   ||---------------------------------mergeError--------------------------------------|
+       *      ||    23    |   22   |   21   |   20   |   19   |   18   |   17   |    16          |
+       *  2   ||---------------------------------offset------------------------------------------|      
+       *      ||    31    |   30   |   29   |   28   |   27   |   26   |   25   |    24          |
+       *  3   ||-----------------------------------streamLength----------------------------------| 
+       *      ||    39    |   38   |   37   |   36   |   35   |   34   |   33   |    32          |
+       *  4   ||------initialSize--------------------|-------------------K-----------------------| 
+       *      ||    47    |   46   |   45   |   44   |   43   |   42   |   41   |   40           |
+       *  5   ||------------(unused)-----------------|--------bufferlength-----------------------| 
+       *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
+       *  6   ||----------start of keys buffer, followed by values buffer------------------------|
+       *  </pre>
+       **/
+      //@formatter:on
       public byte[] toByteArray() {
         int preLongs, arrLongs;
         boolean empty = isEmpty();
@@ -500,6 +504,8 @@ public class FrequentItems extends FrequencyEstimator{
         pre0 = insertFamilyID(10, pre0);
         if(empty)
           pre0 = insertEmptyFlag(1, pre0);
+        else
+          pre0 = insertEmptyFlag(0, pre0);
         pre0 = insertLowerK(this.k, pre0);
         
         if (empty) {

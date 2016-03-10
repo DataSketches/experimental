@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.frequencies;
 
 import java.util.PriorityQueue;
@@ -43,7 +48,7 @@ import java.util.Map;
 
 
 //@SuppressWarnings("cast")
-public class SpaceSaving extends FrequencyEstimator{
+public class SpaceSaving {
   
   //queue will store counters and their associated keys 
   //for fast access to smallest counter. 
@@ -67,8 +72,7 @@ public class SpaceSaving extends FrequencyEstimator{
    * with additive error bounded by errorTolerance*n, where n is the sum of all item frequencies.
    */    
   public SpaceSaving(double errorTolerance) {
-    super(errorTolerance);
-    this.maxSize = (int)(1.0/getErrorTolerance())+1;
+    this.maxSize = (int)(1.0/errorTolerance)+1;
     this.queue = new PriorityQueue<Pair>(maxSize);
     this.counts = new HashMap<Long,Long>(maxSize);
     this.mergeError = 0;
@@ -81,16 +85,16 @@ public class SpaceSaving extends FrequencyEstimator{
    * @param key 
    * Process a key (specified as a long) update and treat the increment as 1
    */
-   @Override  
+     
   public void update(long key) {
     update(key, 1);
   }
 
   /**
-   * @param key 
-   * Process a key (specified as a long) and a non-negative increment.
-   */  
-   @Override
+   * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
+   * @param increment Amount to increment frequency by.
+   * 
+   */
   public void update(long key, long increment) {
     if (increment <= 0) throw new IllegalArgumentException("Received negative or zero value for increment.");
     
@@ -141,7 +145,7 @@ public class SpaceSaving extends FrequencyEstimator{
    * Note that in the absence of merging (i.e., if mergeError == 0)
    * then getEstimate returns an upper bound on real count.
    */
-   @Override
+   
   public long getEstimate(long key) { 
     //the logic below returns the count of associated counter if key is tracked.
     //If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -157,7 +161,7 @@ public class SpaceSaving extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return an upper bound on the count for the key.
     */
-   @Override
+   
    public long getEstimateUpperBound(long key)
    {
      if(counts.size() > 0)
@@ -169,7 +173,7 @@ public class SpaceSaving extends FrequencyEstimator{
     * @param key whose count estimate is returned.
     * @return a lower bound on the count for the key.
     */
-   @Override
+   
    public long getEstimateLowerBound(long key)
    {
      if(getEstimate(key) == 0)
@@ -186,7 +190,7 @@ public class SpaceSaving extends FrequencyEstimator{
    * If the real count is realCount(key) then
    * get(key) + getMaxError() >= realCount(key) >= get(key) - getMaxError().
    */
-   @Override
+   
   public long getMaxError() {
     if(counts.size() < maxSize)
       return mergeError;
@@ -208,21 +212,18 @@ public class SpaceSaving extends FrequencyEstimator{
    * @param other Another SpaceSaving sketch. Potentially of different size. 
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
    */
-  @Override
-  public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof SpaceSaving)) throw new IllegalArgumentException("SpaceSaving can only merge with other SpaceSaving");
-      SpaceSaving otherCasted = (SpaceSaving)other;
-    
-    this.stream_length += otherCasted.stream_length;
-    this.mergeError += otherCasted.getMaxError();
+  
+  public SpaceSaving merge(SpaceSaving other) {    
+    this.stream_length += other.stream_length;
+    this.mergeError += other.getMaxError();
 
-    for (Map.Entry<Long, Long> entry : otherCasted.counts.entrySet()) { 
+    for (Map.Entry<Long, Long> entry : other.counts.entrySet()) { 
       this.update(entry.getKey(), entry.getValue());
     }
     return this;
   }
   
-  @Override
+  
   public long[] getFrequentKeys() {
     Collection<Long> keysCollection = counts.keySet();
     int count = 0;

@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.frequencies;
 
 import org.testng.annotations.Test;
@@ -204,7 +209,7 @@ public class SpaceSavingTest {
       realCounts.increment(key1);
       realCounts.increment(key2);
     }
-    SpaceSaving spacesaving = (SpaceSaving) spacesaving1.merge(spacesaving2);
+    SpaceSaving spacesaving = spacesaving1.merge(spacesaving2);
 
     for ( long key : realCounts.keys()) {
       long realCount = realCounts.get(key);

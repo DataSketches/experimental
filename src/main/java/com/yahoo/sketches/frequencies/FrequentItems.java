@@ -177,7 +177,7 @@ public class FrequentItems extends FrequencyEstimator{
   /**
    * @return the number of positive counters in the sketch.
    */
-  public long nnz() {
+  public int nnz() {
     return counters.getSize();
   }
   
@@ -254,7 +254,7 @@ public class FrequentItems extends FrequencyEstimator{
   public void update(long key, long increment) {
     this.streamLength += increment;
     counters.adjust(key, increment);
-    int size = counters.getSize();  
+    int size = this.nnz();  
     
     //if the data structure needs to be grown
     if ((size >= this.K) && (this.K < this.maxK)) {
@@ -272,7 +272,7 @@ public class FrequentItems extends FrequencyEstimator{
     
     if(size > this.maxK) {
       purge();
-      assert(size <= this.maxK);
+      assert(this.nnz() <= this.maxK);
     }
   }
 
@@ -284,7 +284,7 @@ public class FrequentItems extends FrequencyEstimator{
    */
   private void purge()
   {
-    int limit = Math.min(this.sample_size, counters.getSize());
+    int limit = Math.min(this.sample_size, nnz());
     
     long[] values = counters.ProtectedGetValues();
     int num_samples = 0;
@@ -396,7 +396,7 @@ public class FrequentItems extends FrequencyEstimator{
      */
      @Override
     public boolean isEmpty() {
-     return this.counters.getSize() == 0; 
+     return nnz() == 0; 
     }
     
      /**
@@ -417,7 +417,7 @@ public class FrequentItems extends FrequencyEstimator{
        */
       public int getStorageBytes() {
         if (isEmpty()) return 20;
-        return 48 + 16 * this.counters.getSize();
+        return 48 + 16 * nnz();
       }
       
       /**
@@ -488,7 +488,7 @@ public class FrequentItems extends FrequencyEstimator{
         }
         else {
           preLongs = 6;
-          arrLongs = preLongs + 2*this.counters.getSize();
+          arrLongs = preLongs + 2*nnz();
         }
         byte[] outArr = new byte[arrLongs << 3];
         NativeMemory mem = new NativeMemory(outArr);
@@ -518,12 +518,12 @@ public class FrequentItems extends FrequencyEstimator{
           preArr[4] = pre1;
           
           long pre2 = 0L;
-          pre2 = insertBufferLength(this.counters.getSize(), pre2);
+          pre2 = insertBufferLength(nnz(), pre2);
           preArr[5] = pre2;
           
           mem.putLongArray(0, preArr, 0, 6);
-          mem.putLongArray(48, counters.getKeys(), 0, this.counters.getSize());
-          mem.putLongArray(48, counters.getValues(), 0, this.counters.getSize());
+          mem.putLongArray(48, counters.getKeys(), 0, this.nnz());
+          mem.putLongArray(48+(this.nnz()<<3), counters.getValues(), 0, this.nnz());
         }
         return outArr;
       }
@@ -580,7 +580,6 @@ public class FrequentItems extends FrequencyEstimator{
         
         FrequentItems hfi = new FrequentItems(k, K);
         hfi.initialSize=initialSize;
-        hfi.streamLength = streamLength;
         hfi.offset=offset;
         hfi.mergeError = mergeError;
         
@@ -593,8 +592,8 @@ public class FrequentItems extends FrequencyEstimator{
         for(int i = 0; i < bufferLength; i++)
         {
           hfi.update(keyArray[i], valueArray[i]);
-        }
-        
+        }   
+        hfi.streamLength = streamLength;   
         return hfi;
       }
 }

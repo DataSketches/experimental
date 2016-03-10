@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.frequencies;
 import com.yahoo.sketches.hash.MurmurHash3;
 
@@ -86,7 +91,6 @@ public class CountMinFast{
     
     //initialize counts to contain only zeros
     counts = new long[this.length];
-    System.out.format("This.length in CountMinFast is: %d \n", this.length);
     for(int i = 0; i < this.length; i++){
       counts[i] = 0;
     }

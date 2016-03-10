@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.frequencies;
 
 import java.util.Collection;
@@ -39,7 +44,7 @@ public class MasterFETester{
 
   @Test
   static private void FrequentItemsByteSerialTest(){
-    FrequentItems sketch = new FrequentItems(10);
+    FrequentItems sketch = new FrequentItems(10, 8);
     FrequentItems sketch2 = new FrequentItems(100);
     sketch.update(10, 100);
     sketch.update(10, 100);
@@ -53,9 +58,9 @@ public class MasterFETester{
     
     String string0 = sketch.toString();
     String new_string0 = new_sketch0.toString();
-    assert(string0.equals(new_string0));
-    assert(new_sketch0.getMaxK() == sketch.getMaxK());
-    assert(new_sketch0.getK() == sketch.getK());
+    Assert.assertTrue(string0.equals(new_string0));
+    Assert.assertTrue(new_sketch0.getMaxK() == sketch.getMaxK());
+    Assert.assertTrue(new_sketch0.getK() == sketch.getK());
     
     sketch2.update(190, 12902390);
     sketch2.update(191, 12902390);
@@ -84,10 +89,10 @@ public class MasterFETester{
     String string2 = sketch2.toString();
     String new_string2 = new_sketch2.toString();
     
-    assert(string2.equals(new_string2));
-    assert(new_sketch2.getMaxK() == sketch2.getMaxK());
-    assert(new_sketch2.getK() == sketch2.getK());
-    assert(new_sketch2.getStreamLength() == sketch2.getStreamLength());
+    Assert.assertTrue(string2.equals(new_string2));
+    Assert.assertTrue(new_sketch2.getMaxK() == sketch2.getMaxK());
+    Assert.assertTrue(new_sketch2.getK() == sketch2.getK());
+    Assert.assertTrue(new_sketch2.getStreamLength() == sketch2.getStreamLength());
     
     FrequentItems merged_sketch = (FrequentItems) sketch.merge(sketch2);
     
@@ -98,10 +103,10 @@ public class MasterFETester{
     String string = sketch.toString();
     String new_string = new_sketch.toString();
     
-    assert(string.equals(new_string));
-    assert(new_sketch.getMaxK() == merged_sketch.getMaxK());
-    assert(new_sketch.getK() == merged_sketch.getK());
-    assert(new_sketch.getStreamLength() == merged_sketch.getStreamLength());
+    Assert.assertTrue(string.equals(new_string));
+    Assert.assertTrue(new_sketch.getMaxK() == merged_sketch.getMaxK());
+    Assert.assertTrue(new_sketch.getK() == merged_sketch.getK());
+    Assert.assertTrue(new_sketch.getStreamLength() == merged_sketch.getStreamLength());
   }
 
   
@@ -115,7 +120,7 @@ public class MasterFETester{
     String string = map.hashMapReverseEfficientToString();
     HashMapReverseEfficient new_map = HashMapReverseEfficient.StringToHashMapReverseEfficient(string);
     String new_string = new_map.hashMapReverseEfficientToString();
-    assert(string.equals(new_string));    
+    Assert.assertTrue(string.equals(new_string));    
   }
   
   @Test
@@ -131,9 +136,9 @@ public class MasterFETester{
     String string0 = sketch.toString();
     FrequentItems new_sketch0 = FrequentItems.StringToFrequentItems(string0);
     String new_string0 = new_sketch0.toString();
-    assert(string0.equals(new_string0));
-    assert(new_sketch0.getMaxK() == sketch.getMaxK());
-    assert(new_sketch0.getK() == sketch.getK());
+    Assert.assertTrue(string0.equals(new_string0));
+    Assert.assertTrue(new_sketch0.getMaxK() == sketch.getMaxK());
+    Assert.assertTrue(new_sketch0.getK() == sketch.getK());
     
     sketch2.update(190, 12902390);
     sketch2.update(191, 12902390);
@@ -158,20 +163,20 @@ public class MasterFETester{
     String string2 = sketch2.toString();
     FrequentItems new_sketch2 = FrequentItems.StringToFrequentItems(string2);
     String new_string2 = new_sketch2.toString();
-    assert(string2.equals(new_string2));
-    assert(new_sketch2.getMaxK() == sketch2.getMaxK());
-    assert(new_sketch2.getK() == sketch2.getK());
-    assert(new_sketch2.getStreamLength() == sketch2.getStreamLength());
+    Assert.assertTrue(string2.equals(new_string2));
+    Assert.assertTrue(new_sketch2.getMaxK() == sketch2.getMaxK());
+    Assert.assertTrue(new_sketch2.getK() == sketch2.getK());
+    Assert.assertTrue(new_sketch2.getStreamLength() == sketch2.getStreamLength());
     
     FrequentItems merged_sketch = (FrequentItems) sketch.merge(sketch2);
     
     String string = merged_sketch.toString();
     FrequentItems new_sketch = FrequentItems.StringToFrequentItems(string);
     String new_string = new_sketch.toString();
-    assert(string.equals(new_string));
-    assert(new_sketch.getMaxK() == merged_sketch.getMaxK());
-    assert(new_sketch.getK() == merged_sketch.getK());
-    assert(new_sketch.getStreamLength() == merged_sketch.getStreamLength());
+    Assert.assertTrue(string.equals(new_string));
+    Assert.assertTrue(new_sketch.getMaxK() == merged_sketch.getMaxK());
+    Assert.assertTrue(new_sketch.getK() == merged_sketch.getK());
+    Assert.assertTrue(new_sketch.getStreamLength() == merged_sketch.getStreamLength());
   }
   
   @Test

@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.frequencies;
 
 import org.testng.annotations.Test;
@@ -7,7 +12,7 @@ import java.lang.Math;
 /**
  * Tests FrequentItems class
  * 
- * @author edo, Justin8712
+ * @author Edo Liberty, Justin Thaler
  * 
  */
 public class FrequentItemsTest {
@@ -35,7 +40,7 @@ public class FrequentItemsTest {
     FrequentItems frequentItems = new FrequentItems(maxSize);
     for (long key=0L; key<10000L; key++){
       frequentItems.update(key);
-      Assert.assertTrue(frequentItems.nnz() <= maxSize);
+      Assert.assertTrue(frequentItems.nnz() <= frequentItems.getMaxK());
     }
   }
   

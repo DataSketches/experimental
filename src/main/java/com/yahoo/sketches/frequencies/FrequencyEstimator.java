@@ -90,14 +90,14 @@ public abstract class FrequencyEstimator {
   abstract public FrequencyEstimator merge(FrequencyEstimator other);
 
   /**
-   * Returns the current number of counters the sketch is configured to store.
-   * @return the current number of counters the sketch is configured to store.
+   * Returns the current number of counters the sketch is configured to support.
+   * @return the current number of counters the sketch is configured to support.
    */
   abstract public int getK();
   
   /**
-   * Returns the maximum number of counters the sketch will ever be configured to store.
-   * @return the maximum number of counters the sketch will ever be configured to store.
+   * Returns the maximum number of counters the sketch will ever be configured to support.
+   * @return the maximum number of counters the sketch will ever be configured to support.
    */
   abstract public int getMaxK();
   

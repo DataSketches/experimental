@@ -50,7 +50,7 @@ public class HashMapReverseEfficient extends HashMap {
     
     if (states[probe] == 0) {
       // adding the key to the table the value
-      assert(size < capacity);
+      assert(size <= capacity);
       keys[probe] = key;
       values[probe] = putAmount;
       states[probe] = (short) drift;

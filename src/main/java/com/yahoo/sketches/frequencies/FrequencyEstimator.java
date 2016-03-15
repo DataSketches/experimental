@@ -76,16 +76,19 @@ public abstract class FrequencyEstimator {
   /**
    * @param threshold This function is guaranteed to return an array that contains 
    * a superset of all keys with frequency above the threshold.
-   * @return an array of keys containing all keys whose frequencies are
+   * @return an array of keys containing a superset of all keys whose frequencies are
    * are least the error tolerance.   
    */
   abstract public long[] getFrequentKeys(long threshold);
   
   /**
+   * This function merges two FrequencyEstimator sketches, potentially of different sizes.
    * @param other another FrequenciesEstimator of the same class  
    * @return a pointer to a FrequencyEstimator whose estimates 
    * are within the guarantees of the largest error tolerance of
-   * the two merged sketches.  
+   * the two merged sketches. This method does not create a new sketch. 
+   * The sketch whose function is executed is changed
+   * and a reference to it is returned.
    */
   abstract public FrequencyEstimator merge(FrequencyEstimator other);
 

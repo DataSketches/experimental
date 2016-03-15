@@ -181,10 +181,6 @@ public class FrequentItems extends FrequencyEstimator{
     return counters.getSize();
   }
   
-  /**
-   * @param key whose count estimate is returned.
-   * @return an estimate of the count for the key.
-   */
   @Override
   public long getEstimate(long key) { 
     //the logic below returns the count of associated counter if key is tracked.
@@ -196,10 +192,6 @@ public class FrequentItems extends FrequencyEstimator{
       return 0;
   }
   
-   /**
-    * @param key whose count estimate is returned.
-    * @return an upper bound on the count for the key.
-    */
    @Override
    public long getEstimateUpperBound(long key)
    {
@@ -211,10 +203,6 @@ public class FrequentItems extends FrequencyEstimator{
 
    }
    
-   /**
-    * @param key whose count estimate is returned.
-    * @return a lower bound on the count for the key.
-    */
    @Override
    public long getEstimateLowerBound(long key)
    {
@@ -226,30 +214,16 @@ public class FrequentItems extends FrequencyEstimator{
      return (estimate-offset-mergeError);
    }
 
-  /**
-   * @return the maximal error of the estimate one gets from get(key).
-   * 
-   */
   @Override
   public long getMaxError() {
       return offset + mergeError;
   }
   
-  /**
-   * @param key 
-   * Process a key (specified as a long) update and treat the increment as 1
-   */
   @Override  
   public void update(long key) {
     update(key, 1);
   }
 
-
-  
-  /**
-   * @param key 
-   * A key (as long) to be added to the sketch. The key cannot be null.
-   */
   @Override
   public void update(long key, long increment) {
     this.streamLength += increment;
@@ -306,16 +280,7 @@ public class FrequentItems extends FrequencyEstimator{
     this.offset += val; 
   }
 
-  
-   /**
-    * This function merges two FrequentItems sketches
-    * @param other
-    * Another FrequentItems sketch. Potentially of different size. 
-    * @return pointer to the sketch resulting in adding the approximate counts of another sketch. 
-    * This method does not create a new sketch. The sketch whose function is executed is changed
-    * and a reference to it is returned.
-    */
-    @Override
+   @Override
    public FrequencyEstimator merge(FrequencyEstimator other) {
      if (!(other instanceof FrequentItems)) throw new IllegalArgumentException("FrequentItems can only merge with other FrequentItems");
        FrequentItems otherCasted = (FrequentItems) other;
@@ -332,12 +297,6 @@ public class FrequentItems extends FrequencyEstimator{
      return this;
    }
   
-    /**
-     * @param threshold This function is guaranteed to return an array that contains 
-     * a superset of all keys with frequency above the threshold.
-     * @return an array of keys containing all keys whose frequencies are
-     * are least the error tolerance.   
-     */
    @Override
    public long[] getFrequentKeys(long threshold) {
      int count = 0;
@@ -363,46 +322,27 @@ public class FrequentItems extends FrequencyEstimator{
    }
    
    
-   /**
-    * Returns the current number of counters the sketch is configured to store.
-    * @return the current number of counters the sketch is configured to store.
-    */
-    @Override
+   @Override
    public int getK() {
      return this.K;
    }
    
-    /**
-     * Returns the sum of the frequencies in the stream seen so far by the sketch
-     * @return the sum of the frequencies in the stream seen so far by the sketch
-     */
-     @Override
+    @Override
     public long getStreamLength() {
       return this.streamLength;
     }
    
-   /**
-    * Returns the maximum number of counters the sketch will ever be configured to store.
-    * @return the maximum number of counters the sketch will ever be configured to store.
-    */
-    @Override
+   @Override
    public int getMaxK() {
      return this.maxK;
    }
    
-    /**
-     * Returns true if this sketch is empty
-     * @return true if this sketch is empty
-     */
-     @Override
+    @Override
     public boolean isEmpty() {
      return nnz() == 0; 
     }
     
-     /**
-      * Resets this sketch to a virgin state, but retains the original value of the error parameter.
-      */
-      @Override
+     @Override
      public void reset() {
        this.K = this.initialSize;
        counters = new HashMapReverseEfficient(this.K);
@@ -462,22 +402,26 @@ public class FrequentItems extends FrequencyEstimator{
         return sketch;
       }
       
-      /** @return byte array that looks as follows: 
-      *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
-      *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | Preamble_Longs |  
-      *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
-      *  1   ||---------------------------------mergeError--------------------------------------|
-      *      ||    23    |   22   |   21   |   20   |   19   |   18   |   17   |    16          |
-      *  2   ||---------------------------------offset------------------------------------------|      
-      *      ||    31    |   30   |   29   |   28   |   27   |   26   |   25   |    24          |
-      *  3   ||-----------------------------------streamLength----------------------------------| 
-      *      ||    39    |   38   |   37   |   36   |   35   |   34   |   33   |    32          |
-      *  4   ||------initialSize--------------------|-------------------K-----------------------| 
-      *      ||    47    |   46   |   45   |   44   |   43   |   42   |   41   |   40           |
-      *  5   ||------------(unused)-----------------|--------bufferlength-----------------------| 
-      *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
-      *  6   ||----------start of keys buffer, followed by values buffer------------------------|
-      **/
+      //@formatter:off
+      /** @return byte array that looks as follows:
+       * <pre> 
+       *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
+       *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | Preamble_Longs |  
+       *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
+       *  1   ||---------------------------------mergeError--------------------------------------|
+       *      ||    23    |   22   |   21   |   20   |   19   |   18   |   17   |    16          |
+       *  2   ||---------------------------------offset------------------------------------------|      
+       *      ||    31    |   30   |   29   |   28   |   27   |   26   |   25   |    24          |
+       *  3   ||-----------------------------------streamLength----------------------------------| 
+       *      ||    39    |   38   |   37   |   36   |   35   |   34   |   33   |    32          |
+       *  4   ||------initialSize--------------------|-------------------K-----------------------| 
+       *      ||    47    |   46   |   45   |   44   |   43   |   42   |   41   |   40           |
+       *  5   ||------------(unused)-----------------|--------bufferlength-----------------------| 
+       *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
+       *  6   ||----------start of keys buffer, followed by values buffer------------------------|
+       *  </pre>
+       **/
+      //@formatter:on
       public byte[] toByteArray() {
         int preLongs, arrLongs;
         boolean empty = isEmpty();
@@ -500,6 +444,8 @@ public class FrequentItems extends FrequencyEstimator{
         pre0 = insertFamilyID(10, pre0);
         if(empty)
           pre0 = insertEmptyFlag(1, pre0);
+        else
+          pre0 = insertEmptyFlag(0, pre0);
         pre0 = insertLowerK(this.k, pre0);
         
         if (empty) {

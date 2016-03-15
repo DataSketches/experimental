@@ -26,6 +26,8 @@ public class MasterFETester{
     System.out.println("Done FrequentItems String Serialization Test");
     FrequentItemsByteSerialTest();
     System.out.println("Done FrequentItems Byte Serialization Test");
+    FrequentItemsByteResetandEmptySerialTest();
+    System.out.println("Done FrequentItems Byte Empty Serialization Test");
     FETest();
     System.out.println("Done FE Test");
     realCountsInBoundsAfterMerge();
@@ -107,6 +109,27 @@ public class MasterFETester{
     Assert.assertTrue(new_sketch.getMaxK() == merged_sketch.getMaxK());
     Assert.assertTrue(new_sketch.getK() == merged_sketch.getK());
     Assert.assertTrue(new_sketch.getStreamLength() == merged_sketch.getStreamLength());
+  }
+  
+  @Test
+  static private void FrequentItemsByteResetandEmptySerialTest(){
+    FrequentItems sketch = new FrequentItems(10);
+    sketch.update(10, 100);
+    sketch.update(10, 100);
+    sketch.update(15, 3443);
+    sketch.update(1000001, 1010230);
+    sketch.update(1000002, 1010230);
+    sketch.reset();
+    
+    byte[] bytearray0 = sketch.toByteArray();
+    Memory mem0 = new NativeMemory(bytearray0);
+    FrequentItems new_sketch0 = FrequentItems.getInstance(mem0);
+    
+    String string0 = sketch.toString();
+    String new_string0 = new_sketch0.toString();
+    Assert.assertTrue(string0.equals(new_string0));
+    Assert.assertTrue(new_sketch0.getMaxK() == sketch.getMaxK());
+    Assert.assertTrue(new_sketch0.getK() == sketch.getK());
   }
 
   

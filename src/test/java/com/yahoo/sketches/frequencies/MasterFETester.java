@@ -16,7 +16,6 @@ import org.testng.annotations.Test;
 
 import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 
-
 public class MasterFETester{
 
   public static void main(String[] args) {
@@ -45,7 +44,7 @@ public class MasterFETester{
   }
 
   @Test
-  static private void FrequentItemsByteSerialTest(){
+  private static void FrequentItemsByteSerialTest(){
     FrequentItems sketch = new FrequentItems(10, 8);
     FrequentItems sketch2 = new FrequentItems(100);
     sketch.update(10, 100);
@@ -112,7 +111,7 @@ public class MasterFETester{
   }
   
   @Test
-  static private void FrequentItemsByteResetandEmptySerialTest(){
+  private static void FrequentItemsByteResetandEmptySerialTest(){
     FrequentItems sketch = new FrequentItems(10);
     sketch.update(10, 100);
     sketch.update(10, 100);
@@ -134,7 +133,7 @@ public class MasterFETester{
 
   
   @Test
-  static private void HashMapRESerialTest(){
+  private static void HashMapRESerialTest(){
     HashMapReverseEfficient map = new HashMapReverseEfficient(10);
     map.adjustOrPutValue(10, 15, 15);
     map.adjustOrPutValue(10, 5, 5);
@@ -147,7 +146,7 @@ public class MasterFETester{
   }
   
   @Test
-  static private void FrequentItemsStringSerialTest(){
+  private static void FrequentItemsStringSerialTest(){
     FrequentItems sketch = new FrequentItems(10);
     FrequentItems sketch2 = new FrequentItems(100);
     sketch.update(10, 100);
@@ -203,7 +202,7 @@ public class MasterFETester{
   }
   
   @Test
-  static private void updateOneTime() {
+  private static void updateOneTime() {
     int size = 100;
     double error_tolerance = 1.0/size;
     double delta = .01;
@@ -223,7 +222,7 @@ public class MasterFETester{
    * @param prob the probability of success for the geometric distribution. 
    * @return a random number generated from the geometric distribution.
    */
-  static private long randomGeometricDist(double prob) {
+  private static long randomGeometricDist(double prob) {
     assert(prob > 0.0 && prob < 1.0);
     return 1 + (long) (Math.log(Math.random()) / Math.log(1.0 - prob));
   }
@@ -248,7 +247,7 @@ public class MasterFETester{
  // n is range, theta is skewness parameter
   // theta = 0 gives uniform dbn,
   // theta > 1 gives highly skewed dbn. 
-  static private long zipf(double theta, long n, double zetan) {
+  private static long zipf(double theta, long n, double zetan) {
     double alpha;
     double eta;
     double u;
@@ -606,10 +605,22 @@ public class MasterFETester{
   }
   
   @SuppressWarnings("unused")
-  static private FrequencyEstimator newFrequencyEstimator(double error_parameter, double failure_prob, int i){
+  private static FrequencyEstimator newFrequencyEstimator(double error_parameter, double failure_prob, int i){
     switch (i){
       case 0: return new FrequentItems((int) (1.0/error_parameter));
     }
     return null;
   }
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+  
+  /**
+   * @param s value to print 
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
+  
  }

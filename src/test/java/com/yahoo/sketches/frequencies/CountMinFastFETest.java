@@ -56,7 +56,7 @@ public class CountMinFastFETest {
    * @param prob the probability of success for the geometric distribution. 
    * @return a random number generated from the geometric distribution.
    */
-  static private long randomGeometricDist(double prob) {
+  private static long randomGeometricDist(double prob) {
     assert(prob > 0.0 && prob < 1.0);
     return (long) (Math.log(Math.random()) / Math.log(1.0 - prob));
   }
@@ -354,7 +354,21 @@ public class CountMinFastFETest {
       double updatesPerSecond = 1000.0/timePerUpdate;
       total_updates_per_s +=updatesPerSecond;
     }
-    System.out.format("Amortized updates per second for conservate_update: %f\n", (total_updates_per_s/trials));
+    String s = String.format("Amortized updates per second for conservate_update: %f\n", 
+        (total_updates_per_s/trials));
+    println(s);
     Assert.assertTrue(total_updates_per_s/trials > 1000000);
+  }
+  
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+  
+  /**
+   * @param s value to print 
+   */
+  static void println(String s) {
+    System.out.println(s); //disable here
   }
 }

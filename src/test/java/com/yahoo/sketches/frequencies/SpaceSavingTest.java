@@ -243,4 +243,17 @@ public class SpaceSavingTest {
     System.out.format("Amortized updates per second for SpaceSaving: %f\n", (total_updates_per_s/trials));
     Assert.assertTrue(total_updates_per_s/trials > 1000000);
   }
+  
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+  
+  /**
+   * @param s value to print 
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
+  
 }

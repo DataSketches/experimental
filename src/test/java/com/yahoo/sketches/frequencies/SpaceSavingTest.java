@@ -220,7 +220,7 @@ public class SpaceSavingTest {
     }
   }
 
-  @Test
+  //@Test
   public void stressTestUpdateTime() {
     int n = 2000000;
     int size = 100000;

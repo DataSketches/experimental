@@ -288,7 +288,7 @@ public class MasterFETester{
   @Test
   private static void FETest(){
     int numEstimators = 1; 
-    int n = 1322;
+    int n = 2222;
     double error_tolerance = 1.0/100;
     
     FrequencyEstimator[] estimators = new FrequencyEstimator[numEstimators];
@@ -306,14 +306,13 @@ public class MasterFETester{
         estimators[h].update(key); 
     }
     
-    long threshold = (long) (error_tolerance * n);
+    long threshold = 10;
     for(int h=0; h<numEstimators; h++) {
       long[] freq = estimators[h].getFrequentKeys(threshold);
      
       for(int i = 0; i < freq.length; i++) 
         Assert.assertTrue(estimators[h].getEstimateUpperBound(freq[i]) > threshold);
 
-      
       Collection<Long> keysCollection = realCounts.keys();
 
       int found;

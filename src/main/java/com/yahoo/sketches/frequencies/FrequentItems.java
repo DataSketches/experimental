@@ -149,7 +149,7 @@ public class FrequentItems extends FrequencyEstimator{
     if (k <= 0) throw new IllegalArgumentException("Received negative or zero value for k.");
     
     //set initial size of counters data structure so it can exactly store a stream with 
-    //MIN_FREQUENT_ITEMS_SIZE distinct elements
+    //initial_capacity distinct elements
     this.K = initial_capacity;
     counters = new HashMapReverseEfficient(this.K);
     
@@ -164,10 +164,10 @@ public class FrequentItems extends FrequencyEstimator{
     this.maxK = (int) (maxHashMapLength * counters.LOAD_FACTOR);
     
     this.offset = 0;
-    if (this.maxK < 250) 
+    if (this.maxK < 256) 
       this.sample_size = this.maxK;
     else
-      this.sample_size = 250;
+      this.sample_size = 256;
   }
   
   public FrequentItems(int k) {

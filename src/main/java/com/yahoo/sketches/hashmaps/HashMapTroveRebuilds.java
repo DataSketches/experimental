@@ -10,25 +10,25 @@ public class HashMapTroveRebuilds extends HashMap {
   long threshold;
   @SuppressWarnings("hiding")
   int capacity;
-  
-  public HashMapTroveRebuilds(int capacity){
+
+  public HashMapTroveRebuilds(int capacity) {
     super(1);
     this.capacity = capacity;
     hashmap = new TLongLongHashMap(capacity);
   }
-  
+
   @Override
-  public int getSize(){
+  public int getSize() {
     return hashmap.size();
   }
-  
+
   @Override
   public boolean isActive(int probe) {
     return false;
   }
- 
+
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
     hashmap.adjustOrPutValue(key, adjustAmount, putAmount);
   }
 
@@ -38,12 +38,12 @@ public class HashMapTroveRebuilds extends HashMap {
   }
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue){
+  public void keepOnlyLargerThan(long thresholdValue) {
     TLongLongHashMap newHashmap = new TLongLongHashMap(capacity);
     TLongLongIterator iterator = hashmap.iterator();
-    for ( int i = hashmap.size(); i-->0; ) {
+    for (int i = hashmap.size(); i-- > 0;) {
       iterator.advance();
-      if (iterator.value() > thresholdValue){ 
+      if (iterator.value() > thresholdValue) {
         newHashmap.put(iterator.key(), iterator.value());
       }
     }
@@ -51,15 +51,15 @@ public class HashMapTroveRebuilds extends HashMap {
   }
 
   @Override
-  public long[] getKeys(){
+  public long[] getKeys() {
     return hashmap.keys();
   }
-  
+
   @Override
-  public long[] getValues(){
+  public long[] getValues() {
     return hashmap.values();
   }
-  
+
   @Override
   public void adjustAllValuesBy(long adjustAmount) {
     hashmap.transformValues(new AdjustAllValuesBy(adjustAmount));
@@ -67,13 +67,14 @@ public class HashMapTroveRebuilds extends HashMap {
 
   private class AdjustAllValuesBy implements TLongFunction {
     long adjustAmount;
-    public AdjustAllValuesBy(long adjustAmount){
+
+    public AdjustAllValuesBy(long adjustAmount) {
       this.adjustAmount = adjustAmount;
     }
-    
+
     @Override
     public long execute(long value) {
       return value + adjustAmount;
-    }    
+    }
   }
 }

@@ -7,19 +7,22 @@ import gnu.trove.map.hash.TLongLongHashMap;
 public class HashMapTrove extends HashMap {
 
   TLongLongHashMap hashmap;
-  
-  public HashMapTrove(int capacity){
-    if (capacity <= 0) throw new IllegalArgumentException("Received negative or zero value for as initial capacity.");
+
+  public HashMapTrove(int capacity) {
+    if (capacity <= 0)
+      throw new IllegalArgumentException(
+          "Received negative or zero value for as initial capacity.");
     this.capacity = capacity;
     hashmap = new TLongLongHashMap(capacity);
   }
+
   @Override
-  public int getSize(){
+  public int getSize() {
     return hashmap.size();
   }
-  
+
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount){
+  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
     hashmap.adjustOrPutValue(key, adjustAmount, putAmount);
   }
 
@@ -29,52 +32,54 @@ public class HashMapTrove extends HashMap {
   }
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue){
+  public void keepOnlyLargerThan(long thresholdValue) {
     hashmap.retainEntries(new GreaterThenThreshold(thresholdValue));
   }
-  
+
   @Override
   public void adjustAllValuesBy(long adjustAmount) {
     hashmap.transformValues(new AdjustAllValuesBy(adjustAmount));
   }
 
   @Override
-  public long[] getKeys(){
+  public long[] getKeys() {
     return hashmap.keys();
   }
-  
+
   @Override
-  public long[] getValues(){
+  public long[] getValues() {
     return hashmap.values();
   }
-  
+
   @Override
   public boolean isActive(int probe) {
     return false;
   }
-  
+
   private class GreaterThenThreshold implements TLongLongProcedure {
     long threshold;
-    public GreaterThenThreshold(long threshold){
+
+    public GreaterThenThreshold(long threshold) {
       this.threshold = threshold;
     }
-    
+
     @Override
     public boolean execute(long key, long value) {
       return (value > threshold);
     }
   }
-  
+
   private class AdjustAllValuesBy implements TLongFunction {
     long adjustAmount;
-    public AdjustAllValuesBy(long adjustAmount){
+
+    public AdjustAllValuesBy(long adjustAmount) {
       this.adjustAmount = adjustAmount;
     }
-    
+
     @Override
     public long execute(long value) {
       return value + adjustAmount;
-    }    
+    }
   }
 
 }

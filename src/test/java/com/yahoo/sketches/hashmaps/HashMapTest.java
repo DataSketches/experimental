@@ -38,8 +38,8 @@ public class HashMapTest {
     for (int h=0; h<10 ;h++){
       HashMap hashmap = newHashMap(capacity, h);
       if (hashmap == null) continue;
-          
-      System.out.format("Test: %s\n", hashmap.getClass().getSimpleName());
+      String s = String.format("Test: %s\n", hashmap.getClass().getSimpleName());
+      println(s);
       
       // correct is a the gold standard
       TLongLongHashMap correct = new TLongLongHashMap(capacity);
@@ -105,6 +105,18 @@ public class HashMapTest {
     public long execute(long value) {
       return value - threshold;
     }    
+  }
+  
+  @Test
+  public void printlnTest() {
+    println("PRINTING: " + this.getClass().getName());
+  }
+
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+    // System.out.println(s); //disable here
   }
   
 }

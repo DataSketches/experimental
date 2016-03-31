@@ -10,14 +10,14 @@ import org.testng.Assert;
 
 public class PositiveCountersMapTest {
 
-  @Test
+  //@Test
   public void construct() {
     PositiveCountersMap cs = new PositiveCountersMap();
     Assert.assertNotNull(cs);
   }
 
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void putTest() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 4L;
@@ -33,7 +33,7 @@ public class PositiveCountersMapTest {
   }
 
 
-  @Test
+  //@Test
   public void incrementTest() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 4L;
@@ -41,7 +41,7 @@ public class PositiveCountersMapTest {
     Assert.assertTrue(cs.get(key) == 1);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void incrementWithValueTest() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 4L;
@@ -56,7 +56,7 @@ public class PositiveCountersMapTest {
     cs.increment(key, -234);
   }
 
-  @Test
+  //@Test
   public void decrementAllTest() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 4;
@@ -66,7 +66,7 @@ public class PositiveCountersMapTest {
     Assert.assertTrue(cs.get(key) == value - 1);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void decrementAllWithValueTest() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 4L;
@@ -83,7 +83,7 @@ public class PositiveCountersMapTest {
     cs.decerementAll(-234);
   }
 
-  @Test
+  //@Test
   public void decrementDeletesNegativeCounts() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 421L;
@@ -94,7 +94,7 @@ public class PositiveCountersMapTest {
     Assert.assertTrue(cs.nnz() == 0);
   }
 
-  @Test
+  //@Test
   public void decrementAllAndIncrementHasAnEffectIfDeltaLargerThanValue() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 421;
@@ -106,7 +106,7 @@ public class PositiveCountersMapTest {
     Assert.assertTrue(cs.get(key) == value);
   }
 
-  @Test
+  //@Test
   public void decrementAllAndIncrementHasNoEffectIfDeltaSmallerEqualToValue() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 421;
@@ -118,7 +118,7 @@ public class PositiveCountersMapTest {
     Assert.assertTrue(cs.get(key) == 2 * value - delta);
   }
 
-  @Test
+  //@Test
   public void negativeCountersReturnZero() {
     PositiveCountersMap cs = new PositiveCountersMap();
     long key = 4252L;
@@ -129,7 +129,7 @@ public class PositiveCountersMapTest {
     Assert.assertTrue(cs.get(key) == 0);
   }
 
-  @Test
+  //@Test
   public void testGetValuesAndGetKeys() {
     int n = 100;
     PositiveCountersMap cs = new PositiveCountersMap();
@@ -159,7 +159,7 @@ public class PositiveCountersMapTest {
     Assert.assertEquals(testValues, realValues);
   }
 
-  @Test
+  //@Test
   public void testAddOtherPositiveCounter() {
     int n = 100;
     HashMap<Long, Long> counters = new HashMap<Long, Long>();
@@ -191,7 +191,7 @@ public class PositiveCountersMapTest {
     }
   }
 
-  @Test
+  //@Test
   public void printlnTest() {
     println("PRINTING: " + this.getClass().getName());
   }

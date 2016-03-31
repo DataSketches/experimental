@@ -18,7 +18,7 @@ import java.util.Collection;
  */
 public class SpaceSavingTest {
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
     double error_tolerance = 1.0 / size;
@@ -28,7 +28,7 @@ public class SpaceSavingTest {
     spacesaving = new SpaceSaving(-134);
   }
 
-  @Test
+  //@Test
   public void updateOneTime() {
     int size = 100;
     double error_tolerance = 1.0 / size;
@@ -37,7 +37,7 @@ public class SpaceSavingTest {
     Assert.assertEquals(spacesaving.nnz(), 1);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void updateOneTimeException1() {
     int size = 100;
     double error_tolerance = 1.0 / size;
@@ -45,7 +45,7 @@ public class SpaceSavingTest {
     spacesaving.update(13L, 0);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void updateOneTimeException2() {
     int size = 100;
     double error_tolerance = 1.0 / size;
@@ -54,7 +54,7 @@ public class SpaceSavingTest {
   }
 
 
-  @Test
+  //@Test
   public void sizeDoesNotGrow() {
     int size = 100;
     double error_tolerance = 1.0 / size;
@@ -65,7 +65,7 @@ public class SpaceSavingTest {
     }
   }
 
-  @Test
+  //@Test
   public void estimatesAreCorectBeofreDeletePhase() {
     int size = 100;
     double error_tolerance = 1.0 / size;
@@ -86,7 +86,7 @@ public class SpaceSavingTest {
     return (long) (Math.log(Math.random()) / Math.log(1.0 - prob));
   }
 
-  @Test
+  //@Test
   public void testRandomGeometricDist() {
     long maxKey = 0L;
     double prob = .1;
@@ -100,7 +100,7 @@ public class SpaceSavingTest {
     }
   }
 
-  @Test
+  //@Test
   public void realCountsInBounds() {
     int n = 4213;
     int maxSize = 50;
@@ -123,7 +123,7 @@ public class SpaceSavingTest {
   }
 
 
-  @Test
+  //@Test
   public void testFrequent() {
     int n = 4213;
     int maxSize = 50;
@@ -158,7 +158,7 @@ public class SpaceSavingTest {
     }
   }
 
-  @Test
+  //@Test
   public void errorWithinLimits() {
     int n = 100;
     int maxSize = 20;
@@ -183,7 +183,7 @@ public class SpaceSavingTest {
     }
   }
 
-  @Test
+  //@Test
   public void realCountsInBoundsAfterUnion() {
     int n = 1000;
     int maxSize1 = 100;
@@ -220,7 +220,7 @@ public class SpaceSavingTest {
     }
   }
 
-  //@Test
+  ////@Test
   public void stressTestUpdateTime() {
     int n = 2000000;
     int size = 100000;
@@ -245,7 +245,7 @@ public class SpaceSavingTest {
     Assert.assertTrue(total_updates_per_s / trials > 1000000);
   }
 
-  @Test
+  //@Test
   public void printlnTest() {
     println("PRINTING: " + this.getClass().getName());
   }

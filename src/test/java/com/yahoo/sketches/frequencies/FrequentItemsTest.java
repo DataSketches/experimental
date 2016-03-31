@@ -17,7 +17,7 @@ import java.lang.Math;
  */
 public class FrequentItemsTest {
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
+  //@Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
     FrequentItems frequentItems = new FrequentItems(size);
@@ -26,7 +26,7 @@ public class FrequentItemsTest {
     frequentItems = new FrequentItems(-134);
   }
 
-  @Test
+  //@Test
   public void updateOneTime() {
     int size = 100;
     FrequentItems frequentItems = new FrequentItems(size);
@@ -34,7 +34,7 @@ public class FrequentItemsTest {
     Assert.assertEquals(frequentItems.nnz(), 1);
   }
 
-  @Test
+  //@Test
   public void sizeDoesNotGrow() {
     int maxSize = 100;
     FrequentItems frequentItems = new FrequentItems(maxSize);
@@ -44,7 +44,7 @@ public class FrequentItemsTest {
     }
   }
 
-  @Test
+  //@Test
   public void estimatesAreCorectBeofreDeletePhase() {
     int maxSize = 100;
     FrequentItems frequentItems = new FrequentItems(maxSize);
@@ -64,7 +64,7 @@ public class FrequentItemsTest {
     return (long) (Math.log(Math.random()) / Math.log(1.0 - prob));
   }
 
-  @Test
+  //@Test
   public void testRandomGeometricDist() {
     long maxKey = 0L;
     double prob = .1;
@@ -78,7 +78,7 @@ public class FrequentItemsTest {
     }
   }
 
-  @Test
+  //@Test
   public void realCountsInBounds() {
     int n = 4213;
     int maxSize = 50;
@@ -97,7 +97,7 @@ public class FrequentItemsTest {
     }
   }
 
-  @Test
+  //@Test
   public void errorWithinLimits() {
     int n = 100;
     int maxSize = 20;
@@ -113,7 +113,7 @@ public class FrequentItemsTest {
     }
   }
 
-  @Test
+  //@Test
   public void realCountsInBoundsAfterUnion() {
     int n = 1000;
     int maxSize1 = 100;
@@ -147,7 +147,7 @@ public class FrequentItemsTest {
   }
 
   /*
-   * @Test public void stressTestUpdateTime() { int n = 1000; int maxSize = 1000; FrequentItems
+   * //@Test public void stressTestUpdateTime() { int n = 1000; int maxSize = 1000; FrequentItems
    * frequentItems = new FrequentItems(maxSize); double prob = 1.0/n; final long startTime =
    * System.currentTimeMillis(); for (int i=0; i<n; i++){ long key = randomGeometricDist(prob);
    * frequentItems.update(key); } final long endTime = System.currentTimeMillis(); double
@@ -155,7 +155,7 @@ public class FrequentItemsTest {
    * "Amortized time per update: " + timePerUpdate); Assert.assertTrue(timePerUpdate < 10E-3); }
    */
 
-  @Test
+  //@Test
   public void printlnTest() {
     println("PRINTING: " + this.getClass().getName());
   }

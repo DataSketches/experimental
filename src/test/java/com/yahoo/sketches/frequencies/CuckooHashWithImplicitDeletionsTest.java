@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 
 public class CuckooHashWithImplicitDeletionsTest {
 
-  @Test
+  //@Test
   public void oneUpdateWorks() {
     CuckooHashWithImplicitDeletions cuckooHash = new CuckooHashWithImplicitDeletions(100);
     long key = 23951235L;
@@ -14,7 +14,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     Assert.assertEquals(cuckooHash.get(key), 1);
   }
 
-  @Test
+  //@Test
   public void oneUpdateAndOneDeleteWorks() {
     CuckooHashWithImplicitDeletions cuckooHash = new CuckooHashWithImplicitDeletions(100);
     long key = 23951235L;
@@ -23,7 +23,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     Assert.assertEquals(cuckooHash.get(key), 0);
   }
 
-  @Test
+  //@Test
   public void randomUpdatesCountsAreCorrect() {
     int maxSize = 100;
     int nonZeroCounts = 10;
@@ -40,7 +40,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     }
   }
 
-  // @Test
+  // //@Test
   public void stressTestUpdateTime() {
     int n = 100000000;
     int maxSize = 1000000;
@@ -61,7 +61,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     Assert.assertTrue(timePerUpdate < 10E-3);
   }
 
-  @Test
+  //@Test
   public void printlnTest() {
     println("PRINTING: " + this.getClass().getName());
   }

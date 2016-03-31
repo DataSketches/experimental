@@ -499,7 +499,8 @@ public class FrequentItems extends FrequencyEstimator {
 
     long pre0 = srcMem.getLong(0);
     int preambleLongs = extractPreLongs(pre0);
-    assert ((preambleLongs == 1) || (preambleLongs == 5));
+
+    assert ((preambleLongs == 1) || (preambleLongs == 6));
     int serVer = extractSerVer(pre0);
     assert (serVer == 1);
     int familyID = extractFamilyID(pre0);

@@ -1,56 +1,58 @@
 /*
- * Copyright 2015, Yahoo! Inc.
- * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ * Copyright 2015, Yahoo! Inc. Licensed under the terms of the Apache License 2.0. See LICENSE file
+ * at the project root for terms.
  */
 
 package com.yahoo.sketches.frequencies;
 
 public class Pair implements Comparable<Pair> {
-	private long name;
-	private long value;
-	public Pair(long name, long value) {
-		this.name = name;
-		this.value = value;
+  private long name;
+  private long value;
 
-	}
-	public long getname(){
-		return name;
-	}    
-	public long getvalue() {
-		return value;
-	}
+  public Pair(long name, long value) {
+    this.name = name;
+    this.value = value;
 
-	public int compare(Pair o1, Pair o2) {
-		if(o1.value>o2.value) {
-			return 1;
-		}
-		else if(o1.value<o2.value) {
-			return -1;
-		}
-		return 0;
+  }
 
-	}
-	
-	@Override 
-	public int compareTo(Pair o2) {
-		if(this.value>o2.value) {
-			return 1;
-		}
-		else if(this.value<o2.value) {
-			return -1;
-		}
-		return 0;
+  public long getname() {
+    return name;
+  }
 
-	}
+  public long getvalue() {
+    return value;
+  }
 
-	@Override
-	public int hashCode() {
-		int hash = 3;
-		return hash;
-	}
-	@Override
-	public boolean equals(Object o) {
-		Pair a2 = (Pair)o;
-		return this.name == a2.name;
-	}
+  public int compare(Pair o1, Pair o2) {
+    if (o1.value > o2.value) {
+      return 1;
+    } else if (o1.value < o2.value) {
+      return -1;
+    }
+    return 0;
+
+  }
+
+  @Override
+  public int compareTo(Pair o2) {
+    if (this.value > o2.value) {
+      return 1;
+    } else if (this.value < o2.value) {
+      return -1;
+    }
+    return 0;
+
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 3;
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    Pair a2 = (Pair) o;
+    return this.name == a2.name;
+  }
 }

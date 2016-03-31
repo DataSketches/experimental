@@ -72,6 +72,14 @@ public class FrequentItems extends FrequencyEstimator {
    * initial data structure
    */
   static final int MIN_FREQUENT_ITEMS_SIZE = 4; // This is somewhat arbitrary
+  
+  /**
+   * This is a constant large enough that computing the median of SAMPLE_SIZE
+   * randomly selected entries from a list of numbers and outputting
+   * the empirical median will give a constant-factor approximaion to the 
+   * true median with high probability
+   */
+  static final int SAMPLE_SIZE = 256;
 
   /**
    * The current number of counters that the data structure can support
@@ -120,13 +128,13 @@ public class FrequentItems extends FrequencyEstimator {
    * The maximum number of samples used to compute approximate median of counters when doing
    * decrement
    */
-  private int sample_size;
+  private int sampleSize;
 
 
   // **CONSTRUCTOR**********************************************************
   /**
    * @param k Determines the accuracy of the estimates returned by the sketch.
-   * @param initial_capacity determines the initial size of the sketch.
+   * @param initialCapacity determines the initial size of the sketch.
    * 
    *        The guarantee of the sketch is that with high probability, any returned estimate will
    *        have error at most (4/3)*(n/k), where n is the true sum of frequencies in the stream. In
@@ -137,18 +145,18 @@ public class FrequentItems extends FrequencyEstimator {
    *        HashMap is set to 0.75, the number of cells of the hash table that are actually filled
    *        should oscillate between roughly .75*k and 1.5 * k.
    */
-  public FrequentItems(int k, int initial_capacity) {
+  public FrequentItems(int k, int initialCapacity) {
 
     if (k <= 0) throw new IllegalArgumentException("Received negative or zero value for k.");
     
     //set initial size of counters data structure so it can exactly store a stream with 
-    //initial_capacity distinct elements
+    //initialCapacity distinct elements
 
-    this.K = initial_capacity;
+    this.K = initialCapacity;
     counters = new HashMapReverseEfficient(this.K);
 
     this.k = k;
-    this.initialSize = initial_capacity;
+    this.initialSize = initialCapacity;
 
     // set maxK to be the maximum number of counters that can be supported
     // by a HashMap with the appropriate number of cells (specifically,
@@ -159,10 +167,10 @@ public class FrequentItems extends FrequencyEstimator {
 
     this.offset = 0;
 
-    if (this.maxK < 256) 
-      this.sample_size = this.maxK;
+    if (this.maxK < SAMPLE_SIZE) 
+      this.sampleSize = this.maxK;
     else
-      this.sample_size = 256;
+      this.sampleSize = SAMPLE_SIZE;
   }
 
   public FrequentItems(int k) {
@@ -200,11 +208,9 @@ public class FrequentItems extends FrequencyEstimator {
   @Override
   public long getEstimateLowerBound(long key) {
     long estimate = getEstimate(key);
-
-    if ((estimate - offset - mergeError) <= 0)
-      return 0;
-
-    return (estimate - offset - mergeError);
+    
+    long returnVal = estimate - offset - mergeError;
+    return (returnVal > 0) ? returnVal : 0;
   }
 
   @Override
@@ -231,6 +237,8 @@ public class FrequentItems extends FrequencyEstimator {
       HashMapReverseEfficient newTable = new HashMapReverseEfficient(newSize);
       long[] keys = this.counters.getKeys();
       long[] values = this.counters.getValues();
+      
+      assert(keys.length == size);
       for (int i = 0; i < size; i++) {
         newTable.adjust(keys[i], values[i]);
       }
@@ -250,22 +258,22 @@ public class FrequentItems extends FrequencyEstimator {
    * longer positive, and increments offset accordingly.
    */
   private void purge() {
-    int limit = Math.min(this.sample_size, nnz());
+    int limit = Math.min(this.sampleSize, nnz());
 
     long[] values = counters.ProtectedGetValues();
-    int num_samples = 0;
+    int numSamples = 0;
     int i = 0;
     long[] samples = new long[limit];
 
-    while (num_samples < limit) {
+    while (numSamples < limit) {
       if (counters.isActive(i)) {
-        samples[num_samples] = values[i];
-        num_samples++;
+        samples[numSamples] = values[i];
+        numSamples++;
       }
       i++;
     }
 
-    Arrays.sort(samples, 0, num_samples);
+    Arrays.sort(samples, 0, numSamples);
     long val = samples[limit / 2];
     counters.adjustAllValuesBy(-1 * val);
     counters.keepOnlyLargerThan(0);
@@ -281,11 +289,11 @@ public class FrequentItems extends FrequencyEstimator {
     this.streamLength += otherCasted.streamLength;
     this.mergeError += otherCasted.getMaxError();
 
-    long[] other_keys = otherCasted.counters.getKeys();
-    long[] other_values = otherCasted.counters.getValues();
+    long[] otherKeys = otherCasted.counters.getKeys();
+    long[] otherValues = otherCasted.counters.getValues();
 
-    for (int i = other_keys.length; i-- > 0;) {
-      this.update(other_keys[i], other_values[i]);
+    for (int i = otherKeys.length; i-- > 0;) {
+      this.update(otherKeys[i], otherValues[i]);
     }
     return this;
   }
@@ -303,15 +311,15 @@ public class FrequentItems extends FrequencyEstimator {
     }
 
     // allocate an array to store the candidate frequent keys, and then compute them
-    long[] freq_keys = new long[count];
+    long[] freqKeys = new long[count];
     count = 0;
     for (int i = counters.getLength(); i-- > 0;) {
       if (counters.isActive(i) && (getEstimateUpperBound(keys[i]) >= threshold)) {
-        freq_keys[count] = keys[i];
+        freqKeys[count] = keys[i];
         count++;
       }
     }
-    return freq_keys;
+    return freqKeys;
   }
 
 
@@ -407,7 +415,7 @@ public class FrequentItems extends FrequencyEstimator {
    *         <pre>
    *  
    *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
-   *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | Preamble_Longs |  
+   *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | PreambleLongs |  
    *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
    *  1   ||---------------------------------mergeError--------------------------------------|
    *      ||    23    |   22   |   21   |   20   |   19   |   18   |   17   |    16          |

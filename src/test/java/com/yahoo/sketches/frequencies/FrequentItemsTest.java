@@ -5,7 +5,7 @@
 
 package com.yahoo.sketches.frequencies;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 import org.testng.Assert;
 import java.lang.Math;
 
@@ -146,14 +146,24 @@ public class FrequentItemsTest {
     }
   }
 
-  /*
-   * //@Test public void stressTestUpdateTime() { int n = 1000; int maxSize = 1000; FrequentItems
-   * frequentItems = new FrequentItems(maxSize); double prob = 1.0/n; final long startTime =
-   * System.currentTimeMillis(); for (int i=0; i<n; i++){ long key = randomGeometricDist(prob);
-   * frequentItems.update(key); } final long endTime = System.currentTimeMillis(); double
-   * timePerUpdate = (double)(endTime-startTime)/(double)n; System.out.println(
-   * "Amortized time per update: " + timePerUpdate); Assert.assertTrue(timePerUpdate < 10E-3); }
-   */
+
+  //@Test //run only from command line
+  public void stressTestUpdateTime() { 
+    int n = 1000; 
+    int maxSize = 1000; 
+    FrequentItems frequentItems = new FrequentItems(maxSize); 
+    double prob = 1.0/n; 
+    final long startTime = System.currentTimeMillis(); 
+    for (int i=0; i<n; i++) { 
+      long key = randomGeometricDist(prob);
+      frequentItems.update(key); 
+      } 
+    final long endTime = System.currentTimeMillis(); 
+    double timePerUpdate = (double)(endTime-startTime)/(double)n; 
+    System.out.println("Amortized time per update: " + timePerUpdate); 
+    Assert.assertTrue(timePerUpdate < 10E-3); 
+  }
+
 
   //@Test
   public void printlnTest() {

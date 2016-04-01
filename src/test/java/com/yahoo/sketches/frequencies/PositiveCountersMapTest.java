@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Collections;
 import java.util.ArrayList;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 import org.testng.Assert;
 
 public class PositiveCountersMapTest {

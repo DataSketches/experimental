@@ -5,7 +5,7 @@
 
 package com.yahoo.sketches.frequencies;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 import org.testng.Assert;
 import java.lang.Math;
 import java.util.Collection;
@@ -220,7 +220,7 @@ public class SpaceSavingTest {
     }
   }
 
-  ////@Test
+  //run only from command line
   public void stressTestUpdateTime() {
     int n = 2000000;
     int size = 100000;

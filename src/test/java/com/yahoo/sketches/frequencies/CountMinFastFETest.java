@@ -5,7 +5,7 @@
 
 package com.yahoo.sketches.frequencies;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 import org.testng.Assert;
 import java.lang.Math;
 import java.util.Collection;
@@ -305,7 +305,7 @@ public class CountMinFastFETest {
     Assert.assertTrue(bad <= delta * i);
   }
 
-  ////@Test
+  //@Test
   public void stressTestUpdateTime() { //WAY TOO LONG
     int n = 2000000;
     int size = 100000;
@@ -331,7 +331,7 @@ public class CountMinFastFETest {
     Assert.assertTrue(total_updates_per_s / trials > 1000000);
   }
 
-  ////@Test
+  //@Test
   public void stressTestUpdateTimeCU() { //WAY TOO LONG
     int n = 2000000;
     int size = 100000;

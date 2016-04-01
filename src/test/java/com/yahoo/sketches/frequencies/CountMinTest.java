@@ -1,6 +1,6 @@
 package com.yahoo.sketches.frequencies;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 import org.testng.Assert;
 import java.lang.Math;
 
@@ -100,8 +100,6 @@ public class CountMinTest {
     Assert.assertTrue(bad <= eps * n);
   }
 
-
-
   //@Test
   public void realCountsInBoundsCU() {
     int n = 4213;
@@ -133,7 +131,6 @@ public class CountMinTest {
     Assert.assertTrue(bad <= eps * n);
   }
 
-
   //@Test
   public void ConservativeBetterThanNon() {
     int n = 4213;
@@ -157,7 +154,6 @@ public class CountMinTest {
       Assert.assertTrue(upperBound <= countmin2.getEstimateUpperBound(key));
     }
   }
-
 
   //@Test(expectedExceptions = IllegalArgumentException.class)
   public void UnionErrorCheck() {
@@ -262,8 +258,8 @@ public class CountMinTest {
     Assert.assertTrue(bad <= delta * i);
   }
 
-  ////@Test
-  public void stressTestUpdateTime() { //WAY TOO LONG
+  //run only from command line
+  public void stressTestUpdateTime() {
     int n = 1000000;
     int size = 1000;
     double eps = 1.0 / size;
@@ -284,8 +280,8 @@ public class CountMinTest {
   }
 
 
-  ////@Test
-  public void stressTestUpdateTimeCU() { //WAY TOO LONG
+  //run only from command line
+  public void stressTestUpdateTimeCU() {
     int n = 1000000;
     int size = 1000;
     double eps = 1.0 / size;

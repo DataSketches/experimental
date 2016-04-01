@@ -2,7 +2,7 @@ package com.yahoo.sketches.frequencies;
 
 import java.util.Random;
 import org.testng.Assert;
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 
 public class CuckooHashWithImplicitDeletionsTest {
 
@@ -40,7 +40,7 @@ public class CuckooHashWithImplicitDeletionsTest {
     }
   }
 
-  // //@Test
+  //run only from command line
   public void stressTestUpdateTime() {
     int n = 100000000;
     int maxSize = 1000000;

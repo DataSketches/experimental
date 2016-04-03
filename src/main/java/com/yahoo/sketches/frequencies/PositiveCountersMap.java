@@ -22,7 +22,6 @@ import java.util.ArrayList;
  * @author edo
  */
 public class PositiveCountersMap {
-
   private HashMap<Long, Long> counters;
   ArrayList<Long> keysToRemove;
   private long offset;

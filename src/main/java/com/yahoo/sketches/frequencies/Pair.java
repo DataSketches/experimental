@@ -12,7 +12,6 @@ public class Pair implements Comparable<Pair> {
   public Pair(long name, long value) {
     this.name = name;
     this.value = value;
-
   }
 
   public long getname() {
@@ -30,7 +29,6 @@ public class Pair implements Comparable<Pair> {
       return -1;
     }
     return 0;
-
   }
 
   @Override
@@ -41,7 +39,6 @@ public class Pair implements Comparable<Pair> {
       return -1;
     }
     return 0;
-
   }
 
   @Override

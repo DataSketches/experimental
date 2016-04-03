@@ -2,6 +2,7 @@
  * Copyright 2016, Yahoo! Inc. Licensed under the terms of the Apache License 2.0. See LICENSE file
  * at the project root for terms.
  */
+
 package com.yahoo.sketches.frequencies;
 
 import java.util.Arrays;
@@ -75,7 +76,6 @@ public class FrequentItemsEfficientDeletes {
    * @param key whose count estimate is returned.
    * @return an estimate of the count for the key.
    */
-
   public long getEstimate(long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -86,26 +86,25 @@ public class FrequentItemsEfficientDeletes {
     else
       return 0;
   }
-
+  
   /**
+   * 
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-
   public long getEstimateUpperBound(long key) {
     long estimate = getEstimate(key);
     if (estimate > 0)
       return estimate + mergeError;
 
     return mergeError + offset;
-
   }
 
   /**
+   * 
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-
   public long getEstimateLowerBound(long key) {
     if (getEstimate(key) == 0)
       return 0;
@@ -117,28 +116,25 @@ public class FrequentItemsEfficientDeletes {
   }
 
   /**
-   * @return the maximal error of the estimate one gets from get(key).
    * 
+   * @return the maximal error of the estimate one gets from get(key).
    */
-
   public long getMaxError() {
     return offset + mergeError;
   }
 
   /**
+   * 
    * @param key Process a key (specified as a long) update and treat the increment as 1
    */
-
   public void update(long key) {
     update(key, 1);
   }
 
-
-
   /**
+   * 
    * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
    * @param increment Amount to increment frequency by.
-   * 
    */
   public void update(long key, long increment) {
     this.streamLength += increment;
@@ -178,14 +174,12 @@ public class FrequentItemsEfficientDeletes {
     this.offset += val;
   }
 
-
   /**
    * @param other Another FrequentItemsEfficientDeletes sketch. Potentially of different size.
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch.
    *         This method does not create a new sketch. The sketch whose function is executed is
    *         changed.
    */
-
   public FrequentItemsEfficientDeletes merge(FrequentItemsEfficientDeletes other) {
     this.streamLength += other.streamLength;
     this.mergeError += other.getMaxError();
@@ -205,7 +199,6 @@ public class FrequentItemsEfficientDeletes {
    *         1/errorParameter+1
    * 
    */
-
   public long[] getFrequentKeys() {
     int count = 0;
     long[] keys = counters.ProtectedGetKey();

@@ -76,7 +76,6 @@ public class FrequentItemsRobinHood {
    * @param key whose count estimate is returned.
    * @return an estimate of the count for the key.
    */
-
   public long getEstimate(long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -92,21 +91,18 @@ public class FrequentItemsRobinHood {
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-
   public long getEstimateUpperBound(long key) {
     long estimate = getEstimate(key);
     if (estimate > 0)
       return estimate + mergeError;
 
     return mergeError + offset;
-
   }
 
   /**
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-
   public long getEstimateLowerBound(long key) {
     if (getEstimate(key) == 0)
       return 0;
@@ -119,9 +115,7 @@ public class FrequentItemsRobinHood {
 
   /**
    * @return the maximal error of the estimate one gets from get(key).
-   * 
    */
-
   public long getMaxError() {
     return offset + mergeError;
   }
@@ -129,12 +123,9 @@ public class FrequentItemsRobinHood {
   /**
    * @param key Process a key (specified as a long) update and treat the increment as 1
    */
-
   public void update(long key) {
     update(key, 1);
   }
-
-
 
   /**
    * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
@@ -179,14 +170,12 @@ public class FrequentItemsRobinHood {
     this.offset += val;
   }
 
-
   /**
    * @param other Another FrequentItemsRobinHood sketch. Potentially of different size.
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch.
    *         This method does not create a new sketch. The sketch whose function is executed is
    *         changed.
    */
-
   public FrequentItemsRobinHood merge(FrequentItemsRobinHood other) {
     this.streamLength += other.streamLength;
     this.mergeError += other.getMaxError();
@@ -204,9 +193,7 @@ public class FrequentItemsRobinHood {
   /**
    * @return an array containing all keys exceed the frequency threshold of roughly
    *         1/errorParameter+1
-   * 
    */
-
   public long[] getFrequentKeys() {
     int count = 0;
     long[] keys = counters.ProtectedGetKey();

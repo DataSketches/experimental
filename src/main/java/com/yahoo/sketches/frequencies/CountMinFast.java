@@ -7,7 +7,6 @@ package com.yahoo.sketches.frequencies;
 
 import com.yahoo.sketches.hash.MurmurHash3;
 
-
 /**
  * The Count-Min sketch of Cormode and Muthukrishnan is useful for approximately answering point
  * queries, i.e., queries of the form "what is the frequency of key i"? It can also answer other
@@ -28,7 +27,6 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 // @SuppressWarnings("cast")
 public class CountMinFast {
-
   // hashes denotes the number of cells in the sketcheach key is hashed to
   private int hashes;
   // length denotes the length (i.e., number of cells) of the data structure maintained by CountMin.
@@ -52,7 +50,6 @@ public class CountMinFast {
   // of cells in the table.
   private static final int STRIDE_HASH_BITS = 30;
   static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
-
 
   /**
    * Constructs and initializes a CountMin sketch, with various optimizations for speed. The
@@ -134,7 +131,6 @@ public class CountMinFast {
     // so the stride will be computed using the higher-order bits of hash.
     int probe = (int) (hash & arrayMask);
     int stride = ((int) ((hash >> logLength) & STRIDE_MASK) << 1) + 1;
-
 
     for (int i = this.hashes; i-- > 0;) {
       counts[probe] += increment;

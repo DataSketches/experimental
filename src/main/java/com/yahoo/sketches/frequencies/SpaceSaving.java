@@ -44,16 +44,11 @@ import java.util.Map;
  * 
  * @author Justin8712
  */
-
-
-// @SuppressWarnings("cast")
 public class SpaceSaving {
-
   // queue will store counters and their associated keys
   // for fast access to smallest counter.
   // counts will also store counters and their associated
   // keys to quickly check if a key is currently assigned a counter.
-
   private PriorityQueue<Pair> queue;
   private HashMap<Long, Long> counts;
   private int maxSize;
@@ -83,7 +78,6 @@ public class SpaceSaving {
   /**
    * @param key Process a key (specified as a long) update and treat the increment as 1
    */
-
   public void update(long key) {
     update(key, 1);
   }
@@ -91,7 +85,6 @@ public class SpaceSaving {
   /**
    * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
    * @param increment Amount to increment frequency by.
-   * 
    */
   public void update(long key, long increment) {
     if (increment <= 0)
@@ -139,7 +132,6 @@ public class SpaceSaving {
    *         merging (i.e., if mergeError == 0) then getEstimate returns an upper bound on real
    *         count.
    */
-
   public long getEstimate(long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -155,7 +147,6 @@ public class SpaceSaving {
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-
   public long getEstimateUpperBound(long key) {
     if (counts.size() > 0)
       return (getEstimate(key) + mergeError + queue.peek().getvalue());
@@ -166,7 +157,6 @@ public class SpaceSaving {
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-
   public long getEstimateLowerBound(long key) {
     if (getEstimate(key) == 0)
       return 0;
@@ -182,7 +172,6 @@ public class SpaceSaving {
    *         realCount(key) then get(key) + getMaxError() >= realCount(key) >= get(key) -
    *         getMaxError().
    */
-
   public long getMaxError() {
     if (counts.size() < maxSize)
       return mergeError;
@@ -204,7 +193,6 @@ public class SpaceSaving {
    * @param other Another SpaceSaving sketch. Potentially of different size.
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch.
    */
-
   public SpaceSaving merge(SpaceSaving other) {
     this.stream_length += other.stream_length;
     this.mergeError += other.getMaxError();
@@ -214,7 +202,6 @@ public class SpaceSaving {
     }
     return this;
   }
-
 
   public long[] getFrequentKeys() {
     Collection<Long> keysCollection = counts.keySet();

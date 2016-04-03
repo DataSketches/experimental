@@ -9,7 +9,6 @@ import com.yahoo.sketches.hash.MurmurHash3;
 import gnu.trove.iterator.TLongIterator;
 import gnu.trove.set.hash.TLongHashSet;
 
-
 /**
  * The Count-Min sketch of Cormode and Muthukrishnan is useful for approximately answering point
  * queries, i.e., queries of the form "what is the frequency of key i"? It can also answer other
@@ -30,8 +29,6 @@ import gnu.trove.set.hash.TLongHashSet;
  * @author Justin8712
  */
 
-
-// @SuppressWarnings("cast")
 public class CountMinFastFE {
 
   // hashes denotes the number of cells in the sketcheach key is hashed to
@@ -62,7 +59,6 @@ public class CountMinFastFE {
   // of cells in the table.
   private static final int STRIDE_HASH_BITS = 30;
   static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
-
 
   /**
    * Constructs and initializes a CountMin sketch, with various optimizations for speed. The

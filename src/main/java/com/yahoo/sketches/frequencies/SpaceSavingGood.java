@@ -41,15 +41,11 @@ import gnu.trove.map.hash.TLongIntHashMap;
  * @author Justin8712
  */
 
-
-// @SuppressWarnings("cast")
 public class SpaceSavingGood {
-
   // queue will store counters and their associated keys
   // for fast access to smallest counter.
   // counts will also store counters and their associated
   // keys to quickly check if a key is currently assigned a counter.
-
   private TLongIntHashMap heap_indices;
   private long[] keys;
   private long[] counts;
@@ -142,7 +138,6 @@ public class SpaceSavingGood {
    * 
    * @param key key whose frequency should be incremented
    */
-
   public void update(long key) {
     update(key, 1);
   }
@@ -153,7 +148,6 @@ public class SpaceSavingGood {
    * @param key A key specified as a long, whose frequency should be incremented
    * @param increment The amount by which to increment the frequency of key
    */
-
   public void update(long key, long increment) {
     if (increment <= 0)
       throw new IllegalArgumentException("Received negative or zero value for increment.");
@@ -191,7 +185,6 @@ public class SpaceSavingGood {
    *         merging (i.e., if mergeError == 0) then getEstimate returns an upper bound on real
    *         count.
    */
-
   public long getEstimate(long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -207,7 +200,6 @@ public class SpaceSavingGood {
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-
   public long getEstimateUpperBound(long key) {
     return (getEstimate(key) + mergeError + counts[1]);
   }
@@ -216,7 +208,6 @@ public class SpaceSavingGood {
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-
   public long getEstimateLowerBound(long key) {
 
     if ((getEstimate(key) - counts[1] - mergeError) < 0)
@@ -230,7 +221,6 @@ public class SpaceSavingGood {
    *         realCount(key) then get(key) + getMaxError() >= realCount(key) >= get(key) -
    *         getMaxError().
    */
-
   public long getMaxError() {
     return counts[1] + mergeError;
   }
@@ -249,7 +239,6 @@ public class SpaceSavingGood {
    * @param other Another SpaceSavingGood sketch. Potentially of different size.
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch.
    */
-
   public SpaceSavingGood merge(SpaceSavingGood other) {
     this.stream_length += other.stream_length;
     this.mergeError += other.getMaxError();
@@ -261,7 +250,6 @@ public class SpaceSavingGood {
     return this;
   }
 
-
   public long[] getFrequentKeys() {
     int count = 0;
     long threshold = (long) (this.stream_length * this.errorTolerance);
@@ -270,7 +258,6 @@ public class SpaceSavingGood {
       if (counts[i] >= threshold)
         count++;
     }
-
 
     long[] freq_keys = new long[count];
     count = 0;

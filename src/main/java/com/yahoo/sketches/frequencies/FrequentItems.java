@@ -412,7 +412,7 @@ public class FrequentItems extends FrequencyEstimator {
   /**
    * @return byte array that looks as follows:
    * 
-   *         <pre>
+   * <pre>
    *  
    *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
    *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | PreambleLongs |  
@@ -428,7 +428,7 @@ public class FrequentItems extends FrequencyEstimator {
    *  5   ||------------(unused)-----------------|--------bufferlength-----------------------| 
    *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
    *  6   ||----------start of keys buffer, followed by values buffer------------------------|
-   *         </pre>
+   * </pre>
    **/
   // @formatter:on
   public byte[] toByteArray() {

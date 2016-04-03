@@ -34,7 +34,6 @@ import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
  * @author Justin8712
  */
 public class FrequentItemsDHWR {
-
   private HashMapDoubleHashingWithRebuilds counters;
   // maxSize is maximum number of counters stored
   private int maxSize;
@@ -76,7 +75,6 @@ public class FrequentItemsDHWR {
    * @param key whose count estimate is returned.
    * @return an estimate of the count for the key.
    */
-
   public long getEstimate(long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -92,7 +90,6 @@ public class FrequentItemsDHWR {
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-
   public long getEstimateUpperBound(long key) {
     long estimate = getEstimate(key);
     if (estimate > 0)
@@ -106,7 +103,6 @@ public class FrequentItemsDHWR {
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-
   public long getEstimateLowerBound(long key) {
     if (getEstimate(key) == 0)
       return 0;
@@ -121,7 +117,6 @@ public class FrequentItemsDHWR {
    * @return the maximal error of the estimate one gets from get(key).
    * 
    */
-
   public long getMaxError() {
     return offset + mergeError;
   }
@@ -129,12 +124,9 @@ public class FrequentItemsDHWR {
   /**
    * @param key Process a key (specified as a long) update and treat the increment as 1
    */
-
   public void update(long key) {
     update(key, 1);
   }
-
-
 
   /**
    * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
@@ -179,14 +171,12 @@ public class FrequentItemsDHWR {
     this.offset += val;
   }
 
-
   /**
    * @param other Another FrequentItemsDHWR sketch. Potentially of different size.
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch.
    *         This method does not create a new sketch. The sketch whose function is executed is
    *         changed.
    */
-
   public FrequentItemsDHWR merge(FrequentItemsDHWR other) {
     this.streamLength += other.streamLength;
     this.mergeError += other.getMaxError();
@@ -204,9 +194,7 @@ public class FrequentItemsDHWR {
   /**
    * @return an array containing all keys exceed the frequency threshold of roughly
    *         1/errorParameter+1
-   * 
    */
-
   public long[] getFrequentKeys() {
     int count = 0;
     long[] keys = counters.ProtectedGetKey();

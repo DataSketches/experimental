@@ -2,6 +2,7 @@
  * Copyright 2016, Yahoo! Inc. Licensed under the terms of the Apache License 2.0. See LICENSE file
  * at the project root for terms.
  */
+
 package com.yahoo.sketches.frequencies;
 
 import com.yahoo.sketches.hash.MurmurHash3;
@@ -12,21 +13,15 @@ import com.yahoo.sketches.hash.MurmurHash3;
  * queries as well (range queries, inner product queries, heavy hitters, quantiles, etc.), though it
  * incurs significant overheads for some of these other queries.
  * 
- * 
  * @author Justin8712
  */
-
-
-// @SuppressWarnings("cast")
 public class CountMin {
-
   private int rows;
   private int columns;
   private long update_sum;
   private long[] counts;
   private long[] keyArr = new long[1];
   double eps;
-
 
   /**
    * Constructs and initializes a CountMin sketch. The guarantee of the sketch is that the answer
@@ -70,7 +65,6 @@ public class CountMin {
   public void conservative_update(long key) {
     conservative_update(key, 1);
   }
-
 
   /**
    * Process a key (specified as a long) and an increment (can be negative).
@@ -156,7 +150,6 @@ public class CountMin {
    * 
    * @param key whose count estimate is returned.
    * @return an approximate count for the key.
-   * 
    */
   public long getEstimateLowerBound(long key) {
     return getEstimate(key) - getMaxError();
@@ -175,7 +168,6 @@ public class CountMin {
   public long getMaxError() {
     return (long) (Math.ceil(this.eps * this.update_sum));
   }
-
 
   /**
    * Merges two CountMin sketches, returning pointer to the resulting sketch.

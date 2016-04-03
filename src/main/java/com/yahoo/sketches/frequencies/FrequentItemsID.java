@@ -34,7 +34,6 @@ import com.yahoo.sketches.hashmaps.HashMapWithImplicitDeletes;
  * @author Justin8712
  */
 public class FrequentItemsID {
-
   private HashMapWithImplicitDeletes counters;
   // maxSize is maximum number of counters stored
   private int maxSize;
@@ -76,7 +75,6 @@ public class FrequentItemsID {
    * @param key whose count estimate is returned.
    * @return an estimate of the count for the key.
    */
-
   public long getEstimate(long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
@@ -92,7 +90,6 @@ public class FrequentItemsID {
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-
   public long getEstimateUpperBound(long key) {
     long estimate = getEstimate(key);
     if (estimate > 0)
@@ -106,7 +103,6 @@ public class FrequentItemsID {
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-
   public long getEstimateLowerBound(long key) {
     if (getEstimate(key) == 0)
       return 0;
@@ -121,7 +117,6 @@ public class FrequentItemsID {
    * @return the maximal error of the estimate one gets from get(key).
    * 
    */
-
   public long getMaxError() {
     return offset + mergeError;
   }
@@ -133,8 +128,6 @@ public class FrequentItemsID {
   public void update(long key) {
     update(key, 1);
   }
-
-
 
   /**
    * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
@@ -186,7 +179,6 @@ public class FrequentItemsID {
    *         This method does not create a new sketch. The sketch whose function is executed is
    *         changed.
    */
-
   public FrequentItemsID merge(FrequentItemsID other) {
     this.streamLength += other.streamLength;
     this.mergeError += other.getMaxError();
@@ -206,7 +198,6 @@ public class FrequentItemsID {
    *         1/errorParameter+1
    * 
    */
-
   public long[] getFrequentKeys() {
     int count = 0;
     long[] keys = counters.ProtectedGetKey();

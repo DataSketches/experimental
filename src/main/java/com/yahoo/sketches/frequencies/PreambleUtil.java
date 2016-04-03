@@ -5,7 +5,6 @@
 
 package com.yahoo.sketches.frequencies;
 
-
 // @formatter:off
 /**
  * This class defines the preamble data structure and provides basic utilities for some of the key
@@ -69,8 +68,6 @@ final class PreambleUtil {
   static final int BUFFERLENGTH_START = 40; // to 43
   // Specific values for this implementation
   static final int SER_VER = 1;
-
-
 
   static int extractPreLongs(final long pre0) {
     long mask = 0XFFL;

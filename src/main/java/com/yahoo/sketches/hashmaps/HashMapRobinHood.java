@@ -5,6 +5,9 @@
 
 package com.yahoo.sketches.hashmaps;
 
+/**
+ * @author Edo Liberty
+ */
 public class HashMapRobinHood extends HashMap {
   int MAX_STATE_ALLOWED = 50;
 

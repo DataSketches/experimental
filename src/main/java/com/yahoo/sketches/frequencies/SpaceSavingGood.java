@@ -38,6 +38,9 @@ import gnu.trove.map.hash.TLongIntHashMap;
  * "Mergeable Summaries" by Agarwal, Cormode, Huang, Phillips, Wei, and Yi showed that FrequentItems
  * aka Misra-Gries is equivalent to Space Saving in a formal sense.
  * 
+ * Based on a MinHeap instead of a HashTable.  Poor performance.  Same functionality as 
+ * FrequentItems.
+ * 
  * @author Justin8712
  */
 

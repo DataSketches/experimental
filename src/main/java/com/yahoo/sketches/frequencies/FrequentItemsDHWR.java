@@ -9,6 +9,7 @@ import java.util.Arrays;
 
 import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
 
+//TODO Consider removing
 /**
  * The frequent-items sketch is useful for keeping approximate counters for keys (map from key
  * (long) to value (long)). The sketch is initialized with an error parameter eps. The sketch will
@@ -30,6 +31,8 @@ import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
  * 2002 "A simple algorithm for finding frequent elements in streams and bags" Karp, Shenker,
  * Papadimitriou, 2003 "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
+ * 
+ * DHWR = Double Hashing With Rebuilds HashMap. Knuth OADH
  * 
  * @author Justin8712
  */

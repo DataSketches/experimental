@@ -31,6 +31,8 @@ import com.yahoo.sketches.hashmaps.HashMapRobinHood;
  * Papadimitriou, 2003 "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
  * 
+ * Uses HashMapRobinHood.
+ * 
  * @author Justin8712
  */
 public class FrequentItemsRobinHood {

@@ -13,6 +13,14 @@ import com.yahoo.sketches.hash.MurmurHash3;
  * queries as well (range queries, inner product queries, heavy hitters, quantiles, etc.), though it
  * incurs significant overheads for some of these other queries.
  * 
+ * The advantage of CountMin vs Frequent Items is that it allows deletions while FrequentItems does 
+ * not. CountMin however, is less space efficient and slower than FrequentItems.  
+ * 
+ * In CountMin, eps and delta can be translated into a "k and delta" which would together specify 
+ * the size of the matrix.
+ * 
+ * Also the error bounds have probablistic error bounds, while FI has deterministic bounds on error.
+ * 
  * @author Justin8712
  */
 public class CountMin {

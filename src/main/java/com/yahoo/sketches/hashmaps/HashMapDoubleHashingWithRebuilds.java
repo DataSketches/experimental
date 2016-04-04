@@ -5,6 +5,11 @@
 
 package com.yahoo.sketches.hashmaps;
 
+/**
+ * Classic Kunth Open Address Double Hash
+ * 
+ * @author Edo Liberty
+ */
 public class HashMapDoubleHashingWithRebuilds extends HashMap {
 
   private static final int STRIDE_HASH_BITS = 7;

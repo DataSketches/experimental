@@ -7,6 +7,7 @@ package com.yahoo.sketches.frequencies;
 
 import com.yahoo.sketches.hash.MurmurHash3;
 
+//TODO reexamine CU
 /**
  * The Count-Min sketch of Cormode and Muthukrishnan is useful for approximately answering point
  * queries, i.e., queries of the form "what is the frequency of key i"? It can also answer other
@@ -18,9 +19,15 @@ import com.yahoo.sketches.hash.MurmurHash3;
  * significant overhead. To avoid this overhead, this class only answers point queries; it does have
  * a function for returning frequent items. This class can process deletions as well as insertions.
  * 
- * This implementation also supports the Conservative Update rule proposed by Estan and Varghese (
+ *
+ * This implementation also supports the Conservative Update  rule proposed by Estan and Varghese (
  * "New Directions in Traffic Measurement and Accounting: Focusing on the Elephants, Ignoring the Mice"
  * ), which can provide more accurate answers than the update rule in the basic Count-Min sketch.
+ * 
+ * This implementation uses powers of 2 hash-table sizes and a single-dimensional array for 
+ * improved performance.
+ * 
+ * 
  * 
  * @author Justin8712
  */

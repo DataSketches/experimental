@@ -5,6 +5,9 @@
 
 package com.yahoo.sketches.hashmaps;
 
+/**
+ * Classic Knuth Open Address Single Hash (linear probing)
+ */
 public class HashMapLinearProbingWithRebuilds extends HashMap {
 
   public HashMapLinearProbingWithRebuilds(int capacity) {

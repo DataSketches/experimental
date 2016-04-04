@@ -32,6 +32,8 @@ import com.yahoo.sketches.hashmaps.HashMapLinearProbingWithRebuilds;
  * Papadimitriou, 2003 "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
  * 
+ * Uses HashMapLinearProbingWithRebuilds
+ * 
  * @author Justin8712
  */
 public class FrequentItemsLPWR {

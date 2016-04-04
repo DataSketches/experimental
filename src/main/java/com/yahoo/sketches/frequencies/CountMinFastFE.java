@@ -9,6 +9,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 import gnu.trove.iterator.TLongIterator;
 import gnu.trove.set.hash.TLongHashSet;
 
+//TODO Consider removing entirely
 /**
  * The Count-Min sketch of Cormode and Muthukrishnan is useful for approximately answering point
  * queries, i.e., queries of the form "what is the frequency of key i"? It can also answer other
@@ -25,6 +26,11 @@ import gnu.trove.set.hash.TLongHashSet;
  * This implementation also supports the Conservative Update rule proposed by Estan and Varghese (
  * "New Directions in Traffic Measurement and Accounting: Focusing on the Elephants, Ignoring the Mice"
  * ), which can provide more accurate answers than the update rule in the basic Count-Min sketch.
+ * 
+ * This implementation is similar to CountMinFast, but uses the gnu.Trove library. Reexamine.
+ * 
+ * This implementation only works for insertions IF the user uses the conservativeUpdate(). 
+ * 
  * 
  * @author Justin8712
  */

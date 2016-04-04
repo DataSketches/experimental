@@ -6,6 +6,11 @@ package com.yahoo.sketches.frequencies;
 
 import com.yahoo.sketches.hash.MurmurHash3;
 
+//TODO Reexamine.  Where does this belong? Is it real?
+/**
+ * 
+ * @author Edo Liberty
+ */
 public class CuckooHashWithImplicitDeletions {
   final private double LOAD_FACTOR = 0.5;
   final private int LOCATIONS_PER_KEY = 10;

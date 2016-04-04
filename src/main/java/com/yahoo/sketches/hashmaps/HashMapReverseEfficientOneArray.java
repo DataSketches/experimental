@@ -5,6 +5,9 @@
 
 package com.yahoo.sketches.hashmaps;
 
+/**
+ * @author Edo Liberty
+ */
 public class HashMapReverseEfficientOneArray extends HashMap {
 
   private final int KEY_OFFSET = 0;

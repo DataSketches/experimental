@@ -140,21 +140,10 @@
       </plugin>
 
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.18.1</version>
-        <configuration>
-          <!-- locale settings must be set on the command line before startup -->
-          <!-- set heap size to work around https://github.com/travis-ci/travis-ci/issues/3396 -->
-          <!-- Eclipse runtime config for TestNG will only look at the first argLine definition.
-               When running Maven test, the second one will override the first and pull in the 
-               JaCoCo arguments. This is a hack to fix a nasty Eclipse bug. -->
-          <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 </argLine> 
-          <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 ${JaCoCoArgLine} </argLine>
-          <useFile>false</useFile>
-          <redirectTestOutputToFile>false</redirectTestOutputToFile>
-        </configuration>
-      </plugin>
+		<groupId>org.jacoco</groupId>
+		<artifactId>jacoco-maven-plugin</artifactId>
+		<version>0.7.7-SNAPSHOT</version>
+  	  </plugin>
 
     </plugins>
 

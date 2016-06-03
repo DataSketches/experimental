@@ -134,7 +134,7 @@ public class CountMinFastFECU {
   }
 
   /**
-   * @param key
+   * @param key the key to be updated
    * @param increment Process a key (specified as a long) and an increment (also specified as a
    *        long). Increment CANNOT be negative, because of the way we are tracking frequent items.
    */
@@ -216,7 +216,7 @@ public class CountMinFastFECU {
   /**
    * @param key whose count estimate is returned.
    * @return the approximate count for the key. It is guaranteed that with probability at least
-   *         1-delta 1) get(key) >= real count 2) get(key) <= real count + getMaxError()
+   *         1-delta 1) get(key) &gt;= real count 2) get(key) &lt;= real count + getMaxError()
    */
 
   public long getEstimate(long key) {
@@ -262,7 +262,7 @@ public class CountMinFastFECU {
 
   /**
    * @return a bound on the error of the estimate one gets from get(key). Note that the error is one
-   *         sided. if the real count is realCount(key) then get(key) >= realCount(key). The
+   *         sided. if the real count is realCount(key) then get(key) &gt;= realCount(key). The
    *         guarantee of the sketch is that, for any fixed key, with probability at least 1-delta,
    *         realCount(key) is also at most get(key) + getMaxError()
    */

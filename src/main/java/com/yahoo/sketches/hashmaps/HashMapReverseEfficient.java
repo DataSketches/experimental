@@ -17,7 +17,7 @@ public class HashMapReverseEfficient extends HashMap {
   /**
    * Constructs a hash table
    * 
-   * @param capacity
+   * @param capacity the capacity of the hash map created
    */
   public HashMapReverseEfficient(int capacity) {
     super(capacity);

@@ -130,8 +130,8 @@ public class SpaceSaving {
 
   /**
    * @param key whose count estimate is returned.
-   * @return the approximate count for the key. It is guaranteed that 1) get(key) + mergeError >=
-   *         real count 2) get(key) <= real count + getMaxError() Note that in the absence of
+   * @return the approximate count for the key. It is guaranteed that 1) get(key) + mergeError &gt;=
+   *         real count 2) get(key) &lt;= real count + getMaxError() Note that in the absence of
    *         merging (i.e., if mergeError == 0) then getEstimate returns an upper bound on real
    *         count.
    */
@@ -172,7 +172,7 @@ public class SpaceSaving {
 
   /**
    * @return the maximal error of the estimate one gets from getEstimate(key). If the real count is
-   *         realCount(key) then get(key) + getMaxError() >= realCount(key) >= get(key) -
+   *         realCount(key) then get(key) + getMaxError() &gt;= realCount(key) &gt;= get(key) -
    *         getMaxError().
    */
   public long getMaxError() {

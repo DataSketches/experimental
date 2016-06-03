@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 /**
  * This is a utility class that implements (and abstracts) a set of positive counters. The mapping
- * is Long key -> Long count. The default value of any key is zero and no negative counters are
+ * is Long key -&gt; Long count. The default value of any key is zero and no negative counters are
  * allowed. Non-positive mappings are deleted.
  * 
  * It also support incrementing individual counters and decrementing all counters simultaneously.

@@ -121,7 +121,7 @@ public class CountMin {
 
   /**
    * Determine an estimate for the frequency of key, specified as a long. It is guaranteed that with
-   * probability at least 1-delta 1) getEstimate(key) >= real count 2) getEstimate(key) <= real
+   * probability at least 1-delta 1) getEstimate(key) &gt;= real count 2) getEstimate(key) &lt;= real
    * count + getMaxError()
    * 
    * @param key whose count estimate is returned.
@@ -141,8 +141,8 @@ public class CountMin {
 
   /**
    * Determine an estimate for the frequency of key, specified as a long. It is guaranteed that with
-   * probability at least 1-delta 1) getEstimateUpperBound(key) >= real count 2)
-   * getEstimateUpperBound(key) <= real count + getMaxError()
+   * probability at least 1-delta 1) getEstimateUpperBound(key) &gt;= real count 2)
+   * getEstimateUpperBound(key) &lt;= real count + getMaxError()
    * 
    * @param key whose count estimate is returned.
    * @return the approximate count for the key.
@@ -153,8 +153,8 @@ public class CountMin {
 
   /**
    * Determine an estimate for the frequency of key, specified as a long. It is guaranteed that with
-   * probability at least 1-delta 1) getEstimateLowerBound(key) >= real count - getMaxError() 2)
-   * getEstimateLowerBound(key) >= real count
+   * probability at least 1-delta 1) getEstimateLowerBound(key) &gt;= real count - getMaxError() 2)
+   * getEstimateLowerBound(key) &gt;= real count
    * 
    * @param key whose count estimate is returned.
    * @return an approximate count for the key.
@@ -167,7 +167,7 @@ public class CountMin {
    * Returns a bound on the error of any estimate returned by the sketch (the bound holds for each
    * estimate with probability at least 1-delta).
    * 
-   * Note that the error is one sided. If the real count is realCount(key) then getEstimate(key) >=
+   * Note that the error is one sided. If the real count is realCount(key) then getEstimate(key) &gt;=
    * realCount(key). The guarantee of the sketch is that, for any fixed key, with probability at
    * least 1-delta, realCount(key) is also at most get(key) + getMaxError()
    * 

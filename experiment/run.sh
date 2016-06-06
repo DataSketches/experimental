@@ -6,4 +6,5 @@ fi
 
 # create a "results" folder if it doesn't exist
 if [ ! -d results ]; then mkdir results; fi
-java -cp ../target/experimental-0.1.0-jar-with-dependencies.jar com.yahoo.sketches.hashmaps.StressTestHashMap > results/StressTestHashMap.csv
+echo 'creating results/StressTestHashMap.csv'
+java -cp ../target/experimental-0.1.0-jar-with-dependencies.jar com.yahoo.sketches.experiments.StressTestHashMap > results/StressTestHashMap.csv

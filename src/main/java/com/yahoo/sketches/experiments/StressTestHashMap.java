@@ -5,7 +5,6 @@
 
 package com.yahoo.sketches.experiments;
 
-import com.yahoo.sketches.hash.MurmurHash3;
 import com.yahoo.sketches.hashmaps.HashMap;
 import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
 import com.yahoo.sketches.hashmaps.HashMapLinearProbingWithRebuilds;
@@ -18,52 +17,41 @@ import com.yahoo.sketches.hashmaps.HashMapWithEfficientDeletes;
 import com.yahoo.sketches.hashmaps.HashMapWithImplicitDeletes;
 
 public class StressTestHashMap {
-
+  final static int NUM_HASHMAP_CLASSES = 9;
+  final static int NUM_STREAM_TYPES = 5;
+  
   public static void main(String[] args) {
-    stress();
+      stress();
   }
-
+  
   private static void stress() {
     for (int capacity = 2 << 5; capacity < 2 << 24; capacity *= 2) {
-      int n = 10000000;
-
-      long[] keys = new long[n];
-      long[] values = new long[n];
-
-      for (int i = 0; i < n; i++) {
-        keys[i] = murmur(i);
-        values[i] = (i < capacity / 2) ? n : 1;
-      }
-
-      for (int h = 0; h < 10; h++) {
-        HashMap hashmap = newHashMap(capacity, h);
-        if (hashmap == null)
-          continue;
-
-        long timePerAdjust = timeOneHashMap(hashmap, keys, values, capacity);
-
-        System.out.format("%s\t%d\t%d\n", hashmap.getClass().getSimpleName(), capacity,
-            timePerAdjust);
+      for (int s = 0; s < NUM_STREAM_TYPES; s++) {
+        for (int h = 0; h < NUM_HASHMAP_CLASSES; h++) {
+          HashMap hashmap = hashMapFactory(capacity, h);
+          long[] stream = streamFactory(s);
+          long timePerAdjust = timeOneHashMap(hashmap, stream);
+          System.out.format("%s\t%s\t%d\t%d\n", hashmap.getClass().getSimpleName(), streamNames()[s], capacity, timePerAdjust);
+	}
       }
     }
   }
 
-  private static long timeOneHashMap(HashMap hashmap, long[] keys, long[] values, int sizeToShift) {
+  private static long timeOneHashMap(HashMap hashmap, long[] keys) {
     final long startTime = System.nanoTime();
-    int n = keys.length;
-    assert (n == values.length);
-    for (int i = 0; i < n; i++) {
-      hashmap.adjust(keys[i], values[i]);
-      if (hashmap.getSize() == sizeToShift) {
+    int hashmapCapacity = hashmap.getCapacity();
+    for (long key: keys) {
+      hashmap.adjust(key, 1);
+      if (hashmap.getSize() >= hashmapCapacity) {
         hashmap.adjustAllValuesBy(-1);
         hashmap.keepOnlyLargerThan(0);
       }
     }
     final long endTime = System.nanoTime();
-    return (endTime - startTime) / n;
+    return (endTime - startTime) / keys.length;
   }
 
-  static private HashMap newHashMap(int capacity, int i) {
+  static private HashMap hashMapFactory(int capacity, int i) {
     switch (i) {
       case 0:
         return new HashMapTrove(capacity);
@@ -86,10 +74,17 @@ public class StressTestHashMap {
     }
     return null;
   }
-
-  private static long murmur(long key) {
-    long[] keyArr = new long[1];
-    keyArr[0] = key;
-    return MurmurHash3.hash(keyArr, 0)[0];
+  
+  static private String[] streamNames(){
+      return new String[]{"uniform","emails","exponential","planted","zipfian"};
+  }
+  
+  static private long[] streamFactory(int s) {
+    try{
+      return StreamHandler.readLongsFromFile("data/" + streamNames()[s] + ".csv");
+    } catch (Exception e){
+      e.printStackTrace();
+    }
+    return null;
   }
 }

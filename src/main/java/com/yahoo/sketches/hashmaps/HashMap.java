@@ -5,6 +5,8 @@
 
 package com.yahoo.sketches.hashmaps;
 
+import java.util.Arrays;
+
 /**
  * @author Edo Liberty
  * @author Justin Thaler
@@ -60,8 +62,8 @@ public abstract class HashMap {
    * @param putAmount the value put into the map if the key is not initial present
    */
   abstract public void adjustOrPutValue(long key, long adjustAmount, long putAmount);
-
-
+  
+ 
   /**
    * Increments the primitive value mapped to the key if the key is present in the map. Otherwise,
    * the key is inserted with the value.
@@ -81,8 +83,7 @@ public abstract class HashMap {
   abstract public long get(long key);
 
   /**
-   * @param adjustAmount value by which to shift all values. Only keys corresponding to positive
-   *        values are retained.
+   * @param adjustAmount value by which to shift all values.
    */
   public void adjustAllValuesBy(long adjustAmount) {
     for (int i = length; i-- > 0;)
@@ -90,8 +91,8 @@ public abstract class HashMap {
   }
 
   /**
-   * @param thresholdValue value by which to shift all values. Only keys corresponding to positive
-   *        values are retained.
+   * @param thresholdValue Only keys corresponding to values larger 
+   * than thresholdValue are retained.
    */
   abstract public void keepOnlyLargerThan(long thresholdValue);
 
@@ -100,7 +101,21 @@ public abstract class HashMap {
    * @return true if the cell in the array contains an active key
    */
   abstract public boolean isActive(int probe);
-
+  
+  @Override
+  public String toString() {
+      String s = "[";
+      long[] activeKeys = getKeys();
+      long[] activeValues = getValues();
+      assert (activeKeys.length == activeValues.length);
+      for (int i=0; i < keys.length; i++){
+	  if (i > 0) s += ",";
+	  s += String.format("(%d,%d)", activeKeys[i], activeValues[i]);
+      }
+      s += "]";
+      return s;   
+  }
+  
   /**
    * @return an array containing the active keys in the hash map.
    */
@@ -118,6 +133,21 @@ public abstract class HashMap {
     return returnedKeys;
   }
 
+  public Long medianValue(){
+    if (size == 0)
+      return null;
+    long[] vals = getValues();
+    //TODO: replace with quick select
+    Arrays.sort(vals, 0, size);
+    long median = vals[size / 2];
+    return median;   
+  }
+  
+  public Long medianValueApprox(int sampleSize){
+    //TODO: replace with actual sample
+    return medianValue();
+  }
+  
   /**
    * @return an array containing the values corresponding. to the active keys in the hash
    */
@@ -135,6 +165,22 @@ public abstract class HashMap {
     return returnedValues;
   }
 
+  /*
+   * @return an array containing the values corresponding. to the active keys in the hash
+   
+  public long[] getValues(int numReturnedValues) {
+    numReturnedValues = Math.min(numReturnedValues, size);
+    long[] returnedValues = new long[numReturnedValues];
+    int probe = 0;
+    int i = 0;
+    while (i < numReturnedValues) {
+      if (isActive(probe)) returnedValues[i++] = values[probe];
+      probe++;
+    }
+    return returnedValues;
+  }*/
+
+  
   /**
    * @return the raw array of keys. Do NOT modify this array!
    */

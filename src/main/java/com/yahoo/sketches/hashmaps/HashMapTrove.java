@@ -6,6 +6,9 @@
 package com.yahoo.sketches.hashmaps;
 
 import gnu.trove.procedure.TLongLongProcedure;
+
+import java.util.Arrays;
+
 import gnu.trove.function.TLongFunction;
 import gnu.trove.map.hash.TLongLongHashMap;
 
@@ -84,7 +87,24 @@ public class HashMapTrove extends HashMap {
     @Override
     public long execute(long value) {
       return value + adjustAmount;
-    }
+    }  
   }
-
+  
+  @Override
+	public Long medianValue() {
+    if (hashmap.size() == 0)
+      return null;
+    long[] vals = getValues();
+    //TODO: replace with quick select
+    Arrays.sort(vals, 0, vals.length);
+    long median = vals[vals.length / 2];
+    return median;   
+  }
+  
+  //TODO; Implement!
+  @Override
+  public Long medianValueApprox(int sampleSize) {
+  	return medianValue();
+  }
+  
 }

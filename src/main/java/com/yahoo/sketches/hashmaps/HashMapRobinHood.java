@@ -31,7 +31,7 @@ public class HashMapRobinHood extends HashMap {
   @Override
   public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
     int probe = (int) hash(key) & arrayMask;
-    byte state = 1;
+    short state = 1;
     while (states[probe] >= state && keys[probe] != key) {
       state++;
       probe = (probe + 1) & arrayMask;
@@ -64,7 +64,7 @@ public class HashMapRobinHood extends HashMap {
       int leftOfRightProbe = (rightProbe - 1) & arrayMask;
       keys[rightProbe] = keys[leftOfRightProbe];
       values[rightProbe] = values[leftOfRightProbe];
-      states[rightProbe] = (byte) (states[leftOfRightProbe] + 1);
+      states[rightProbe] = (short) (states[leftOfRightProbe] + 1);
       rightProbe = leftOfRightProbe;
     }
     keys[probe] = key;
@@ -80,7 +80,7 @@ public class HashMapRobinHood extends HashMap {
     while (states[firstProbe] > 0)
       firstProbe++;
 
-    byte deletes = 0;
+    short deletes = 0;
     int newProbe;
     // loop around the array from first to the end
     for (int probe = firstProbe; probe < length; probe++) {
@@ -97,11 +97,11 @@ public class HashMapRobinHood extends HashMap {
           } else {
             // we need to keep the item and mode it
             if (deletes >= states[probe] - 1)
-              deletes = (byte) (states[probe] - 1);
+              deletes = (short) (states[probe] - 1);
             newProbe = (probe - deletes);
             keys[newProbe] = keys[probe];
             values[newProbe] = values[probe];
-            states[newProbe] = (byte) (states[probe] - deletes);
+            states[newProbe] = (short) (states[probe] - deletes);
             states[probe] = 0;
           }
         }
@@ -123,11 +123,11 @@ public class HashMapRobinHood extends HashMap {
           } else {
             // we need to keep the item and mode it
             if (deletes >= states[probe] - 1)
-              deletes = (byte) (states[probe] - 1);
+              deletes = (short) (states[probe] - 1);
             newProbe = (probe - deletes) & arrayMask;
             keys[newProbe] = keys[probe];
             values[newProbe] = values[probe];
-            states[newProbe] = (byte) (states[probe] - deletes);
+            states[newProbe] = (short) (states[probe] - deletes);
             states[probe] = 0;
           }
         }

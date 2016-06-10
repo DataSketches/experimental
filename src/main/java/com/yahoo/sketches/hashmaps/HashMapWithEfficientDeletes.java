@@ -29,7 +29,7 @@ public class HashMapWithEfficientDeletes extends HashMap {
   @Override
   public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
     int probe = (int) hash(key) & arrayMask;
-    byte drift = 1;
+    short drift = 1;
     while (states[probe] != 0 && keys[probe] != key) {
       probe = (probe + 1) & arrayMask;
       drift++;
@@ -72,7 +72,7 @@ public class HashMapWithEfficientDeletes extends HashMap {
     // item to move to this location
     // if none are found, the status is changed
     states[deleteProbe] = 0;
-    byte drift = 1;
+    short drift = 1;
     int probe = (deleteProbe + drift) & arrayMask;
     // advance until you find a free location replacing locations as needed
     while (states[probe] != 0) {
@@ -80,7 +80,7 @@ public class HashMapWithEfficientDeletes extends HashMap {
         // move current element
         keys[deleteProbe] = keys[probe];
         values[deleteProbe] = values[probe];
-        states[deleteProbe] = (byte) (states[probe] - drift);
+        states[deleteProbe] = (short) (states[probe] - drift);
         // marking this location as deleted
         states[probe] = 0;
         drift = 0;

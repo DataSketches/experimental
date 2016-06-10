@@ -18,14 +18,15 @@ public class StressTestFrequentItems {
   																									"ImplicitDeletes"};
   
   static final String[] dataTypes = new String[]{"uniform",
-  																							 "emails",
   																							 "exponential",
   																							 "planted",
-  																							 "zipfian"};
+  																							 "zipfian",
+  																							 "emails"};
     
   public static void main(String[] args) {
     for (String dataType: dataTypes){
       long[] keys = StreamHandler.readLongsFromFile(DATA_DIRECTORY + "/" + dataType + ".csv");
+      if (keys == null) continue;
       for (String hashMapType: hashMapTypes){
       	FrequencyEstimator fi = new FrequentItemsAbstractHash(10000, 10, hashMapType);
       	long timePerUpdate = timeOneFrequencyEstimator(fi, keys);

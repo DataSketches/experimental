@@ -5,16 +5,7 @@
 
 package com.yahoo.sketches.experiments;
 
-import com.yahoo.sketches.hashmaps.HashMap;
-import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
-import com.yahoo.sketches.hashmaps.HashMapLinearProbingWithRebuilds;
-import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
-import com.yahoo.sketches.hashmaps.HashMapReverseEfficientOneArray;
-import com.yahoo.sketches.hashmaps.HashMapRobinHood;
-import com.yahoo.sketches.hashmaps.HashMapTrove;
-import com.yahoo.sketches.hashmaps.HashMapTroveRebuilds;
-import com.yahoo.sketches.hashmaps.HashMapWithEfficientDeletes;
-import com.yahoo.sketches.hashmaps.HashMapWithImplicitDeletes;
+import com.yahoo.sketches.hashmaps.*;
 
 public class StressTestHashMap {
   final static int NUM_HASHMAP_CLASSES = 9;

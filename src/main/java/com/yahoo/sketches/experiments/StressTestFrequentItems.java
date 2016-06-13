@@ -2,7 +2,6 @@ package com.yahoo.sketches.experiments;
 
 import com.yahoo.sketches.frequencies.FrequencyEstimator;
 import com.yahoo.sketches.frequencies.FrequentItemsAbstractHash;
-//import com.yahoo.sketches.hashmaps.HashMap;
 
 public class StressTestFrequentItems {
     

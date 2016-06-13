@@ -258,7 +258,7 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
    * longer positive, and increments offset accordingly.
    */
   private void purge() {
-	  Long median = counters.medianValue();
+	  Long median = counters.quickSelect(k+1);
 	  assert(median != null);
     counters.adjustAllValuesBy(-1 * median);
     counters.keepOnlyLargerThan(0);

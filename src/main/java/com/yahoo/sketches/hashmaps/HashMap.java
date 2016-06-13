@@ -6,6 +6,7 @@
 package com.yahoo.sketches.hashmaps;
 
 import java.util.Arrays;
+import static com.yahoo.sketches.QuickSelect.select;
 
 /**
  * @author Edo Liberty
@@ -133,19 +134,25 @@ public abstract class HashMap {
     return returnedKeys;
   }
 
-  public Long medianValue(){
-    if (size == 0)
-      return null;
-    long[] vals = getValues();
-    //TODO: replace with quick select
-    Arrays.sort(vals, 0, size);
-    long median = vals[size / 2];
-    return median;   
+  public long quickSelect(int rank){
+  	return quickSelect(rank, getSize());
   }
   
-  public Long medianValueApprox(int sampleSize){
-    //TODO: replace with actual sample
-    return medianValue();
+  public long quickSelect(int rank, int sampleSize){
+  	assert(rank > 1 && rank <= sampleSize);
+  	assert(sampleSize <= getSize());
+  	
+  	long[] vals = new long[sampleSize];
+  	int i = 0; 
+  	int j = 0;
+  	while (i < sampleSize) {
+      if (isActive(j)) {
+      	vals[i] = values[j];
+        i++;
+      }
+      j++;
+    }
+  	return select(vals,0,sampleSize-1,sampleSize-rank);
   }
   
   /**
@@ -164,22 +171,6 @@ public abstract class HashMap {
     assert (j == size);
     return returnedValues;
   }
-
-  /*
-   * @return an array containing the values corresponding. to the active keys in the hash
-   
-  public long[] getValues(int numReturnedValues) {
-    numReturnedValues = Math.min(numReturnedValues, size);
-    long[] returnedValues = new long[numReturnedValues];
-    int probe = 0;
-    int i = 0;
-    while (i < numReturnedValues) {
-      if (isActive(probe)) returnedValues[i++] = values[probe];
-      probe++;
-    }
-    return returnedValues;
-  }*/
-
   
   /**
    * @return the raw array of keys. Do NOT modify this array!

@@ -11,6 +11,7 @@ import java.util.Arrays;
 
 import gnu.trove.function.TLongFunction;
 import gnu.trove.map.hash.TLongLongHashMap;
+import static com.yahoo.sketches.QuickSelect.select;
 
 public class HashMapTrove extends HashMap {
 
@@ -91,20 +92,16 @@ public class HashMapTrove extends HashMap {
   }
   
   @Override
-	public Long medianValue() {
-    if (hashmap.size() == 0)
-      return null;
+  public long quickSelect(int rank){
+   	assert(rank > 1 && rank <= getSize());
     long[] vals = getValues();
-    //TODO: replace with quick select
-    Arrays.sort(vals, 0, vals.length);
-    long median = vals[vals.length / 2];
-    return median;   
+    int sampleSize = vals.length;
+    return select(vals,0,sampleSize-1,sampleSize-rank);   
   }
   
-  //TODO; Implement!
   @Override
-  public Long medianValueApprox(int sampleSize) {
-  	return medianValue();
+  public long quickSelect(int rank,int sampleSize){
+  	return quickSelect(rank);
   }
   
 }

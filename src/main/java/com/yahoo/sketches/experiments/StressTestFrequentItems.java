@@ -7,6 +7,7 @@ public class StressTestFrequentItems {
     
   static final String DATA_DIRECTORY = "/Users/edo/Workspace/datasketches/experimental/experiment/data";
   
+  
   static final String[] hashMapTypes = new String[]{"RobinHood",
   																									"ReverseEfficient",
   																									"EfficientDeletes",
@@ -14,23 +15,39 @@ public class StressTestFrequentItems {
   																									"TroveRebuilds", 
   																									"ProbingWithRebuilds", 
   																									"DoubleHashingWithRebuilds", 
-  																									"ImplicitDeletes"};
+  																									"ImplicitDeletes"
+  																									};
   
   static final String[] dataTypes = new String[]{"uniform",
   																							 "exponential",
   																							 "planted",
   																							 "zipfian",
   																							 "emails"};
-    
+  
+  static int[] ks = new int[]{100,1000,10000};
+  static int[] sampleSizeRatios = new int[]{1,2,5,10};
+  
   public static void main(String[] args) {
-    for (String dataType: dataTypes){
-      long[] keys = StreamHandler.readLongsFromFile(DATA_DIRECTORY + "/" + dataType + ".csv");
-      if (keys == null) continue;
-      for (String hashMapType: hashMapTypes){
-      	FrequencyEstimator fi = new FrequentItemsAbstractHash(10000, 10, hashMapType);
-      	long timePerUpdate = timeOneFrequencyEstimator(fi, keys);
-      	System.out.format("%s\t%s\t%d\n", hashMapType, dataType, timePerUpdate);
-      }
+  	int initialCapacity = 100;
+    for (int round=1; round <=10; round++){
+	  	for (String dataType: dataTypes){
+	      long[] keys = StreamHandler.readLongsFromFile(DATA_DIRECTORY + "/" + dataType + ".csv");
+	      if (keys == null) continue;
+		    for (int k: ks){
+		      for (String hashMapType: hashMapTypes){
+		      	for (int sampleSizeRatio : sampleSizeRatios){
+		      		int sampleSize = k/sampleSizeRatio;
+			      	FrequencyEstimator fi = new FrequentItemsAbstractHash(k, initialCapacity, sampleSize, hashMapType);
+			      	long timePerUpdate = timeOneFrequencyEstimator(fi, keys);
+			      	System.out.format("{\"hashMapType\":\"%s\","
+			      									 + "\"dataType\":\"%s\","
+			      									 + "\"k\":%d,"
+			      									 + "\"sampleSize\":%d" 
+			      									 + "\"timePerUpdate\":%d}\n", hashMapType, dataType, k, sampleSize, timePerUpdate);
+		      	}
+		      }
+	      }
+		  }
     }
   }
   

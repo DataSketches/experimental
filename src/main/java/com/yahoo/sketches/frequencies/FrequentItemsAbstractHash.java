@@ -56,7 +56,7 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
   /**
    * This is a constant large enough that computing the median of SAMPLE_SIZE
    * randomly selected entries from a list of numbers and outputting
-   * the empirical median will give a constant-factor approximaion to the 
+   * the empirical median will give a constant-factor approximation to the 
    * true median with high probability
    */
   static final int SAMPLE_SIZE = 256;
@@ -115,6 +115,9 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
    */
   private String hashMapType;
 
+  
+  private int numPurges;
+  
   // **CONSTRUCTOR**********************************************************
   /**
    * @param k Determines the accuracy of the estimates returned by the sketch.
@@ -149,7 +152,7 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
     
     this.k = k;
     this.initialSize = initialCapacity;
-
+    numPurges = 0;
     // set maxK to be the maximum number of counters that can be supported
     // by a HashMap with the appropriate number of cells (specifically,
     // 2*k cells if k is a power of 2) and a load that does not exceed
@@ -163,6 +166,11 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
       this.sampleSize = this.maxK;
     else
       this.sampleSize = SAMPLE_SIZE;
+  }
+  
+  public FrequentItemsAbstractHash(int k, int initialCapacity, int sampleSize, String hashMapType) {
+  	this(k, initialCapacity, hashMapType);
+  	this.sampleSize = sampleSize;
   }
 
   public FrequentItemsAbstractHash(int k) {
@@ -258,13 +266,13 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
    * longer positive, and increments offset accordingly.
    */
   private void purge() {
-	  Long median = counters.quickSelect(k+1);
-	  assert(median != null);
+	  long median = counters.quickSelect(0.5,sampleSize);
     counters.adjustAllValuesBy(-1 * median);
     counters.keepOnlyLargerThan(0);
     this.offset += median;
+    numPurges++;
   }
-
+  
   @Override
   public FrequencyEstimator merge(FrequencyEstimator other) {
     if (!(other instanceof FrequentItemsAbstractHash))

@@ -5,7 +5,7 @@
 
 package com.yahoo.sketches.hashmaps;
 
-import java.util.Arrays;
+//import java.util.Arrays;
 import static com.yahoo.sketches.QuickSelect.select;
 
 /**
@@ -134,17 +134,23 @@ public abstract class HashMap {
     return returnedKeys;
   }
 
-  public long quickSelect(int rank){
-  	return quickSelect(rank, getSize());
+  public long quickSelect(){
+  	return quickSelect(0.5, getSize());
   }
   
-  public long quickSelect(int rank, int sampleSize){
-  	assert(rank > 1 && rank <= sampleSize);
-  	assert(sampleSize <= getSize());
-  	
+  public long quickSelect(double ralativeRank){
+  	return quickSelect(ralativeRank, getSize());
+  }
+  
+  public long quickSelect(int sampleSize){
+  	return quickSelect(0.5, sampleSize);
+  }
+  
+  public long quickSelect(double ralativeRank, int sampleSize){
+  	int numActive = getSize();
+  	if (sampleSize >= numActive) sampleSize = numActive;  
   	long[] vals = new long[sampleSize];
-  	int i = 0; 
-  	int j = 0;
+  	int i = 0, j = 0;
   	while (i < sampleSize) {
       if (isActive(j)) {
       	vals[i] = values[j];
@@ -152,7 +158,7 @@ public abstract class HashMap {
       }
       j++;
     }
-  	return select(vals,0,sampleSize-1,sampleSize-rank);
+  	return select(vals,0,sampleSize-1,(int)(sampleSize*ralativeRank));
   }
   
   /**

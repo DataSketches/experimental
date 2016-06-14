@@ -7,8 +7,6 @@ package com.yahoo.sketches.hashmaps;
 
 import static com.yahoo.sketches.QuickSelect.select;
 
-import java.util.Arrays;
-
 import gnu.trove.function.TLongFunction;
 import gnu.trove.iterator.TLongLongIterator;
 import gnu.trove.map.hash.TLongLongHashMap;
@@ -78,9 +76,11 @@ public class HashMapTroveRebuilds extends HashMap {
   }
   
   @Override
-  public long quickSelect(int rank,int sampleSize){
-  	return quickSelect(rank);
+  public long quickSelect(double relativeRank,int sampleSize){
+  	long[] vals = getValues();
+    return select(vals,0,vals.length-1,(int)(vals.length*relativeRank));
   }
+  
   
   @Override
   public void adjustAllValuesBy(long adjustAmount) {

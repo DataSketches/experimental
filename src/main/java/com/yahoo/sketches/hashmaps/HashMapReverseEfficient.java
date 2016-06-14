@@ -103,7 +103,7 @@ public class HashMapReverseEfficient extends HashMap {
         // move current element
         keys[deleteProbe] = keys[probe];
         values[deleteProbe] = values[probe];
-        states[deleteProbe] = (byte) (states[probe] - drift);
+        states[deleteProbe] = (short) (states[probe] - drift);
         // marking this location as deleted
         states[probe] = 0;
         drift = 0;

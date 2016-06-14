@@ -5,6 +5,9 @@
 
 package com.yahoo.sketches.hashmaps;
 
+import java.util.Arrays;
+import static com.yahoo.sketches.QuickSelect.select;
+
 /**
  * @author Edo Liberty
  * @author Justin Thaler
@@ -60,8 +63,8 @@ public abstract class HashMap {
    * @param putAmount the value put into the map if the key is not initial present
    */
   abstract public void adjustOrPutValue(long key, long adjustAmount, long putAmount);
-
-
+  
+ 
   /**
    * Increments the primitive value mapped to the key if the key is present in the map. Otherwise,
    * the key is inserted with the value.
@@ -81,8 +84,7 @@ public abstract class HashMap {
   abstract public long get(long key);
 
   /**
-   * @param adjustAmount value by which to shift all values. Only keys corresponding to positive
-   *        values are retained.
+   * @param adjustAmount value by which to shift all values.
    */
   public void adjustAllValuesBy(long adjustAmount) {
     for (int i = length; i-- > 0;)
@@ -90,8 +92,8 @@ public abstract class HashMap {
   }
 
   /**
-   * @param thresholdValue value by which to shift all values. Only keys corresponding to positive
-   *        values are retained.
+   * @param thresholdValue Only keys corresponding to values larger 
+   * than thresholdValue are retained.
    */
   abstract public void keepOnlyLargerThan(long thresholdValue);
 
@@ -100,7 +102,21 @@ public abstract class HashMap {
    * @return true if the cell in the array contains an active key
    */
   abstract public boolean isActive(int probe);
-
+  
+  @Override
+  public String toString() {
+      String s = "[";
+      long[] activeKeys = getKeys();
+      long[] activeValues = getValues();
+      assert (activeKeys.length == activeValues.length);
+      for (int i=0; i < keys.length; i++){
+	  if (i > 0) s += ",";
+	  s += String.format("(%d,%d)", activeKeys[i], activeValues[i]);
+      }
+      s += "]";
+      return s;   
+  }
+  
   /**
    * @return an array containing the active keys in the hash map.
    */
@@ -118,6 +134,27 @@ public abstract class HashMap {
     return returnedKeys;
   }
 
+  public long quickSelect(int rank){
+  	return quickSelect(rank, getSize());
+  }
+  
+  public long quickSelect(int rank, int sampleSize){
+  	assert(rank > 1 && rank <= sampleSize);
+  	assert(sampleSize <= getSize());
+  	
+  	long[] vals = new long[sampleSize];
+  	int i = 0; 
+  	int j = 0;
+  	while (i < sampleSize) {
+      if (isActive(j)) {
+      	vals[i] = values[j];
+        i++;
+      }
+      j++;
+    }
+  	return select(vals,0,sampleSize-1,sampleSize-rank);
+  }
+  
   /**
    * @return an array containing the values corresponding. to the active keys in the hash
    */
@@ -134,7 +171,7 @@ public abstract class HashMap {
     assert (j == size);
     return returnedValues;
   }
-
+  
   /**
    * @return the raw array of keys. Do NOT modify this array!
    */

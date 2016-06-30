@@ -116,6 +116,7 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
   private String hashMapType;
 
   
+  @SuppressWarnings("unused")
   private int numPurges;
   
   // **CONSTRUCTOR**********************************************************

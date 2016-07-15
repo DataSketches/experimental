@@ -13,6 +13,7 @@ fout.close()
 
 alpha = 1.001
 fout = open('data/zipfian.csv','w')
+
 for i in range(n):
     x = int(numpy.random.zipf(alpha))
     fout.write('%d\n'%x)

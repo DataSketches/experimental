@@ -10,9 +10,12 @@
 # Compiler output, class files
 bin/
 
-#Test output
+#Test config and output
 test-output/
-/.clover/
+.clover/
+local/
+reports/
+.pmd
 
 # Build artifacts
 target/
@@ -24,6 +27,7 @@ build.xml
 .idea
 *.iml
 *.properties
+*.releaseBackup
 
 # Jekyll
 Gemfile

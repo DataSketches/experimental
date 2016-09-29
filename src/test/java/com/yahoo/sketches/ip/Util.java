@@ -5,11 +5,20 @@
 
 package com.yahoo.sketches.ip;
 
+import static com.yahoo.sketches.Util.zeroPad;
+
 import org.testng.annotations.Test;
 
-//@SuppressWarnings("unused")
 public class Util {
 
+  /**
+   * Returns an int array of points that will be evenly spaced on a log axis.
+   * This is designed for Log_base2 numbers.
+   * @param lgStart the Log_base2 of the starting value. E.g., for 1 lgStart = 0.
+   * @param lgEnd the Log_base2 of the ending value. E.g. for 1024 lgEnd = 10.
+   * @param points the total number of points including the starting and ending values.
+   * @return an int array of points that will be evenly spaced on a log axis.
+   */
   public static int[] evenlyLgSpaced(int lgStart, int lgEnd, int points) {
     if (points <= 0) {
       throw new IllegalArgumentException("points must be > 0");
@@ -45,8 +54,6 @@ public class Util {
     }
     return arr;
   }
-
-
 
   /**
    * Returns an int extracted from a Little-Endian byte array.
@@ -88,6 +95,14 @@ public class Util {
     return v;
   }
 
+  /**
+   * Returns a string view of a byte array
+   * @param arr the given byte array
+   * @param signed set true if you want the byte values signed.
+   * @param littleEndian set true if you want Little-Endian order
+   * @param sep the separator string between bytes
+   * @return a string view of a byte array
+   */
   public static final String bytesToString(
       byte[] arr, boolean signed, boolean littleEndian, String sep) {
     StringBuilder sb = new StringBuilder();
@@ -105,6 +120,40 @@ public class Util {
       sb.append(arr[0] & mask);
     }
     return sb.toString();
+  }
+
+  /**
+   * Returns the given time in nanoseconds formatted as Sec.mSec uSec nSec
+   * @param nS the given nanoseconds
+   * @return the given time in nanoseconds formatted as Sec.mSec uSec nSec
+   */
+  //temporarily copied from SNAPSHOT com.yahoo.sketches.TestingUtil (test branch)
+  public static String nanoSecToString(long nS) {
+    long rem_nS = (long)(nS % 1000.0);
+    long rem_uS = (long)((nS / 1000.0) % 1000.0);
+    long rem_mS = (long)((nS / 1000000.0) % 1000.0);
+    long sec    = (long)(nS / 1000000000.0);
+    String nSstr = zeroPad(Long.toString(rem_nS), 3);
+    String uSstr = zeroPad(Long.toString(rem_uS), 3);
+    String mSstr = zeroPad(Long.toString(rem_mS), 3);
+    return String.format("%d.%3s %3s %3s", sec, mSstr, uSstr, nSstr);
+  }
+
+  /**
+   * Returns the given time in milliseconds formatted as Hours:Min:Sec.mSec
+   * @param mS the given nanoseconds
+   * @return the given time in milliseconds formatted as Hours:Min:Sec.mSec
+   */
+  //temporarily copied from SNAPSHOT com.yahoo.sketches.TestingUtil (test branch)
+  public static String milliSecToString(long mS) {
+    long rem_mS = (long)(mS % 1000.0);
+    long rem_sec = (long)((mS / 1000.0) % 60.0);
+    long rem_min = (long)((mS / 60000.0) % 60.0);
+    long hr  =     (long)(mS / 3600000.0);
+    String mSstr = zeroPad(Long.toString(rem_mS), 3);
+    String secStr = zeroPad(Long.toString(rem_sec), 2);
+    String minStr = zeroPad(Long.toString(rem_min), 2);
+    return String.format("%d:%2s:%2s.%3s", hr, minStr, secStr, mSstr);
   }
 
   public static void println(String s) { System.out.println(s); }

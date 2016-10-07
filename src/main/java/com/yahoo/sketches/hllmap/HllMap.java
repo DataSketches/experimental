@@ -1,8 +1,8 @@
 package com.yahoo.sketches.hllmap;
 
-class HllMap {
+class HllMap extends CouponMap {
 
-  HllMap(int keySizeBytes) {
+  HllMap(final int keySizeBytes) {
   }
 
 }

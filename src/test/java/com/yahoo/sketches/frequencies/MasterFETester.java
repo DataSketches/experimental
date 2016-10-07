@@ -7,12 +7,11 @@ package com.yahoo.sketches.frequencies;
 
 import java.util.Collection;
 
-import com.yahoo.sketches.memory.Memory;
-import com.yahoo.sketches.memory.NativeMemory;
-
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.yahoo.memory.Memory;
+import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 
 public class MasterFETester {
@@ -202,10 +201,10 @@ public class MasterFETester {
 
   @Test
   private static void FETest(){
-    int numEstimators = 1; 
+    int numEstimators = 1;
     int n = 2222;
     double error_tolerance = 1.0/100;
-    
+
     FrequencyEstimator[] estimators = new FrequencyEstimator[numEstimators];
     for (int h = 0; h < numEstimators; h++) {
       estimators[h] = newFrequencyEstimator(error_tolerance, .1, h);
@@ -220,7 +219,7 @@ public class MasterFETester {
       for (int h = 0; h < numEstimators; h++)
         estimators[h].update(key);
     }
-    
+
     long threshold = 10;
     for(int h=0; h<numEstimators; h++) {
 
@@ -343,7 +342,7 @@ public class MasterFETester {
       // Assert.assertEquals(estimator.getEstimate(13L), 1);
     }
   }
-  
+
   @Test
   private static void ErrorTestZipfBigParam() {
     int size = 512;
@@ -514,7 +513,7 @@ public class MasterFETester {
     }
   }
 
-  
+
   ////////////////////////////////////////
 
   /**

@@ -5,46 +5,45 @@
 
 package com.yahoo.sketches.frequencies;
 
-import java.util.Arrays;
-
-import com.yahoo.sketches.memory.Memory;
-import com.yahoo.sketches.memory.NativeMemory;
-import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
-
 import static com.yahoo.sketches.frequencies.PreambleUtil.SER_VER;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractPreLongs;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractLowerK;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractSerVer;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractFamilyID;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractEmptyFlag;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractUpperK;
-import static com.yahoo.sketches.frequencies.PreambleUtil.extractInitialSize;
 import static com.yahoo.sketches.frequencies.PreambleUtil.extractBufferLength;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractEmptyFlag;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractFamilyID;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractInitialSize;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractLowerK;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractPreLongs;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractSerVer;
+import static com.yahoo.sketches.frequencies.PreambleUtil.extractUpperK;
+import static com.yahoo.sketches.frequencies.PreambleUtil.insertBufferLength;
+import static com.yahoo.sketches.frequencies.PreambleUtil.insertEmptyFlag;
 import static com.yahoo.sketches.frequencies.PreambleUtil.insertFamilyID;
+import static com.yahoo.sketches.frequencies.PreambleUtil.insertInitialSize;
 import static com.yahoo.sketches.frequencies.PreambleUtil.insertLowerK;
 import static com.yahoo.sketches.frequencies.PreambleUtil.insertPreLongs;
 import static com.yahoo.sketches.frequencies.PreambleUtil.insertSerVer;
-import static com.yahoo.sketches.frequencies.PreambleUtil.insertEmptyFlag;
 import static com.yahoo.sketches.frequencies.PreambleUtil.insertUpperK;
-import static com.yahoo.sketches.frequencies.PreambleUtil.insertBufferLength;
 
-import static com.yahoo.sketches.frequencies.PreambleUtil.insertInitialSize;
+import java.util.Arrays;
+
+import com.yahoo.memory.Memory;
+import com.yahoo.memory.NativeMemory;
+import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 
 /**
  * Implements frequent items sketch on the Java heap.
- * 
+ *
  * The frequent-items sketch is useful for keeping approximate counters for keys (map from key
  * (long) to value (long)). The sketch is initialized with a value k. The sketch will keep roughly k
  * counters when it is full size. More specifically, when k is a power of 2, a HashMap will be
  * created with 2*k cells, and the number of counters will typically oscillate between roughly .75*k
  * and 1.5*k. The space usage of the sketch is therefore proportional to k when it reaches full
  * size.
- * 
+ *
  * When the sketch is updated with a key and increment, the corresponding counter is incremented or,
  * if there is no counter for that key, a new counter is created. If the sketch reaches its maximal
  * allowed size, it decrements all of the counters (by an approximately computed median), and
  * removes any non-positive counters.
- * 
+ *
  * The logic of the frequent-items sketch is such that the stored counts and real counts are never
  * too different. More specifically, for any key KEY, the sketch can return an estimate of the true
  * frequency of KEY, along with upper and lower bounds on the frequency (that hold
@@ -53,7 +52,7 @@ import static com.yahoo.sketches.frequencies.PreambleUtil.insertInitialSize;
  * most (4/3)*(n/k), where n denotes the stream length (i.e, sum of all the item frequencies), and
  * similarly for the lower bound and the estimate. In practice, the difference is usually much
  * smaller.
- * 
+ *
  * Background: This code implements a variant of what is commonly known as the "Misra-Gries
  * algorithm" or "Frequent Items". Variants of it were discovered and rediscovered and redesigned
  * several times over the years. a) "Finding repeated elements", Misra, Gries, 1982 b)
@@ -61,9 +60,9 @@ import static com.yahoo.sketches.frequencies.PreambleUtil.insertInitialSize;
  * 2002 c) "A simple algorithm for finding frequent elements in streams and bags" Karp, Shenker,
  * Papadimitriou, 2003 d) "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
- * 
+ *
  * Uses HashMapReverseEfficient
- * 
+ *
  * @author Justin Thaler
  */
 public class FrequentItems extends FrequencyEstimator {
@@ -74,11 +73,11 @@ public class FrequentItems extends FrequencyEstimator {
    * initial data structure
    */
   static final int MIN_FREQUENT_ITEMS_SIZE = 4; // This is somewhat arbitrary
-  
+
   /**
    * This is a constant large enough that computing the median of SAMPLE_SIZE
    * randomly selected entries from a list of numbers and outputting
-   * the empirical median will give a constant-factor approximaion to the 
+   * the empirical median will give a constant-factor approximaion to the
    * true median with high probability
    */
   static final int SAMPLE_SIZE = 256;
@@ -137,7 +136,7 @@ public class FrequentItems extends FrequencyEstimator {
   /**
    * @param k Determines the accuracy of the estimates returned by the sketch.
    * @param initialCapacity determines the initial size of the sketch.
-   * 
+   *
    *        The guarantee of the sketch is that with high probability, any returned estimate will
    *        have error at most (4/3)*(n/k), where n is the true sum of frequencies in the stream. In
    *        practice, the error is typically much smaller. The space usage of the sketch is
@@ -150,8 +149,8 @@ public class FrequentItems extends FrequencyEstimator {
   public FrequentItems(int k, int initialCapacity) {
 
     if (k <= 0) throw new IllegalArgumentException("Received negative or zero value for k.");
-    
-    //set initial size of counters data structure so it can exactly store a stream with 
+
+    //set initial size of counters data structure so it can exactly store a stream with
     //initialCapacity distinct elements
 
     this.K = initialCapacity;
@@ -169,7 +168,7 @@ public class FrequentItems extends FrequencyEstimator {
 
     this.offset = 0;
 
-    if (this.maxK < SAMPLE_SIZE) 
+    if (this.maxK < SAMPLE_SIZE)
       this.sampleSize = this.maxK;
     else
       this.sampleSize = SAMPLE_SIZE;
@@ -210,7 +209,7 @@ public class FrequentItems extends FrequencyEstimator {
   @Override
   public long getEstimateLowerBound(long key) {
     long estimate = getEstimate(key);
-    
+
     long returnVal = estimate - offset - mergeError;
     return (returnVal > 0) ? returnVal : 0;
   }
@@ -239,7 +238,7 @@ public class FrequentItems extends FrequencyEstimator {
       HashMapReverseEfficient newTable = new HashMapReverseEfficient(newSize);
       long[] keys = this.counters.getKeys();
       long[] values = this.counters.getValues();
-      
+
       assert(keys.length == size);
       for (int i = 0; i < size; i++) {
         newTable.adjust(keys[i], values[i]);
@@ -356,7 +355,7 @@ public class FrequentItems extends FrequencyEstimator {
 
   /**
    * Returns the number of bytes required to store this sketch as an array of bytes.
-   * 
+   *
    * @return the number of bytes required to store this sketch as an array of bytes.
    */
   public int getStorageBytes() {
@@ -367,7 +366,7 @@ public class FrequentItems extends FrequencyEstimator {
 
   /**
    * Returns summary information about this sketch.
-   * 
+   *
    * @return a string specifying the FrequentItems object
    */
   @Override
@@ -382,7 +381,7 @@ public class FrequentItems extends FrequencyEstimator {
 
   /**
    * Turns a string specifying a FrequentItems object into a FrequentItems object.
-   * 
+   *
    * @param string String specifying a FrequentItems object
    * @return a FrequentItems object corresponding to the string
    */
@@ -413,21 +412,21 @@ public class FrequentItems extends FrequencyEstimator {
   // @formatter:off
   /**
    * @return byte array that looks as follows:
-   * 
+   *
    * <pre>
-   *  
+   *
    *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
-   *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | PreambleLongs |  
+   *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | PreambleLongs |
    *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
    *  1   ||---------------------------------mergeError--------------------------------------|
    *      ||    23    |   22   |   21   |   20   |   19   |   18   |   17   |    16          |
-   *  2   ||---------------------------------offset------------------------------------------|      
+   *  2   ||---------------------------------offset------------------------------------------|
    *      ||    31    |   30   |   29   |   28   |   27   |   26   |   25   |    24          |
-   *  3   ||-----------------------------------streamLength----------------------------------| 
+   *  3   ||-----------------------------------streamLength----------------------------------|
    *      ||    39    |   38   |   37   |   36   |   35   |   34   |   33   |    32          |
-   *  4   ||------initialSize--------------------|-------------------K-----------------------| 
+   *  4   ||------initialSize--------------------|-------------------K-----------------------|
    *      ||    47    |   46   |   45   |   44   |   43   |   42   |   41   |   40           |
-   *  5   ||------------(unused)-----------------|--------bufferlength-----------------------| 
+   *  5   ||------------(unused)-----------------|--------bufferlength-----------------------|
    *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
    *  6   ||----------start of keys buffer, followed by values buffer------------------------|
    * </pre>
@@ -496,7 +495,7 @@ public class FrequentItems extends FrequencyEstimator {
 
   /**
    * Heapifies the given srcMem, which must be a Memory image of a FrequentItems sketch
-   * 
+   *
    * @param srcMem a Memory image of a sketch. <a href="{@docRoot}/resources/dictionary.html#mem"
    *        >See Memory</a>
    * @return a FrequentItems on the Java heap.

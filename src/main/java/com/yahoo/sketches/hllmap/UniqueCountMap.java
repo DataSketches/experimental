@@ -24,8 +24,9 @@ public class UniqueCountMap {
   // needs to keep 2 double values and 1 float value for HIP estimator
   private HllMap lastLevelMap;
   
-  public UniqueCountMap(final int keySizeBytes) {
-    baseLevelMap = new SingleCouponMap(keySizeBytes);
+  public UniqueCountMap(final int sizeBytes, final int keySizeBytes) {
+    // to do: figure out how to distribute that size between the levels
+    baseLevelMap = new SingleCouponMap(sizeBytes, keySizeBytes);
   }
 
   public double update(final byte[] key, final byte[] value) {

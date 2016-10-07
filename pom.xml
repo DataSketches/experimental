@@ -27,24 +27,28 @@
         <name>Yahoo! Inc.</name>
         <url>https://www.yahoo.com</url>
     </organization>
+
     <developers>
         <developer>
             <name>Lee Rhodes</name>
             <roles>
-                <role>founder, project admin, developer</role>
+                <role>founder, project admin, lead developer</role>
             </roles>
             <url>https://github.com/leerho</url>
         </developer>
-
         <developer>
             <name>Kevin Lang</name>
+            <roles>
+                <role>co-founder, lead research scientist, developer</role>
+            </roles>
             <url>https://github.com/kevinjlang</url>
         </developer>
+
 
         <developer>
             <name>Alexander Saydakov</name>
             <roles>
-                <role>lead developer</role>
+                <role>developer</role>
             </roles>
             <url>https://github.com/AlexanderSaydakov</url>
         </developer>
@@ -65,6 +69,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <argLine>-Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8</argLine>
     </properties>
 
     <!-- Environment Settings -->
@@ -114,8 +119,8 @@
         </repository>
     </distributionManagement>
 
+    <!-- This is optional -->
     <profiles>
-
         <profile>
             <id>strict</id>
             <build>
@@ -125,7 +130,6 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-compiler-plugin</artifactId>
-                            <version>3.5.1</version>
                             <configuration>
                                 <source>${maven.compiler.source}</source>
                                 <target>${maven.compiler.target}</target>
@@ -147,27 +151,29 @@
         </profile>
     </profiles>
     <!-- End of Environment Settings -->
+
+
     <dependencies>
         <!-- sketches-core -->
         <dependency>
-            <groupId>com.yahoo.datasketches</groupId>
-            <artifactId>sketches-core</artifactId>
-            <version>0.8.1</version>
+          <groupId>com.yahoo.datasketches</groupId>
+          <artifactId>sketches-core</artifactId>
+          <version>0.8.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.yahoo.datasketches</groupId>
             <artifactId>memory</artifactId>
-            <version>0.8.1</version>
+             <version>0.8.1</version>
         </dependency>
 
         <!-- Test Scope -->
         <!-- Trove For Java -->
         <dependency>
-                <groupId>net.sf.trove4j</groupId>
-                <artifactId>trove4j</artifactId>
-                <version>3.0.3</version>
-                <!--<scope>test</scope>-->
+            <groupId>net.sf.trove4j</groupId>
+            <artifactId>trove4j</artifactId>
+            <version>3.0.3</version>
+            <!--<scope>test</scope>-->
         </dependency>
 
         <dependency>
@@ -176,6 +182,14 @@
             <version>6.9.10</version>
             <scope>test</scope>
         </dependency>
+        <!-- run locally for now
+        <dependency>
+          <groupId>com.google.code.findbugs</groupId>
+          <artifactId>findbugs</artifactId>
+          <version>3.0.1</version>
+          <scope>test</scope>
+        </dependency>
+        -->
     </dependencies>
 
     <build>
@@ -183,8 +197,27 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                  <!--
+                    <show>private</show>
+                  -->
+                  <stylesheetfile>src/main/javadoc/stylesheet.css</stylesheetfile>
+                  <docfilessubdirs>true</docfilessubdirs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                          </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -197,45 +230,8 @@
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
-                <configuration>
-                    <!-- 
-                        <show>private</show> 
-                    -->
-                    <stylesheetfile>src/main/javadoc/stylesheet.css</stylesheetfile>
-                    <docfilessubdirs>true</docfilessubdirs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.7</version>
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>sonatype-nexus-staging</serverId>
@@ -243,16 +239,15 @@
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
                 </configuration>
             </plugin>
-
+            
             <!-- Code coverage plugin, generates coverage report to target/site/jacoco/
-                     To skip coverage generation add -Djacoco.skip=true -->
+                 To skip coverage generation add -Djacoco.skip=true -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version> 0.7.7.201606060606</version>
                 <executions>
                     <!-- Prepares the property pointing to the JaCoCo runtime agent which
-                             is passed as VM argument when Maven the Surefire plugin is executed. -->
+                         is passed as VM argument when Maven the Surefire plugin is executed. -->
                     <execution>
                         <id>pre-unit-test</id>
                         <goals>
@@ -261,13 +256,10 @@
                         <configuration>
                             <!-- Sets the path to the file which contains the execution data. -->
                             <destFile>${jacoco.ut.execution.data.file}</destFile>
-                            <!-- Sets the name of the property containing the settings for JaCoCo runtime agent. 
-                                     Used by the surefire plugin -->
-                            <propertyName>JaCoCoArgLine</propertyName>
                         </configuration>
                     </execution>
                     <!-- Ensures that the code coverage report for unit tests is created after
-                             unit tests have been run. -->
+                         unit tests have been run. -->
                     <execution>
                         <id>post-unit-test</id>
                         <phase>test</phase>
@@ -296,7 +288,7 @@
                                         <limit implementation="org.jacoco.report.check.Limit">
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum>
+                                            <minimum>0.5</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
@@ -310,7 +302,6 @@
             <plugin>
                 <groupId>org.eluder.coveralls</groupId>
                 <artifactId>coveralls-maven-plugin</artifactId>
-                <version>4.3.0</version>
                 <configuration>
                     <repoToken />
                 </configuration>
@@ -319,105 +310,162 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
-                <configuration>
-                    <!-- locale settings must be set on the command line before startup -->
-                    <!-- set heap size to work around https://github.com/travis-ci/travis-ci/issues/3396 -->
-                    <!-- Eclipse runtime config for TestNG will only look at the first argLine definition.
-                             When running Maven test, the second one will override the first and pull in the 
-                             JaCoCo arguments. This is a hack to fix a nasty Eclipse bug. -->
-                    <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 </argLine> 
-                    <!-- <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 ${JaCoCoArgLine} </argLine> -->
-                    <useFile>false</useFile>
-                    <redirectTestOutputToFile>false</redirectTestOutputToFile>
-                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
+                <artifactId>maven-gpg-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>sign</goal>
                         </goals>
-                        <configuration>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
+
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <descriptorRefs>
+                    <descriptorRef>jar-with-dependencies</descriptorRef>
+                  </descriptorRefs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
 
         </plugins>
 
         <pluginManagement>
             <plugins>
+              <!-- ORG.APACHE.MAVEN -->
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-assembly-plugin</artifactId>
+                  <version>2.6</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-clean-plugin</artifactId>
-                    <version>3.0.0</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-clean-plugin</artifactId>
+                  <version>3.0.0</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>2.10</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-compiler-plugin</artifactId>
+                  <version>3.5.1</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>2.8.2</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-dependency-plugin</artifactId>
+                  <version>2.10</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-help-plugin</artifactId>
-                    <version>2.2</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-deploy-plugin</artifactId>
+                  <version>2.8.2</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-install-plugin</artifactId>
-                    <version>2.5.2</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-gpg-plugin</artifactId>
+                  <version>1.6</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.0.1</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-help-plugin</artifactId>
+                  <version>2.2</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>2.5.3</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-install-plugin</artifactId>
+                  <version>2.5.2</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>2.6</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-javadoc-plugin</artifactId>
+                  <version>2.10.4</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>1.9</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-release-plugin</artifactId>
+                  <version>2.5.3</version>
+              </plugin>
 
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.5.0</version>
-                </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-resources-plugin</artifactId>
+                  <version>3.0.1</version>
+              </plugin>
+<!--
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-shade-plugin</artifactId>
+                  <version>2.4.3</version>
+              </plugin>
+-->
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-source-plugin</artifactId>
+                  <version>3.0.1</version>
+              </plugin>
+
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-surefire-plugin</artifactId>
+                  <version>2.19.1</version>
+              </plugin>
+
+              <!-- OTHER -->
+              <plugin>
+                  <groupId>org.codehaus.mojo</groupId>
+                  <artifactId>exec-maven-plugin</artifactId>
+                  <version>1.5.0</version>
+              </plugin>
+
+              <plugin>
+                  <groupId>org.codehaus.mojo</groupId>
+                  <artifactId>license-maven-plugin</artifactId>
+                  <version>1.9</version>
+              </plugin>
+
+              <plugin>
+                  <groupId>org.eluder.coveralls</groupId>
+                  <artifactId>coveralls-maven-plugin</artifactId>
+                  <version>4.3.0</version>
+              </plugin>
+
+              <plugin>
+                  <groupId>org.jacoco</groupId>
+                  <artifactId>jacoco-maven-plugin</artifactId>
+                  <version>0.7.7.201606060606</version>
+              </plugin>
+
+              <plugin>
+                  <groupId>org.sonatype.plugins</groupId>
+                  <artifactId>nexus-staging-maven-plugin</artifactId>
+                  <version>1.6.7</version>
+              </plugin>
 
             </plugins>
         </pluginManagement>
     </build>
-
 </project>

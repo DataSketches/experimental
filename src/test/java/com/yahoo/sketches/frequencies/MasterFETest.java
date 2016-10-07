@@ -14,7 +14,7 @@ import com.yahoo.memory.Memory;
 import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 
-public class MasterFETester {
+public class MasterFETest {
 
   public static void main(String[] args) {
     HashMapRESerialTest();

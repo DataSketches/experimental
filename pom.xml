@@ -327,7 +327,7 @@
                When running Maven test, the second one will override the first and pull in the 
                JaCoCo arguments. This is a hack to fix a nasty Eclipse bug. -->
           <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 </argLine> 
-          <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 ${JaCoCoArgLine} </argLine>
+          <!-- <argLine> -Xmx1024m -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 ${JaCoCoArgLine} </argLine> -->
           <useFile>false</useFile>
           <redirectTestOutputToFile>false</redirectTestOutputToFile>
         </configuration>

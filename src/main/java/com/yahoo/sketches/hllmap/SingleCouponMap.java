@@ -49,8 +49,9 @@ class SingleCouponMap extends CouponMap {
     return (int) ((hash >>> 1) % numEntries);
   }
 
+  // make odd and independent of index assuming that the highest bits are not used for the index
   private static int getStride(final long hash, final int numEntries) {
-    return (int) (hash >>> (64 - STRIDE_HASH_BITS)) & STRIDE_MASK;
+    return (2 * (int) ((hash >>> (64 - STRIDE_HASH_BITS)) & STRIDE_MASK)) + 1;
   }
 
 }

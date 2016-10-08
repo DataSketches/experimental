@@ -33,9 +33,4 @@ public class UvcSizeModel {
     maxValues[5] = Integer.MAX_VALUE;
   }
 
-
-
-
-
-
 }

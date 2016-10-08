@@ -1,13 +1,18 @@
 package com.yahoo.sketches.hllmap;
 
-import java.math.BigInteger;
-
 import com.yahoo.sketches.hash.MurmurHash3;
 
+
+//Always holds all keys.
+// prime size, double hash, no deletes, 1-bit state array
+// state: 0: empty or valid; empty if coupon is 0, otherwise valid.
+// state: 1: original coupon has been promoted, current coupon contains a table # instead.
+// same growth algorithm as for the next levels, except no shrink. Constants may be specific.
+@SuppressWarnings("unused")
 class SingleCouponMap extends CouponMap {
 
   private static final long SEED = 1234567890L;
-  
+
   private final int keySizeBytes_;
   private int currentSizeEntries_;
   private byte[] keys_;
@@ -17,7 +22,7 @@ class SingleCouponMap extends CouponMap {
   SingleCouponMap(final int sizeBytes, final int keySizeBytes) {
     final int numSlots = sizeBytes / (keySizeBytes + Short.BYTES);
     keySizeBytes_ = keySizeBytes;
-    currentSizeEntries_ = BigInteger.valueOf(numSlots).nextProbablePrime().intValueExact();
+    currentSizeEntries_ = Util.nextPrime(numSlots);
     keys_ = new byte[currentSizeEntries_ * keySizeBytes_];
     values_ = new short[currentSizeEntries_];
     state_ = new byte[(int) Math.ceil(currentSizeEntries_ / 8.0)];

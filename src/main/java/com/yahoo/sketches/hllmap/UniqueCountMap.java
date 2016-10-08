@@ -1,5 +1,6 @@
 package com.yahoo.sketches.hllmap;
 
+@SuppressWarnings("unused")
 public class UniqueCountMap {
 
   // coupon is a 16-bit value similar to HLL sketch value: 10-bit address,
@@ -13,23 +14,19 @@ public class UniqueCountMap {
   // TraverseCouponMap or HashCouponMap instances
   private CouponMap[] intermediateLevelMaps;
 
-  // rebuilding TraverseCouponMap and HashCouponMap: can grow or shrink
-  // keep numValid and numInvalid
-  // grow if numValid + numInvalid > 0.9 * capacity
-  // shrink if numValid < 0.5 * capacity
-  // new size T ~= (10/7) * numValid
-  // BigInteger nextPrime() can be used
-
-  // this map has a fixed size
+  // this map has a fixed slotSize (row size). No shrinking.
+  // Similar growth algorithm to SingleCouponMap, maybe different constants.
   // needs to keep 2 double values and 1 float value for HIP estimator
   private HllMap lastLevelMap;
-  
+
   public UniqueCountMap(final int sizeBytes, final int keySizeBytes) {
     // to do: figure out how to distribute that size between the levels
     baseLevelMap = new SingleCouponMap(sizeBytes, keySizeBytes);
   }
 
   public double update(final byte[] key, final byte[] value) {
+   // This class will decide the transition points of when to promote between types of maps.
+
     return 0;
   }
 

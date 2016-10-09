@@ -13,10 +13,26 @@ package com.yahoo.sketches.hllmap;
 // BigInteger nextPrime() can be used
 
 
-@SuppressWarnings("unused")
-class TraverseCouponMap extends CouponMap {
+//@SuppressWarnings("unused")
+class CouponTraverseMap extends Map {
 
-  TraverseCouponMap(final int keySizeBytes) {
+  CouponTraverseMap(final int keySizeBytes) {
+    super(keySizeBytes);
+  }
+
+  @Override
+  public double update(byte[] key, byte[] identifier) {
+    return 0;
+  }
+
+  @Override
+  public double getEstimate(byte[] key) {
+    return 0;
+  }
+
+  @Override
+  void couponUpdate(byte[] key, int coupon) {
+
   }
 
 }

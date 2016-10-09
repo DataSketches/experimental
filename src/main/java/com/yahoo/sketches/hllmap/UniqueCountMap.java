@@ -9,10 +9,10 @@ public class UniqueCountMap {
   // prime size, double hash, no deletes, 1-bit state array
   // state: 0 - value is a coupon (if used), 1 - value is a level number
   // same growth rule as for the next levels
-  private final SingleCouponMap baseLevelMap;
+  private final CouponMap baseLevelMap;
 
   // TraverseCouponMap or HashCouponMap instances
-  private CouponMap[] intermediateLevelMaps;
+  private Map[] intermediateLevelMaps;
 
   // this map has a fixed slotSize (row size). No shrinking.
   // Similar growth algorithm to SingleCouponMap, maybe different constants.
@@ -21,7 +21,7 @@ public class UniqueCountMap {
 
   public UniqueCountMap(final int sizeBytes, final int keySizeBytes) {
     // to do: figure out how to distribute that size between the levels
-    baseLevelMap = new SingleCouponMap(sizeBytes, keySizeBytes);
+    baseLevelMap = new CouponMap(sizeBytes, keySizeBytes);
   }
 
   public double update(final byte[] key, final byte[] value) {

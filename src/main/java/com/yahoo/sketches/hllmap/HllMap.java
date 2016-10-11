@@ -97,7 +97,7 @@ class HllMap extends Map {
   }
 
   @Override
-  public double getEstimate(byte[] key) {
+  double getEstimate(byte[] key) {
     int index = outerSearchForKey(keysArr_, key, validBitArr_);
     if (index == -1) {
       return 0; //TODO Did we agree on this ?
@@ -107,7 +107,7 @@ class HllMap extends Map {
 
   //This update only updates keys that alredy exist in the outer map
   @Override
-  public double update(byte[] key, byte[] identifier) {
+  double update(byte[] key, int coupon) {
     int outerIndex = outerSearchForKey(keysArr_, key, validBitArr_);
     if (outerIndex == -1) {
       throw new SketchesArgumentException("key not found: "+
@@ -115,10 +115,10 @@ class HllMap extends Map {
     }
     //matching key found
 
-    boolean updated = updateHll(hllsArr_, outerIndex, k_, identifier); //update HLL array
-    if (updated) {
-      //TODO update the HIP registers and estimate
-    }
+    //boolean updated = updateHll(hllsArr_, outerIndex, k_, identifier); //update HLL array
+//    if (updated) {
+//      //TODO update the HIP registers and estimate
+//    }
 
     return hipEstAccumArr_[outerIndex];
   }
@@ -315,12 +315,6 @@ class HllMap extends Map {
   public static void main(String[] args) {
     bktProbList(64);
     //deltaBktProb(6, 4);
-  }
-
-  @Override
-  int couponUpdate(byte[] key, short coupon) {
-    // TODO Auto-generated method stub
-    return 0;
   }
 
   @Override

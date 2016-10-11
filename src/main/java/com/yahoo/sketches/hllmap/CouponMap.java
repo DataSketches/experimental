@@ -8,7 +8,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // state: 0: empty or valid; empty if coupon is 0, otherwise valid.
 // state: 1: original coupon has been promoted, current coupon contains a table # instead.
 // same growth algorithm as for the next levels, except no shrink. Constants may be specific.
-@SuppressWarnings("unused")
+
 class CouponMap extends Map {
 
   private int currentSizeEntries_;
@@ -31,17 +31,12 @@ class CouponMap extends Map {
   }
 
   @Override
-  public double update(byte[] key, byte[] identifier) {
+  double update(byte[] key, int coupon) {
     return 0;
   }
 
   @Override
-  public double getEstimate(byte[] key) {
-    return 0;
-  }
-
-  @Override
-  int couponUpdate(byte[] key, short coupon) {
+  double getEstimate(byte[] key) {
     return 0;
   }
 

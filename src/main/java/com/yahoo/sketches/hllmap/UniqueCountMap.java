@@ -51,15 +51,15 @@ public class UniqueCountMap {
       // promote from the base level
       baseLevelMap.setValue(baseLevelIndex, (short) 1, false);
       if (intermediateLevelMaps[0] == null) intermediateLevelMaps[0] = new CouponTraverseMap(baseLevelMap.getKeySizeBytes(), 2);
-      intermediateLevelMaps[0].couponUpdate(key, baseLevelMapValue);
-      intermediateLevelMaps[0].couponUpdate(key, coupon);
+      intermediateLevelMaps[0].update(key, baseLevelMapValue);
+      intermediateLevelMaps[0].update(key, coupon);
       return 2;
     }
 
     int currentLevel = baseLevelMapValue;
     while (currentLevel <= NUM_LEVELS) {
       final Map map = intermediateLevelMaps[currentLevel - 1];
-      final int numValues = map.couponUpdate(key, coupon);
+      final double numValues = map.update(key, coupon);
       if (numValues > 0) return numValues;
       // promote to the next level
       currentLevel++;
@@ -70,11 +70,11 @@ public class UniqueCountMap {
       final Map newMap = intermediateLevelMaps[currentLevel - 1];
       final MapValuesIterator it = map.getValuesIterator(key);
       while (it.next()) {
-        newMap.couponUpdate(key, it.getValue());
+        newMap.update(key, it.getValue());
       }
     }
     //if (lastLevelMap == null) lastLevelMap = HllMap.getInstance(targetSizeBytes_, baseLevelMap.getKeySizeBytes(), 512, 2f);
-    return lastLevelMap.update(key, value);
+    return lastLevelMap.update(key, coupon);
   }
 
   public double getEstimate(final byte[] key) {

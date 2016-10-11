@@ -22,17 +22,12 @@ class CouponHashMap extends Map {
   }
 
   @Override
-  public double update(byte[] key, byte[] identifier) {
+  double update(byte[] key, int coupon) {
     return 0;
   }
 
   @Override
-  public double getEstimate(byte[] key) {
-    return 0;
-  }
-
-  @Override
-  int couponUpdate(byte[] key, short coupon) {
+  double getEstimate(byte[] key) {
     return 0;
   }
 

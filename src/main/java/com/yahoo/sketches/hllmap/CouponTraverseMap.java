@@ -34,21 +34,16 @@ class CouponTraverseMap extends Map {
   }
 
   @Override
-  public double update(byte[] key, byte[] identifier) {
-    return 0;
-  }
-
-  @Override
-  public double getEstimate(byte[] key) {
+  double getEstimate(byte[] key) {
     final int index = find(key);
     if (index < 0) return 0;
     return countValues(index);
   }
 
   @Override
-  int couponUpdate(byte[] key, short coupon) {
+  double update(byte[] key, int coupon) {
     final int idx = findOrInsert(key);
-    final int numValues = findOrInsertValue(idx, coupon);
+    final int numValues = findOrInsertValue(idx, (short)coupon);
     setBit(state_, idx);
     return numValues;
   }

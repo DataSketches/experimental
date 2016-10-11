@@ -16,12 +16,13 @@ class HllMap extends Map {
   private float growthFactor_;  //e.g., 1.2 to 2.0
 
   //Arrays
-  private byte[] keys_; //keys of zero are allowed
-  private long[] hllArr_;
-  private double[] invPow2Sum1_;
-  private double[] invPow2Sum2_;
-  private float[] hipEstAccum_;
-  private byte[] validBit_;
+  private byte[] keysArr_; //keys of zero are allowed
+  private long[] hllsArr_;
+  private double[] invPow2SumHiArr_;
+  private double[] invPow2SumLoArr_;
+  private double[] hipEstAccumArr_;
+  private byte[] validBitArr_;
+
 
   /**
    * Private constructor used to set all finals
@@ -42,116 +43,284 @@ class HllMap extends Map {
       throw new SketchesArgumentException("growthFactor must be > 1.0: " + growthFactor);
     }
 
-    int entries = (int)(targetSizeBytes / (keySizeBytes + (hllArrLongs_ * 8) + 20 + 0.125));
+    int entries = (int)(targetSizeBytes / (keySizeBytes + (hllArrLongs_ * 8) + 24 + 0.125));
     tableEntries_ = Util.nextPrime(entries);
     capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
     curCountEntries_ = 0;
     growthFactor_ = growthFactor;
 
-    keys_ = new byte[tableEntries_ * keySizeBytes_];
-    hllArr_ = new long[tableEntries_ * hllArrLongs_];
-    invPow2Sum1_ = new double[tableEntries_];
-    invPow2Sum2_ = new double[tableEntries_];
-    hipEstAccum_ = new float[tableEntries_];
-    validBit_ = new byte[tableEntries_/8 + 1];
+    keysArr_ = new byte[tableEntries_ * keySizeBytes_];
+    hllsArr_ = new long[tableEntries_ * hllArrLongs_];
+    invPow2SumHiArr_ = new double[tableEntries_];
+    invPow2SumLoArr_ = new double[tableEntries_];
+    hipEstAccumArr_ = new double[tableEntries_];
+    validBitArr_ = new byte[tableEntries_/8 + 1];
 
     return new HllMap(keySizeBytes, k);
   }
 
-private final void growSize() {
-  int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
-  int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);
+  private final void growSize() {
+    int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
+    int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);
 
-  byte[] newKeys = new byte[newTableEntries * keySizeBytes_];
-  long[] newHllArr = new long[newTableEntries * hllArrLongs_];
-  double[] newInvPow2Sum1 = new double[newTableEntries];
-  double[] newInvPow2Sum2 = new double[newTableEntries];
-  float[] newHipEstAccum = new float[newTableEntries];
-  byte[] newValidBit = new byte[newTableEntries/8 + 1];
+    byte[] newKeys = new byte[newTableEntries * keySizeBytes_];
+    long[] newHllArr = new long[newTableEntries * hllArrLongs_];
+    double[] newInvPow2Sum1 = new double[newTableEntries];
+    double[] newInvPow2Sum2 = new double[newTableEntries];
+    double[] newHipEstAccum = new double[newTableEntries];
+    byte[] newValidBit = new byte[newTableEntries/8 + 1];
 
-  for (int oldIndex = 0; oldIndex < tableEntries_; oldIndex++) {
-    if (Util.isBitZero(validBit_, oldIndex)) continue;
+    for (int oldIndex = 0; oldIndex < tableEntries_; oldIndex++) {
+      if (Util.isBitZero(validBitArr_, oldIndex)) continue;
 
-    byte[] key = Util.getBytes(keys_, keySizeBytes_, oldIndex); //get the key
-    int newIndex = index(key, newTableEntries);
-    Util.putBytes(newKeys, keySizeBytes_, newIndex, key);//put the key
-    //put the rest of the row
-    System.arraycopy(
-        hllArr_, oldIndex * hllArrLongs_, newHllArr, newIndex * hllArrLongs_, hllArrLongs_);
-    newInvPow2Sum1[newIndex] = invPow2Sum1_[oldIndex];
-    newInvPow2Sum2[newIndex] = invPow2Sum2_[oldIndex];
-    newHipEstAccum[newIndex] = hipEstAccum_[oldIndex];
-    Util.setBitToOne(newValidBit, oldIndex);
-  }
-  //restore into sketch
-  tableEntries_ = newTableEntries;
-  capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
-  //curCountEntries_, growthFactor_  unchanged
-
-  keys_ = newKeys;
-  hllArr_ = newHllArr;
-  invPow2Sum1_ = newInvPow2Sum1;
-  invPow2Sum2_ = newInvPow2Sum2;
-  hipEstAccum_ = newHipEstAccum;
-  validBit_ = newValidBit;
-}
-
-  @Override
-  public double update(byte[] key, byte[] identifier) {
-    int outerIndex = index(key, tableEntries_);
-    if (Util.isBitZero(validBit_, outerIndex)) {
-      throw new SketchesArgumentException("key not recognized: "+
-          Util.bytesToString(key, false, false, ":"));
+      byte[] key = Util.getBytes(keysArr_, keySizeBytes_, oldIndex); //get the old key
+      int newIndex = outerSearchForEmpty(key, newTableEntries, newValidBit);
+      Util.putBytes(newKeys, keySizeBytes_, newIndex, key); //put the key
+      //put the rest of the row
+      System.arraycopy(
+          hllsArr_, oldIndex * hllArrLongs_, newHllArr, newIndex * hllArrLongs_, hllArrLongs_);
+      newInvPow2Sum1[newIndex] = invPow2SumHiArr_[oldIndex];
+      newInvPow2Sum2[newIndex] = invPow2SumLoArr_[oldIndex];
+      newHipEstAccum[newIndex] = hipEstAccumArr_[oldIndex];
+      Util.setBitToOne(newValidBit, oldIndex);
     }
-    boolean updated = insertIntoHllArray(key, identifier, hllArr_, outerIndex, k_); //update HLL array
-    //TODO update the HIP registers
-    //TODO get the estimate
-    return 0;
+    //restore into sketch
+    tableEntries_ = newTableEntries;
+    capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
+    //curCountEntries_, growthFactor_  unchanged
+
+    keysArr_ = newKeys;
+    hllsArr_ = newHllArr;
+    invPow2SumHiArr_ = newInvPow2Sum1; //init to k
+    invPow2SumLoArr_ = newInvPow2Sum2; //init to 0
+    hipEstAccumArr_ = newHipEstAccum;  //init to 0
+    validBitArr_ = newValidBit;
   }
 
   @Override
   public double getEstimate(byte[] key) {
-    //TODO
-    return 0;
+    int index = outerSearchForKey(keysArr_, key, validBitArr_);
+    if (index == -1) {
+      return 0; //TODO Did we agree on this ?
+    }
+    return hipEstAccumArr_[index];
   }
 
   @Override
-  void couponUpdate(byte[] key, int coupon) { //coupon either short or int
+  void couponUpdate(byte[] key, int coupon) { //coupon16
     //TODO
   }
 
-  private static final int index(byte[] key, int tableEntries) {
-    long keyHash = MurmurHash3.hash(key, 0L)[0] >>> 1;
-    return (int)(keyHash % tableEntries);
+  //This update only updates keys that alredy exist in the outer map
+  @Override
+  public double update(byte[] key, byte[] identifier) {
+    int outerIndex = outerSearchForKey(keysArr_, key, validBitArr_);
+    if (outerIndex == -1) {
+      throw new SketchesArgumentException("key not found: "+
+          Util.bytesToString(key, false, false, ":"));
+    }
+    //matching key found
+
+    boolean updated = updateHll(hllsArr_, outerIndex, k_, identifier); //update HLL array
+    if (updated) {
+      //TODO update the HIP registers and estimate
+    }
+
+    return hipEstAccumArr_[outerIndex];
   }
 
   /**
-   * Returns a composit index: byte 0: longIndex; byte 1: shift; byte 2: hll value.
-   * @param id the identifier to be hashed
-   * @param k the power of 2 size of the HLL array
-   * @return the composit index
+   * Returns the outer address for the given key given the array of keys, if found.
+   * Otherwise, returns -1;
+   * @param keyArr the given array of keys
+   * @param key the key to search for
+   * @return the address of the given key, or -1 if not found
    */
-  private static final int hllIndex(byte[] id, int k) {
-    long[] hash = MurmurHash3.hash(id, 0L);
-    int rawHllAdd = (int)((hash[0] >>> 1) % k); //lower 64 for address
-    int longIdx = (rawHllAdd/10) & 0XFF;
-    int shift = ((rawHllAdd % 10) * 6) & 0XFF;
-    int value = ((Long.numberOfLeadingZeros(hash[1])) & 0X3F) + 1;
-    return longIdx | (shift << 8) | (value << 16);
+  private static final int outerSearchForKey(byte[] keyArr, byte[] key, byte[] validBit) {
+    final int keyLen = key.length;
+    final int tableEntries = keyArr.length/keyLen;
+
+    final long[] hash = MurmurHash3.hash(key, 0L);
+    int index  = (int) ((hash[0] >>> 1) % tableEntries);
+
+    if (Util.isBitZero(validBit, index)) { //check if slot is empty
+      return -1;
+    }
+
+    if (Util.equals(key, 0, keyArr, index * keyLen, keyLen)) { //check for key match
+      return index;
+    }
+    //keep searching
+    final int stride = (int) ((hash[1] >>> 1) % (tableEntries - 2L) + 1L);
+    final int loopIndex = index;
+
+    do {
+      index -= stride;
+      if (index < 0) {
+        index += tableEntries;
+      }
+      if (Util.isBitZero(validBit, index)) { //check if slot is empty
+        return -1;
+      }
+
+      if (Util.equals(key, 0, keyArr, index * keyLen, keyLen)) { //check for key match
+        return index;
+      }
+    } while (index != loopIndex);
+    return -1;
   }
 
-  private static final boolean insertIntoHllArray(
-      byte[] key, byte[] identifier, long[] hllArr, int outerIndex, int k) {
-    int compositIdx = hllIndex(identifier, k);
-    int longIdx = compositIdx & 0XFF;
-    int shift = (compositIdx >>> 8) & 0XFF;
-    int value = (compositIdx >>> 16) & 0X3F;
-    long container = hllArr[outerIndex + longIdx];
-    int oldValue = (int)(container >>> shift) & 0X3F;
-    if (value <= oldValue) return false;
-    container &= ~(0X3FF << shift);
-    container |=  value << shift;
-    hllArr[outerIndex + longIdx] = container;
+  /**
+   * Find an empty slot for the given key. Throws an exception if no empty slots.
+   * @param key the given key
+   * @param tableEntries prime size of table
+   * @param validBit the valid bit array
+   * @return an empty slot for the given key
+   */
+  private static final int outerSearchForEmpty(byte[] key, int tableEntries, byte[] validBit) {
+    final int keyLen = key.length;
+
+    final long[] hash = MurmurHash3.hash(key, 0L);
+    int index  = (int) ((hash[0] >>> 1) % tableEntries);
+
+    if (Util.isBitZero(validBit, index)) { //check if slot is empty
+      return index;
+    }
+    //keep searching
+    final int stride = (int) ((hash[1] >>> 1) % (tableEntries - 2L) + 1L);
+    final int loopIndex = index;
+
+    do {
+      index -= stride;
+      if (index < 0) {
+        index += tableEntries;
+      }
+      if (Util.isBitZero(validBit, index)) { //check if slot is empty
+        return index;
+      }
+    } while (index != loopIndex);
+    throw new SketchesArgumentException("No empty slots.");
+  }
+
+  /**
+   * Returns the HLL array index and value as a 16-bit coupon given the identifier to be hashed
+   * and k.
+   * @param identifier the given identifier
+   * @param k the size of the HLL array and cannot exceed 1024
+   * @return the HLL array index and value
+   */
+  private static final int coupon16(byte[] identifier, int k) {
+    long[] hash = MurmurHash3.hash(identifier, 0L);
+    int hllIdx = (int) (((hash[0] >>> 1) % k) & 0X3FF); //hash[0] for 10-bit address
+    int lz = Long.numberOfLeadingZeros(hash[1]);
+    int value = ((lz > 62)? 62 : lz) + 1;
+    return (value << 10) | hllIdx;
+  }
+
+  //These methods are specifically tied to the HLL array layout
+
+  /**
+   * Returns the long that contains the hll index.
+   * This is a function of the HLL array storage layout.
+   * @param hllIdx the given hll index
+   * @return the long that contains the hll index
+   */
+  private static final int hllLongIdx(int hllIdx) {
+    return hllIdx/10;
+  }
+
+  /**
+   * Returns the long shift for the hll index.
+   * This is a function of the HLL array storage layout.
+   * @param hllIdx the given hll index
+   * @return the long shift for the hll index
+   */
+  private static final int hllShift(int hllIdx) {
+    return ((hllIdx % 10) * 6) & 0XFF;
+  }
+
+  private final boolean updateHll(
+      long[] hllArr, int outerIndex, int k, byte[] identifier) {
+    int coupon = coupon16(identifier, k);
+    int hllIdx = coupon & 0X3FF;            //lower 10 bits
+    int newValue = (coupon >>> 10) & 0X3F;  //upper 6 bits
+
+    int shift = hllShift(hllIdx);
+    int longIdx = hllLongIdx(hllIdx);
+
+    long hllLong = hllArr[outerIndex + longIdx];
+    int oldValue = (int)(hllLong >>> shift) & 0X3F;
+
+    if (newValue <= oldValue) return false;
+    // newValue > oldValue
+    //update hipEstAccum before updating invPow2Sum
+    double invPow2Sum = invPow2SumHiArr_[outerIndex];
+    if (oldValue < 32) {
+
+    } else {
+
+    }
+    if (newValue < 32) {
+
+    } else {
+
+    }
+
+
+    hllLong &= ~(0X3FF << shift);  //zero out the 6-bit field
+    hllLong |=  newValue << shift; //insert
+    hllArr[outerIndex + longIdx] = hllLong;
     return true;
   }
+
+  /****Testing***********/
+
+  static void bktProbList(int hllValue) {
+    //brute force
+    Util.println("Brute force");
+    double sum = 0;
+    for (int i = 1; i <= hllValue; i++) {
+      sum = 1.0 / Math.pow(2, i);
+      Util.println(sum
+          +"\t" + DoubleBits.doubleToBitString(sum)
+          + "\t" + DoubleBits.base2Exponent(sum)
+          + "\t" + DoubleBits.exponentToIntBits(sum));
+    }
+    Util.println("\nShifting");
+    for (int i = 1; i <= hllValue; i++) {
+      sum = bktProb(i);
+      Util.println(sum
+          +"\t" + DoubleBits.doubleToBitString(sum)
+          + "\t" + DoubleBits.base2Exponent(sum)
+          + "\t" + DoubleBits.exponentToIntBits(sum));
+    }
+  }
+
+  static double bktProb(int hllValue) {
+    long v = (1023L - hllValue) << 52;
+    return Double.longBitsToDouble(v);
+  }
+
+  static void deltaBktProb(int v1, int v2) {
+    double val1 = bktProb(v1);
+    double val2 = bktProb(v2);
+
+    double del = (v1 > v2)? val2 - val1 : (v1 == v2)? 0 : val1 - val2;
+    printDbl(val1);
+    printDbl(val2);
+    printDbl(del);
+  }
+
+  static void printDbl(double d) {
+    Util.println(d
+        +"\t" + DoubleBits.doubleToBitString(d)
+        + "\t" + DoubleBits.base2Exponent(d)
+        + "\t" + DoubleBits.exponentToIntBits(d));
+  }
+
+  public static void main(String[] args) {
+    bktProbList(64);
+    //deltaBktProb(6, 4);
+  }
+
 }

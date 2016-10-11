@@ -23,7 +23,6 @@ class HllMap extends Map {
   private double[] hipEstAccumArr_;
   private byte[] validBitArr_;
 
-
   /**
    * Private constructor used to set all finals
    * @param keySizeBytes size of key in bytes
@@ -104,11 +103,6 @@ class HllMap extends Map {
       return 0; //TODO Did we agree on this ?
     }
     return hipEstAccumArr_[index];
-  }
-
-  @Override
-  void couponUpdate(byte[] key, int coupon) { //coupon16
-    //TODO
   }
 
   //This update only updates keys that alredy exist in the outer map
@@ -321,6 +315,18 @@ class HllMap extends Map {
   public static void main(String[] args) {
     bktProbList(64);
     //deltaBktProb(6, 4);
+  }
+
+  @Override
+  int couponUpdate(byte[] key, short coupon) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  MapValuesIterator getValuesIterator(byte[] key) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

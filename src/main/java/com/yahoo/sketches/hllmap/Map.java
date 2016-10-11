@@ -6,14 +6,20 @@ import com.yahoo.sketches.SketchesArgumentException;
  * Base class of all the maps. Defines the basic API for all maps
  */
 public abstract class Map {
-  final int keySizeBytes_;
 
+  static final long SEED = 1234567890L;
+
+  final int keySizeBytes_;
 
   Map(int keySizeBytes) {
     if (keySizeBytes < 1) {
       throw new SketchesArgumentException("keyBytes must be > 0: " + keySizeBytes);
     }
     keySizeBytes_ = keySizeBytes;
+  }
+
+  int getKeySizeBytes() {
+    return keySizeBytes_;
   }
 
   /**
@@ -38,7 +44,40 @@ public abstract class Map {
    * Update this map with a key and a coupon.
    * @param key the given key
    * @param coupon a valid coupon.
+   * @return TODO
    */
-  abstract void couponUpdate(byte[] key, int coupon);
+  abstract int couponUpdate(byte[] key, short coupon);
+
+  abstract MapValuesIterator getValuesIterator(byte[] key);
+
+  private static final int STRIDE_HASH_BITS = 7;
+  public static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
+
+  static int getIndex(final long hash, final int numEntries) {
+    return (int) ((hash >>> 1) % numEntries);
+  }
+
+  // make odd and independent of index assuming that the highest bits are not used for the index
+  static int getStride(final long hash, final int numEntries) {
+    return (2 * (int) ((hash >>> (64 - STRIDE_HASH_BITS)) & STRIDE_MASK)) + 1;
+  }
+
+  static boolean getBit(final byte[] bits, final int index) {
+    final int offset = index / 8;
+    final int mask = 1 << (index % 8);
+    return (bits[offset] & mask) > 0;
+  }
+
+  static void clearBit(final byte[] bits, final int index) {
+    final int offset = index / 8;
+    final int mask = 1 << (index % 8);
+    bits[offset] &= ~mask;
+  }
+
+  static void setBit(final byte[] bits, final int index) {
+    final int offset = index / 8;
+    final int mask = 1 << (index % 8);
+    bits[offset] |= mask;
+  }
 
 }

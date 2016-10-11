@@ -11,8 +11,6 @@ import com.yahoo.sketches.hash.MurmurHash3;
 @SuppressWarnings("unused")
 class CouponMap extends Map {
 
-  private static final long SEED = 1234567890L;
-
   private int currentSizeEntries_;
   private byte[] keys_;
   private short[] values_;
@@ -43,8 +41,8 @@ class CouponMap extends Map {
   }
 
   @Override
-  void couponUpdate(byte[] key, int coupon) {
-
+  int couponUpdate(byte[] key, short coupon) {
+    return 0;
   }
 
   // returns index if the key is found, negative index otherwise so that insert can be done there
@@ -58,6 +56,19 @@ class CouponMap extends Map {
     return ~index;
   }
 
+  int findOrInsert(final byte[] key) {
+    final int index = find(key);
+    if (index < 0) setKey(~index, key);
+    return index;
+  }
+
+  private void setKey(final int index, final byte[] key) {
+    final int offset = index * keySizeBytes_;
+    for (int i = 0; i < keySizeBytes_; i++) {
+      keys_[offset + i] = key[i];
+    }
+  }
+
   private boolean keyEquals(final byte[] key, final int index) {
     final int offset = index * keySizeBytes_;
     for (int i = 0; i < keySizeBytes_; i++) {
@@ -66,16 +77,26 @@ class CouponMap extends Map {
     return true;
   }
 
-  private static final int STRIDE_HASH_BITS = 7;
-  public static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
-
-  private static int getIndex(final long hash, final int numEntries) {
-    return (int) ((hash >>> 1) % numEntries);
+  boolean isCoupon(final int index) {
+    return !getBit(state_, index);
   }
 
-  // make odd and independent of index assuming that the highest bits are not used for the index
-  private static int getStride(final long hash, final int numEntries) {
-    return (2 * (int) ((hash >>> (64 - STRIDE_HASH_BITS)) & STRIDE_MASK)) + 1;
+  short getValue(final int index) {
+    return values_[index];
+  }
+
+  // assumes that the state bit is never cleared
+  void setValue(final int index, final short value, final boolean isCoupon) {
+    values_[index] = value;
+    if (!isCoupon) {
+      setBit(state_, index);
+    }
+  }
+
+  @Override
+  MapValuesIterator getValuesIterator(byte[] key) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

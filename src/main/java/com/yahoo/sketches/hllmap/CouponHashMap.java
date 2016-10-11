@@ -10,9 +10,9 @@ package com.yahoo.sketches.hllmap;
 // BigInteger nextPrime() can be used
 
 //@SuppressWarnings("unused")
-class CouponHashMapMap extends Map {
+class CouponHashMap extends Map {
 
-  CouponHashMapMap(final int keySizeBytes) {
+  CouponHashMap(final int keySizeBytes) {
     super(keySizeBytes);
 
     //Inner hash table:
@@ -32,8 +32,14 @@ class CouponHashMapMap extends Map {
   }
 
   @Override
-  void couponUpdate(byte[] key, int coupon) {
+  int couponUpdate(byte[] key, short coupon) {
+    return 0;
+  }
 
+  @Override
+  MapValuesIterator getValuesIterator(byte[] key) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

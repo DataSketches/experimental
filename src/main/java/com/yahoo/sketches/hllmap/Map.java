@@ -40,8 +40,6 @@ public abstract class Map {
    */
   abstract double getEstimate(byte[] key);
 
-  abstract MapValuesIterator getValuesIterator(byte[] key);
-
   private static final int STRIDE_HASH_BITS = 7;
   public static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
 

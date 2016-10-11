@@ -1,7 +1,5 @@
 package com.yahoo.sketches.hllmap;
 
-import com.yahoo.sketches.hash.MurmurHash3;
-
 @SuppressWarnings("unused")
 public class UniqueCountMap {
 
@@ -9,6 +7,7 @@ public class UniqueCountMap {
 
   // excluding the first and the last levels
   private static final int NUM_LEVELS = 8;
+  private static final int HLL_K = 1024;
 
   // coupon is a 16-bit value similar to HLL sketch value: 10-bit address,
   // 6-bit number of leading zeroes in a 64-bit hash of the key + 1
@@ -16,10 +15,10 @@ public class UniqueCountMap {
   // prime size, double hash, no deletes, 1-bit state array
   // state: 0 - value is a coupon (if used), 1 - value is a level number
   // same growth rule as for the next levels
-  private final CouponMap baseLevelMap;
+  private final SingleCouponMap baseLevelMap;
 
   // TraverseCouponMap or HashCouponMap instances
-  private final Map[] intermediateLevelMaps;
+  private final CouponMap[] intermediateLevelMaps;
 
   // this map has a fixed slotSize (row size). No shrinking.
   // Similar growth algorithm to SingleCouponMap, maybe different constants.
@@ -29,16 +28,16 @@ public class UniqueCountMap {
   public UniqueCountMap(final int targetSizeBytes, final int keySizeBytes) {
     // to do: figure out how to distribute that size between the levels
     targetSizeBytes_ = targetSizeBytes;
-    baseLevelMap = new CouponMap(targetSizeBytes, keySizeBytes);
-    intermediateLevelMaps = new Map[NUM_LEVELS];
+    baseLevelMap = new SingleCouponMap(targetSizeBytes, keySizeBytes);
+    intermediateLevelMaps = new CouponMap[NUM_LEVELS];
   }
 
   // This class will decide the transition points of when to promote between types of maps.
-  public double update(final byte[] key, final byte[] value) {
+  public double update(final byte[] key, final byte[] identifier) {
     if (key == null) return Double.NaN;
-    if (value == null) return getEstimate(key);
-    final long[] valueHash = MurmurHash3.hash(value, Map.SEED);
-    short coupon = computeCoupon(valueHash);
+    if (identifier == null) return getEstimate(key);
+    //final long[] valueHash = MurmurHash3.hash(value, Map.SEED);
+    short coupon = (short) Util.coupon16(identifier, HLL_K);
 
     final int baseLevelIndex = baseLevelMap.findOrInsert(key);
     if (baseLevelIndex < 0) {
@@ -58,7 +57,7 @@ public class UniqueCountMap {
 
     int currentLevel = baseLevelMapValue;
     while (currentLevel <= NUM_LEVELS) {
-      final Map map = intermediateLevelMaps[currentLevel - 1];
+      final CouponMap map = intermediateLevelMaps[currentLevel - 1];
       final double numValues = map.update(key, coupon);
       if (numValues > 0) return numValues;
       // promote to the next level
@@ -90,13 +89,6 @@ public class UniqueCountMap {
   }
 
   static final int ADDRESS_SIZE_BITS = 10;
-  static final int ADDRESS_MASK = (1 << ADDRESS_SIZE_BITS) - 1;
-
-  static short computeCoupon(final long[] hash) {
-    byte value = (byte) (Long.numberOfLeadingZeros(hash[1]) + 1);
-    int address = (int) (hash[0] & ADDRESS_MASK);
-    return (short) ((value << ADDRESS_SIZE_BITS) | address);
-  }
 
   static double hipEstimate(final int numberOfCoupons) {
     final int value3L = 3 * (1 << ADDRESS_SIZE_BITS);

@@ -125,7 +125,7 @@ class HllMap extends Map {
 
   /**
    * Returns the outer address for the given key given the array of keys, if found.
-   * Otherwise, returns -1;
+   * Otherwise, returns address twos complement of first empty slot found;
    * @param keyArr the given array of keys
    * @param key the key to search for
    * @return the address of the given key, or -1 if not found
@@ -138,7 +138,7 @@ class HllMap extends Map {
     int index  = (int) ((hash[0] >>> 1) % tableEntries);
 
     if (Util.isBitZero(validBit, index)) { //check if slot is empty
-      return -1;
+      return ~index;
     }
 
     if (Util.equals(key, 0, keyArr, index * keyLen, keyLen)) { //check for key match
@@ -154,14 +154,14 @@ class HllMap extends Map {
         index += tableEntries;
       }
       if (Util.isBitZero(validBit, index)) { //check if slot is empty
-        return -1;
+        return ~index;
       }
 
       if (Util.equals(key, 0, keyArr, index * keyLen, keyLen)) { //check for key match
         return index;
       }
     } while (index != loopIndex);
-    return -1;
+    return ~index;
   }
 
   /**
@@ -196,20 +196,7 @@ class HllMap extends Map {
     throw new SketchesArgumentException("No empty slots.");
   }
 
-  /**
-   * Returns the HLL array index and value as a 16-bit coupon given the identifier to be hashed
-   * and k.
-   * @param identifier the given identifier
-   * @param k the size of the HLL array and cannot exceed 1024
-   * @return the HLL array index and value
-   */
-  private static final int coupon16(byte[] identifier, int k) {
-    long[] hash = MurmurHash3.hash(identifier, 0L);
-    int hllIdx = (int) (((hash[0] >>> 1) % k) & 0X3FF); //hash[0] for 10-bit address
-    int lz = Long.numberOfLeadingZeros(hash[1]);
-    int value = ((lz > 62)? 62 : lz) + 1;
-    return (value << 10) | hllIdx;
-  }
+  
 
   //These methods are specifically tied to the HLL array layout
 
@@ -235,7 +222,7 @@ class HllMap extends Map {
 
   private final boolean updateHll(
       long[] hllArr, int outerIndex, int k, byte[] identifier) {
-    int coupon = coupon16(identifier, k);
+    int coupon = Util.coupon16(identifier, k);
     int hllIdx = coupon & 0X3FF;            //lower 10 bits
     int newValue = (coupon >>> 10) & 0X3F;  //upper 6 bits
 
@@ -315,12 +302,6 @@ class HllMap extends Map {
   public static void main(String[] args) {
     bktProbList(64);
     //deltaBktProb(6, 4);
-  }
-
-  @Override
-  MapValuesIterator getValuesIterator(byte[] key) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
 }

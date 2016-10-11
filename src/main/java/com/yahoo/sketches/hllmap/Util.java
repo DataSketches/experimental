@@ -7,7 +7,24 @@ package com.yahoo.sketches.hllmap;
 
 import java.math.BigInteger;
 
+import com.yahoo.sketches.hash.MurmurHash3;
+
 public class Util {
+
+  /**
+   * Returns the HLL array index and value as a 16-bit coupon given the identifier to be hashed
+   * and k.
+   * @param identifier the given identifier
+   * @param k the size of the HLL array and cannot exceed 1024
+   * @return the HLL array index and value
+   */
+  static final int coupon16(byte[] identifier, int k) {
+    long[] hash = MurmurHash3.hash(identifier, 0L);
+    int hllIdx = (int) (((hash[0] >>> 1) % k) & 0X3FF); //hash[0] for 10-bit address
+    int lz = Long.numberOfLeadingZeros(hash[1]);
+    int value = ((lz > 62)? 62 : lz) + 1;
+    return (value << 10) | hllIdx;
+  }
 
   /**
    * Returns <tt>true</tt> if the two specified sub-arrays of bytes are <i>equal</i> to one another.

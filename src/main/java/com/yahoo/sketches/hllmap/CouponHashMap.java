@@ -10,7 +10,7 @@ package com.yahoo.sketches.hllmap;
 // BigInteger nextPrime() can be used
 
 //@SuppressWarnings("unused")
-class CouponHashMap extends Map {
+class CouponHashMap extends CouponMap {
 
   CouponHashMap(final int keySizeBytes) {
     super(keySizeBytes);

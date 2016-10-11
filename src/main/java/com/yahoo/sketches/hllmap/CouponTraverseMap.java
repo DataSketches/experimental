@@ -14,7 +14,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // new size T ~= (10/7) * numValid
 // BigInteger nextPrime() can be used
 
-class CouponTraverseMap extends Map {
+class CouponTraverseMap extends CouponMap {
 
   private final int numValuesPerKey_;
   private int currentSizeKeys_;

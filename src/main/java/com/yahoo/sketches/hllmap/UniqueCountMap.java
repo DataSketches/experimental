@@ -36,10 +36,9 @@ public class UniqueCountMap {
   public double update(final byte[] key, final byte[] identifier) {
     if (key == null) return Double.NaN;
     if (identifier == null) return getEstimate(key);
-    //final long[] valueHash = MurmurHash3.hash(value, Map.SEED);
     short coupon = (short) Util.coupon16(identifier, HLL_K);
 
-    final int baseLevelIndex = baseLevelMap.findOrInsert(key);
+    final int baseLevelIndex = baseLevelMap.findOrInsertKey(key);
     if (baseLevelIndex < 0) {
       baseLevelMap.setValue(~baseLevelIndex, coupon, true);
       return 1;
@@ -77,7 +76,7 @@ public class UniqueCountMap {
   }
 
   public double getEstimate(final byte[] key) {
-    final int index = baseLevelMap.find(key);
+    final int index = baseLevelMap.findKey(key);
     if (index < 0) return 0;
     if (baseLevelMap.isCoupon(index)) return 1;
     final short level = baseLevelMap.getValue(index);

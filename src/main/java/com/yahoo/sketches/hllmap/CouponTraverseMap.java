@@ -77,15 +77,11 @@ class CouponTraverseMap extends CouponMap {
     return index;
   }
 
-  int prevIndex;
   int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
-    prevIndex = index;
     while (getBit(state_, index)) {
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
-      if (index == prevIndex) throw new RuntimeException("loop");
-      prevIndex = index;
     }
     setKey(index, key);
     numActiveKeys_++;

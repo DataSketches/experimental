@@ -40,14 +40,10 @@ public abstract class Map {
    */
   abstract double getEstimate(byte[] key);
 
-  private static final int STRIDE_HASH_BITS = 7;
-  public static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
-
   static int getIndex(final long hash, final int numEntries) {
     return (int) ((hash >>> 1) % numEntries);
   }
 
-  // make odd and independent of index assuming that the highest bits are not used for the index
   static int getStride(final long hash, final int numEntries) {
     return (int) ((hash >>> 1) % (numEntries - 2L) + 1L);
   }

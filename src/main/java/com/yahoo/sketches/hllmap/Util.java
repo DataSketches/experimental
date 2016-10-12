@@ -9,7 +9,7 @@ import java.math.BigInteger;
 
 import com.yahoo.sketches.hash.MurmurHash3;
 
-public class Util {
+public final class Util {
 
   /**
    * Returns the HLL array index and value as a 16-bit coupon given the identifier to be hashed
@@ -90,20 +90,6 @@ public class Util {
     return BigInteger.valueOf(target).nextProbablePrime().intValueExact();
   }
 
-  static final byte[] getBytes(byte[] byteArr, int sizeBytes, int index) {
-    byte[] key = new byte[sizeBytes];
-    for (int i = 0; i < sizeBytes; i++) {
-      key[i] = byteArr[index * sizeBytes];
-    }
-    return key;
-  }
-
-  static final void putBytes(byte[] byteArr, int sizeBytes, int index, byte[] value) {
-    for (int i = 0; i < sizeBytes; i++) {
-      byteArr[index * sizeBytes] = value[i];
-    }
-  }
-
   static final boolean isBitOne(byte[] byteArr, int bitIndex) {
     int byteIdx = bitIndex / 8;
     int shift = bitIndex % 8;
@@ -130,6 +116,16 @@ public class Util {
     int shift = bitIndex % 8;
     int v = byteArr[byteIdx];
     byteArr[byteIdx] = (byte)(v & ~(1 << shift));
+  }
+
+  /**
+   * Computes the inverse integer power of 2: 1/(2^e) = 2^(-e).
+   * @param e a positive value between 0 and 1023 inclusive
+   * @return  the inverse integer power of 2: 1/(2^e) = 2^(-e)
+   */
+  public static double invPow2(int e) {
+    assert (e | (1024 - e - 1)) >= 0 : "e cannot be negative or greater than 1023: " + e;
+    return Double.longBitsToDouble((0x3ffL - e) << 52);
   }
 
   static void println(String s) { System.out.println(s); }

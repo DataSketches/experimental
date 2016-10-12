@@ -29,11 +29,12 @@ public class UniqueCountMapTest {
   @Test
   public void duplicateEntry() {
     UniqueCountMap map = new UniqueCountMap(1000, 4);
-    double estimate = map.update("1234".getBytes(), "a".getBytes());
+    byte[] key = "1234".getBytes();
+    double estimate = map.update(key, "a".getBytes());
     Assert.assertEquals(estimate, 1.0);
-    estimate = map.update("1234".getBytes(), "a".getBytes());
+    estimate = map.update(key, "a".getBytes());
     Assert.assertEquals(estimate, 1.0);
-    estimate = map.update("1234".getBytes(), null);
+    estimate = map.update(key, null);
     Assert.assertEquals(estimate, 1.0);
   }
 
@@ -64,8 +65,9 @@ public class UniqueCountMapTest {
     byte[] key = "1234".getBytes();
     for (int i = 1; i <= 256; i++) {
       double estimate = map.update(key, Integer.toString(i).getBytes());
-      Assert.assertEquals(estimate, i, i * 0.1);
-      Assert.assertEquals(map.getEstimate(key), i, i * 0.05);
+      Assert.assertEquals(estimate, i, i * 0.05);
+      Assert.assertEquals(map.getEstimate(key), estimate);
     }
   }
+
 }

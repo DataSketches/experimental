@@ -15,18 +15,12 @@ public abstract class CouponMap extends Map {
     // TODO Auto-generated constructor stub
   }
 
-  @Override
-  double update(byte[] key, int coupon) {
-    // TODO Auto-generated method stub
-    return 0;
-  }
+  abstract int findKey(byte[] key);
+  abstract int findOrInsertKey(byte[] key);
+  abstract void deleteKey(int index);
 
-  @Override
-  double getEstimate(byte[] key) {
-    // TODO Auto-generated method stub
-    return 0;
-  }
-
+  abstract int findOrInsertValue(int index, short coupon);
+  abstract int countValues(int index);
   abstract MapValuesIterator getValuesIterator(byte[] key);
 
 }

@@ -1,5 +1,7 @@
 package com.yahoo.sketches.hllmap;
 
+import java.util.Arrays;
+
 import com.yahoo.sketches.hash.MurmurHash3;
 
 // prime size, double hash, with deletes, 1-bit state array
@@ -35,46 +37,94 @@ class CouponTraverseMap extends CouponMap {
 
   @Override
   double getEstimate(byte[] key) {
-    final int index = find(key);
+    final int index = findKey(key);
     if (index < 0) return 0;
     return countValues(index);
   }
 
   @Override
   double update(byte[] key, int coupon) {
-    final int idx = findOrInsert(key);
-    final int numValues = findOrInsertValue(idx, (short)coupon);
-    setBit(state_, idx);
+    final int index = findOrInsertKey(key);
+    final int numValues = findOrInsertValue(index, (short)coupon);
+    setBit(state_, index);
     return numValues;
   }
 
   // returns index if the key is found, negative index otherwise so that insert can be done there
-  int find(final byte[] key) {
+  @Override
+  int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
+    //System.out.println("probing: " + index);
     while (getBit(state_, index)) {
       if (keyEquals(key, index)) return index;
-      index = (index + getStride(hash[0], currentSizeKeys_)) % currentSizeKeys_;
+      index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
     }
     return ~index;
   }
 
-  int findOrInsert(final byte[] key) {
-    int index = find(key);
+  @Override
+  int findOrInsertKey(final byte[] key) {
+    int index = findKey(key);
     if (index < 0) {
       if (resizeIfNeeded()) {
-        index = find(key);
+        //System.out.println("finished resizing");
+        index = findKey(key);
       }
-      numActiveKeys_++;
       setKey(~index, key);
+      numActiveKeys_++;
       return ~index;
     }
     return index;
   }
 
+  int prevIndex;
+  int insertKey(final byte[] key) {
+    final long[] hash = MurmurHash3.hash(key, SEED);
+    int index = getIndex(hash[0], currentSizeKeys_);
+    prevIndex = index;
+    //System.out.println("probing: " + index);
+    while (getBit(state_, index)) {
+      index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
+      //System.out.println("stride: " + getStride(hash[1], currentSizeKeys_) + " to " + index);
+      if (index == prevIndex) throw new RuntimeException("loop");
+      prevIndex = index;
+    }
+    setKey(index, key);
+    numActiveKeys_++;
+    return index;
+  }
+
+  @Override
+  void deleteKey(int index) {
+    // TODO Auto-generated method stub
+  }
+
   // returns true if resized
   private boolean resizeIfNeeded() {
-
+    if (numActiveKeys_ + numDeletedKeys_ > currentSizeKeys_ * 0.9) {
+      final byte[] oldKeys = keys_;
+      final short[] oldValues = values_;
+      final byte[] oldState = state_;
+      final int oldSizeKeys = currentSizeKeys_;
+      currentSizeKeys_ = Util.nextPrime((int) (10.0 / 7 * numActiveKeys_));
+      //System.out.println("resizing from " + oldSizeKeys + " to " + currentSizeKeys_);
+      keys_ = new byte[currentSizeKeys_ * keySizeBytes_];
+      values_ = new short[currentSizeKeys_ * numValuesPerKey_];
+      state_ = new byte[(int) Math.ceil(currentSizeKeys_ / 8.0)];
+      numActiveKeys_ = 0;
+      numDeletedKeys_ = 0;
+      for (int i = 0; i < oldSizeKeys; i++) {
+        if (getBit(oldState, i) && oldValues[i * numValuesPerKey_] != 0) {
+          final byte[] key = Arrays.copyOfRange(oldKeys, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
+          //System.out.println("moving key " + new String(key));
+          final int index = insertKey(key);
+          System.arraycopy(oldValues, i * numValuesPerKey_, values_, index * numValuesPerKey_, numValuesPerKey_);
+          setBit(state_, index);
+        }
+      }
+      return true;
+    }
     return false;
   }
 
@@ -93,12 +143,14 @@ class CouponTraverseMap extends CouponMap {
     return true;
   }
 
+  @Override
   int findOrInsertValue(final int index, final short value) {
     final int offset = index * numValuesPerKey_;
     boolean wasFound = false;
     for (int i = 0; i < numValuesPerKey_; i++) {
       if (values_[offset + i] == 0) {
-        if (!wasFound) values_[offset + i] = value;
+        if (wasFound) return i;
+        values_[offset + i] = value;
         return i + 1;
       }
       if (values_[offset + i] == value) {
@@ -109,6 +161,7 @@ class CouponTraverseMap extends CouponMap {
     return ~numValuesPerKey_;
   }
 
+  @Override
   int countValues(final int index) {
     final int offset = index * numValuesPerKey_;
     for (int i = 0; i < numValuesPerKey_; i++) {
@@ -121,7 +174,7 @@ class CouponTraverseMap extends CouponMap {
 
   @Override
   MapValuesIterator getValuesIterator(final byte[] key) {
-    final int index = find(key);
+    final int index = findKey(key);
     if (index < 0) return null;
     return new MapValuesIterator(values_, index * numValuesPerKey_, numValuesPerKey_);
   }

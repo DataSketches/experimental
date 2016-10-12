@@ -37,4 +37,33 @@ class CouponHashMap extends CouponMap {
     return null;
   }
 
+  @Override
+  int findKey(byte[] key) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  int findOrInsertKey(byte[] key) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  void deleteKey(int index) {
+    // TODO Auto-generated method stub
+  }
+
+  @Override
+  int findOrInsertValue(int index, short coupon) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  @Override
+  int countValues(int index) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
 }

@@ -9,7 +9,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // state: 1: original coupon has been promoted, current coupon contains a table # instead.
 // same growth algorithm as for the next levels, except no shrink. Constants may be specific.
 
-class SingleCouponMap extends CouponMap {
+class SingleCouponMap extends Map {
 
   private int currentSizeEntries_;
   private byte[] keys_;
@@ -41,7 +41,7 @@ class SingleCouponMap extends CouponMap {
   }
 
   // returns index if the key is found, negative index otherwise so that insert can be done there
-  int find(final byte[] key) {
+  int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeEntries_);
     while (values_[index] != 0) {
@@ -51,8 +51,8 @@ class SingleCouponMap extends CouponMap {
     return ~index;
   }
 
-  int findOrInsert(final byte[] key) {
-    final int index = find(key);
+  int findOrInsertKey(final byte[] key) {
+    final int index = findKey(key);
     if (index < 0) setKey(~index, key);
     return index;
   }
@@ -86,12 +86,6 @@ class SingleCouponMap extends CouponMap {
     if (!isCoupon) {
       setBit(state_, index);
     }
-  }
-
-  @Override
-  MapValuesIterator getValuesIterator(byte[] key) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
 }

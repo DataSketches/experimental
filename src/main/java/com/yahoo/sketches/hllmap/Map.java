@@ -49,7 +49,7 @@ public abstract class Map {
 
   // make odd and independent of index assuming that the highest bits are not used for the index
   static int getStride(final long hash, final int numEntries) {
-    return (2 * (int) ((hash >>> (64 - STRIDE_HASH_BITS)) & STRIDE_MASK)) + 1;
+    return (int) ((hash >>> 1) % (numEntries - 2L) + 1L);
   }
 
   static boolean getBit(final byte[] bits, final int index) {

@@ -18,10 +18,6 @@ public abstract class Map {
     keySizeBytes_ = keySizeBytes;
   }
 
-  int getKeySizeBytes() {
-    return keySizeBytes_;
-  }
-
   /**
    * Update this map with a key and a coupon.
    * Return the cardinality estimate of all identifiers that have been associated with this key,

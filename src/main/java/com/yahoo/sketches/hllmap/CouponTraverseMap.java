@@ -36,17 +36,16 @@ class CouponTraverseMap extends CouponMap {
   }
 
   @Override
-  double update(byte[] key, int coupon) {
+  double update(final byte[] key, final int coupon) {
     int index = findOrInsertKey(key);
     if (index < 0) {
       index = ~index;
-      setBit(state_, index);
     }
-    return findOrInsertValue(index, (short)coupon);
+    return findOrInsertValue(index, (short) coupon);
   }
 
   @Override
-  double getEstimate(byte[] key) {
+  double getEstimate(final byte[] key) {
     final int index = findKey(key);
     if (index < 0) return 0;
     return countValues(index);
@@ -58,7 +57,7 @@ class CouponTraverseMap extends CouponMap {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
     while (getBit(state_, index)) {
-      if (keyEquals(key, index)) return index;
+      if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) return index;
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
     }
     return ~index;
@@ -71,25 +70,28 @@ class CouponTraverseMap extends CouponMap {
       if (resizeIfNeeded()) {
         index = findKey(key);
       }
-      setKey(~index, key);
+      System.arraycopy(key, 0, keys_, ~index * keySizeBytes_, keySizeBytes_);
+      setBit(state_, ~index);
       numActiveKeys_++;
     }
     return index;
   }
 
+  // for internal use during resize, so no resize check here
   int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
     while (getBit(state_, index)) {
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
     }
-    setKey(index, key);
+    System.arraycopy(key, 0, keys_, index * keySizeBytes_, keySizeBytes_);
+    setBit(state_, index);
     numActiveKeys_++;
     return index;
   }
 
   @Override
-  void deleteKey(int index) {
+  void deleteKey(final int index) {
     // TODO Auto-generated method stub
   }
 
@@ -111,27 +113,11 @@ class CouponTraverseMap extends CouponMap {
           final byte[] key = Arrays.copyOfRange(oldKeys, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
           final int index = insertKey(key);
           System.arraycopy(oldValues, i * numValuesPerKey_, values_, index * numValuesPerKey_, numValuesPerKey_);
-          setBit(state_, index);
         }
       }
       return true;
     }
     return false;
-  }
-
-  private void setKey(final int index, final byte[] key) {
-    final int offset = index * keySizeBytes_;
-    for (int i = 0; i < keySizeBytes_; i++) {
-      keys_[offset + i] = key[i];
-    }
-  }
-
-  private boolean keyEquals(final byte[] key, final int index) {
-    final int offset = index * keySizeBytes_;
-    for (int i = 0; i < keySizeBytes_; i++) {
-      if (keys_[offset + i] != key[i]) return false;
-    }
-    return true;
   }
 
   @Override
@@ -149,7 +135,7 @@ class CouponTraverseMap extends CouponMap {
       }
     }
     if (wasFound) return numValuesPerKey_;
-    return ~numValuesPerKey_;
+    return -numValuesPerKey_;
   }
 
   @Override

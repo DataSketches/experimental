@@ -132,6 +132,14 @@ class HllMap extends Map {
     return hipEstAccumArr_[outerIndex];
   }
 
+  void updateEstimate(byte[] key, double estimate) {
+    int outerIndex = outerSearchForKey(keysArr_, key, validBitArr_);
+    if (outerIndex < 0) {
+      throw new SketchesArgumentException("Key not found. ");
+    }
+    hipEstAccumArr_[outerIndex] = estimate;
+  }
+
   private final void growSize() {
     int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
     int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);

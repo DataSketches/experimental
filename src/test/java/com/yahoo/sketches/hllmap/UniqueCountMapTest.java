@@ -79,8 +79,9 @@ public class UniqueCountMapTest {
     UniqueCountMap map = new UniqueCountMap(200, 4);
     byte[] key = "1234".getBytes();
     for (int i = 1; i <= 1000; i++) {
+      //System.out.println("value: " + i);
       double estimate = map.update(key, Integer.toString(i).getBytes());
-      Assert.assertEquals(estimate, i, i * 0.1);
+      Assert.assertEquals(estimate, i, i * 0.15);
       Assert.assertEquals(map.getEstimate(key), estimate);
     }
   }

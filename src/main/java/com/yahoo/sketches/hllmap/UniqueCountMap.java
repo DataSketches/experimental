@@ -65,17 +65,25 @@ public class UniqueCountMap {
       // promote to the next level
       currentLevel++;
       baseLevelMap.setValue(baseLevelIndex, (short) currentLevel, false);
-      if (currentLevel > NUM_LEVELS) break;
-      baseLevelMap.setValue(baseLevelIndex, (short) currentLevel, false);
-      if (intermediateLevelMaps[currentLevel - 1] == null) intermediateLevelMaps[currentLevel - 1] = new CouponTraverseMap(baseLevelMap.getKeySizeBytes(), 1 << currentLevel);
-      final Map newMap = intermediateLevelMaps[currentLevel - 1];
-      final MapValuesIterator it = map.getValuesIterator(key);
-      while (it.next()) {
-        newMap.update(key, it.getValue());
+      if (currentLevel <= NUM_LEVELS) {
+        baseLevelMap.setValue(baseLevelIndex, (short) currentLevel, false);
+        if (intermediateLevelMaps[currentLevel - 1] == null) intermediateLevelMaps[currentLevel - 1] = new CouponTraverseMap(baseLevelMap.getKeySizeBytes(), 1 << currentLevel);
+        final Map newMap = intermediateLevelMaps[currentLevel - 1];
+        final MapValuesIterator it = map.getValuesIterator(key);
+        while (it.next()) {
+          newMap.update(key, it.getValue());
+        }
+      } else { // promoting to the last level
+        if (lastLevelMap == null) {
+          lastLevelMap = HllMap.getInstance(100, baseLevelMap.getKeySizeBytes(), 512, 2f);
+        }
+        final MapValuesIterator it = map.getValuesIterator(key);
+        while (it.next()) {
+          lastLevelMap.update(key, it.getValue());
+        }
+        //System.out.println("estimate: " + map.getEstimate(key));
+        lastLevelMap.updateEstimate(key, map.getEstimate(key));
       }
-    }
-    if (lastLevelMap == null) {
-      lastLevelMap = HllMap.getInstance(100, baseLevelMap.getKeySizeBytes(), 512, 2f);
     }
     return lastLevelMap.update(key, coupon);
   }

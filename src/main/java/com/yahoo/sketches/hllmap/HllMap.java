@@ -3,7 +3,6 @@ package com.yahoo.sketches.hllmap;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.LS;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.TAB;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.bytesToInt;
-import static com.yahoo.sketches.hllmap.MapTestingUtil.intToBytes;
 
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
@@ -84,6 +83,10 @@ class HllMap extends Map {
     return capacityEntries_;
   }
 
+  public int getCurrentCountEntries() {
+    return curCountEntries_;
+  }
+
   public int getTableEntries() {
     return tableEntries_;
   }
@@ -144,8 +147,8 @@ class HllMap extends Map {
     int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
     int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);
 
-    byte[] newKeys = new byte[newTableEntries * keySizeBytes_];
-    long[] newHllArr = new long[newTableEntries * hllArrLongs_];
+    byte[] newKeysArr = new byte[newTableEntries * keySizeBytes_];
+    long[] newArrOfHllArr = new long[newTableEntries * hllArrLongs_];
     double[] newInvPow2Sum1 = new double[newTableEntries];
     double[] newInvPow2Sum2 = new double[newTableEntries];
     double[] newHipEstAccum = new double[newTableEntries];
@@ -157,22 +160,22 @@ class HllMap extends Map {
       System.arraycopy(keysArr_, oldIndex * keySizeBytes_, key, 0, keySizeBytes_); //get old key
       int newIndex = outerSearchForEmpty(key, newTableEntries, newValidBit);
 
-      System.arraycopy(key, 0, keysArr_, newIndex * keySizeBytes_, keySizeBytes_); //put key
+      System.arraycopy(key, 0, newKeysArr, newIndex * keySizeBytes_, keySizeBytes_); //put key
       //put the rest of the row
       System.arraycopy(
-          arrOfHllArr_, oldIndex * hllArrLongs_, newHllArr, newIndex * hllArrLongs_, hllArrLongs_);
+          arrOfHllArr_, oldIndex * hllArrLongs_, newArrOfHllArr, newIndex * hllArrLongs_, hllArrLongs_);
       newInvPow2Sum1[newIndex] = invPow2SumHiArr_[oldIndex];
       newInvPow2Sum2[newIndex] = invPow2SumLoArr_[oldIndex];
       newHipEstAccum[newIndex] = hipEstAccumArr_[oldIndex];
-      Util.setBitToOne(newValidBit, oldIndex);
+      Util.setBitToOne(newValidBit, newIndex);
     }
     //restore into sketch
     tableEntries_ = newTableEntries;
     capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
     //curCountEntries_, growthFactor_  unchanged
 
-    keysArr_ = newKeys;
-    arrOfHllArr_ = newHllArr;
+    keysArr_ = newKeysArr;
+    arrOfHllArr_ = newArrOfHllArr;
     invPow2SumHiArr_ = newInvPow2Sum1; //init to k
     invPow2SumLoArr_ = newInvPow2Sum2; //init to 0
     hipEstAccumArr_ = newHipEstAccum;  //init to 0
@@ -281,7 +284,7 @@ class HllMap extends Map {
     int shift = hllShift(hllIdx);
     int longIdx = hllLongIdx(hllIdx);
 
-    long hllLong = arrOfHllArr_[outerIndex + longIdx];
+    long hllLong = arrOfHllArr_[outerIndex * hllArrLongs_ + longIdx];
     int oldValue = (int)(hllLong >>> shift) & SIX_BIT_MASK;
     if (newValue <= oldValue) return false;
     // newValue > oldValue
@@ -300,7 +303,7 @@ class HllMap extends Map {
     //insert the new value
     hllLong &= ~(0X3FL << shift);  //zero out the 6-bit field
     hllLong |=  ((long)newValue) << shift; //insert
-    arrOfHllArr_[outerIndex + longIdx] = hllLong;
+    arrOfHllArr_[outerIndex * hllArrLongs_ + longIdx] = hllLong;
     return true;
   }
 
@@ -340,46 +343,11 @@ class HllMap extends Map {
     return sb.toString();
   }
 
-  private static void test1() {
-    int k = 1024;
-    int u = 1000;
-    int initEntries = 16;
-    int keySize = 4;
-    float rf = (float)1.2;
-    HllMap map = HllMap.getInstance(initEntries, keySize, k, rf);
-    println("Entry bytes   : " + map.getEntrySizeBytes());
-    println("Capacity      : " + map.getCapacityEntries());
-    println("Table Entries : " + map.getTableEntries());
-    println("Est Arr Size  : " + (map.getEntrySizeBytes() * map.getTableEntries()));
-    println("Size of Arrays: "+ map.getSizeOfArrays());
-
-    byte[] key = new byte[4];
-    byte[] id = new byte[4];
-    double est;
-    key = intToBytes(1, key);
-    for (int i=1; i<= u; i++) {
-      id = intToBytes(i, id);
-      int coupon = Util.coupon16(id, k);
-      est = map.update(key, coupon);
-      if (true ) {
-        double err = (est/i -1.0) * 100;
-        String eStr = String.format("%.3f%%", err);
-        println("i: "+i + "\t Est: " + est + TAB + eStr);
-      }
-    }
-    println("Table Entries : " + map.getTableEntries());
-    println("Cur Count     : " + map.curCountEntries_);
-    println("RSE           : " + (1/Math.sqrt(k)));
-
-    //map.printEntry(key);
-  }
-
-
-
 
   public static void main(String[] args) {
-    test1();
+    //test1();
   }
+
   static void println(String s) { System.out.println(s); }
   static void print(String s) { System.out.print(s); }
 }

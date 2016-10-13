@@ -36,18 +36,20 @@ class CouponTraverseMap extends CouponMap {
   }
 
   @Override
+  double update(byte[] key, int coupon) {
+    int index = findOrInsertKey(key);
+    if (index < 0) {
+      index = ~index;
+      setBit(state_, index);
+    }
+    return findOrInsertValue(index, (short)coupon);
+  }
+
+  @Override
   double getEstimate(byte[] key) {
     final int index = findKey(key);
     if (index < 0) return 0;
     return countValues(index);
-  }
-
-  @Override
-  double update(byte[] key, int coupon) {
-    final int index = findOrInsertKey(key);
-    final int numValues = findOrInsertValue(index, (short)coupon);
-    setBit(state_, index);
-    return numValues;
   }
 
   // returns index if the key is found, negative index otherwise so that insert can be done there
@@ -55,7 +57,6 @@ class CouponTraverseMap extends CouponMap {
   int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
-    //System.out.println("probing: " + index);
     while (getBit(state_, index)) {
       if (keyEquals(key, index)) return index;
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
@@ -68,27 +69,19 @@ class CouponTraverseMap extends CouponMap {
     int index = findKey(key);
     if (index < 0) {
       if (resizeIfNeeded()) {
-        //System.out.println("finished resizing");
         index = findKey(key);
       }
       setKey(~index, key);
       numActiveKeys_++;
-      return ~index;
     }
     return index;
   }
 
-  int prevIndex;
   int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
-    prevIndex = index;
-    //System.out.println("probing: " + index);
     while (getBit(state_, index)) {
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
-      //System.out.println("stride: " + getStride(hash[1], currentSizeKeys_) + " to " + index);
-      if (index == prevIndex) throw new RuntimeException("loop");
-      prevIndex = index;
     }
     setKey(index, key);
     numActiveKeys_++;
@@ -108,7 +101,6 @@ class CouponTraverseMap extends CouponMap {
       final byte[] oldState = state_;
       final int oldSizeKeys = currentSizeKeys_;
       currentSizeKeys_ = Util.nextPrime((int) (10.0 / 7 * numActiveKeys_));
-      //System.out.println("resizing from " + oldSizeKeys + " to " + currentSizeKeys_);
       keys_ = new byte[currentSizeKeys_ * keySizeBytes_];
       values_ = new short[currentSizeKeys_ * numValuesPerKey_];
       state_ = new byte[(int) Math.ceil(currentSizeKeys_ / 8.0)];
@@ -117,7 +109,6 @@ class CouponTraverseMap extends CouponMap {
       for (int i = 0; i < oldSizeKeys; i++) {
         if (getBit(oldState, i) && oldValues[i * numValuesPerKey_] != 0) {
           final byte[] key = Arrays.copyOfRange(oldKeys, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
-          //System.out.println("moving key " + new String(key));
           final int index = insertKey(key);
           System.arraycopy(oldValues, i * numValuesPerKey_, values_, index * numValuesPerKey_, numValuesPerKey_);
           setBit(state_, index);

@@ -3,7 +3,8 @@ package com.yahoo.sketches.hllmap;
 @SuppressWarnings("unused")
 public class UniqueCountMap {
 
-  private int targetSizeBytes_;
+  private final int targetSizeBytes_;
+  private final int keySizeBytes_;
 
   // excluding the first and the last levels
   private static final int NUM_LEVELS = 8;
@@ -28,6 +29,7 @@ public class UniqueCountMap {
   public UniqueCountMap(final int targetSizeBytes, final int keySizeBytes) {
     // to do: figure out how to distribute that size between the levels
     targetSizeBytes_ = targetSizeBytes;
+    keySizeBytes_ = keySizeBytes;
     baseLevelMap = new SingleCouponMap(targetSizeBytes, keySizeBytes);
     intermediateLevelMaps = new CouponMap[NUM_LEVELS];
   }
@@ -35,6 +37,7 @@ public class UniqueCountMap {
   // This class will decide the transition points of when to promote between types of maps.
   public double update(final byte[] key, final byte[] identifier) {
     if (key == null) return Double.NaN;
+    if (key.length != keySizeBytes_) throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
     if (identifier == null) return getEstimate(key);
     short coupon = (short) Util.coupon16(identifier, HLL_K);
 
@@ -78,6 +81,8 @@ public class UniqueCountMap {
   }
 
   public double getEstimate(final byte[] key) {
+    if (key == null) return Double.NaN;
+    if (key.length != keySizeBytes_) throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
     final int index = baseLevelMap.findKey(key);
     if (index < 0) return 0;
     if (baseLevelMap.isCoupon(index)) return 1;

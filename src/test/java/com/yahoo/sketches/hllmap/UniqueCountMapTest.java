@@ -10,6 +10,21 @@ public class UniqueCountMapTest {
     UniqueCountMap map = new UniqueCountMap(1000, 4);
     double estimate = map.update(null, null);
     Assert.assertEquals(estimate, Double.NaN);
+    Assert.assertEquals(map.getEstimate(null), Double.NaN);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void wrongSizeKeyUpdate() {
+    UniqueCountMap map = new UniqueCountMap(1000, 4);
+    byte[] key = new byte[] {0};
+    map.update(key, null);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void wrongSizeKeyGetEstimate() {
+    UniqueCountMap map = new UniqueCountMap(1000, 4);
+    byte[] key = new byte[] {0};
+    map.getEstimate(key);
   }
 
   @Test

@@ -66,7 +66,6 @@ public class UniqueCountMap {
       currentLevel++;
       baseLevelMap.setValue(baseLevelIndex, (short) currentLevel, false);
       if (currentLevel <= NUM_LEVELS) {
-        baseLevelMap.setValue(baseLevelIndex, (short) currentLevel, false);
         if (intermediateLevelMaps[currentLevel - 1] == null) intermediateLevelMaps[currentLevel - 1] = new CouponTraverseMap(baseLevelMap.getKeySizeBytes(), 1 << currentLevel);
         final Map newMap = intermediateLevelMaps[currentLevel - 1];
         final MapValuesIterator it = map.getValuesIterator(key);

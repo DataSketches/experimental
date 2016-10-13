@@ -1,5 +1,7 @@
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.MapTestingUtil.TAB;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -78,12 +80,19 @@ public class UniqueCountMapTest {
   public void oneKeyManyValues() {
     UniqueCountMap map = new UniqueCountMap(200, 4);
     byte[] key = "1234".getBytes();
+    byte[] id = new byte[4];
     for (int i = 1; i <= 1000; i++) {
-      //System.out.println("value: " + i);
-      double estimate = map.update(key, Integer.toString(i).getBytes());
-      Assert.assertEquals(estimate, i, i * 0.15);
+      id = MapTestingUtil.intToBytes(i, id);
+      double estimate = map.update(key, id);
+      if (i % 100 == 0) {
+        double err = (estimate/i -1.0) * 100;
+        String eStr = String.format("%.3f%%", err);
+        println("i: "+i + "\t Est: " + estimate + TAB + eStr);
+      }
+      Assert.assertEquals(estimate, i, i * 0.10);
       Assert.assertEquals(map.getEstimate(key), estimate);
     }
   }
-
+  static void println(String s) { System.out.println(s); }
+  static void print(String s) { System.out.print(s); }
 }

@@ -75,7 +75,7 @@ public class UniqueCountMap {
         }
       } else { // promoting to the last level
         if (lastLevelMap == null) {
-          lastLevelMap = HllMap.getInstance(100, baseLevelMap.getKeySizeBytes(), 512, 2f);
+          lastLevelMap = HllMap.getInstance(100, baseLevelMap.getKeySizeBytes(), HLL_K, 2f);
         }
         final MapValuesIterator it = map.getValuesIterator(key);
         while (it.next()) {

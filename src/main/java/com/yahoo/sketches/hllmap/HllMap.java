@@ -123,12 +123,10 @@ class HllMap extends Map {
         growSize();
       }
 
-      //print("; "+updated + " ");
       return est;
     }
     //matching key found
     updated = updateHll(outerIndex, coupon); //update HLL array
-    //print("; "+updated + " ");
     return hipEstAccumArr_[outerIndex];
   }
 
@@ -137,6 +135,8 @@ class HllMap extends Map {
     if (outerIndex < 0) {
       throw new SketchesArgumentException("Key not found. ");
     }
+    double curEst = hipEstAccumArr_[outerIndex];
+    //println("curHLLest: "+ curEst + "\t inEst: " + estimate); //TODO
     hipEstAccumArr_[outerIndex] = estimate;
   }
 
@@ -283,8 +283,6 @@ class HllMap extends Map {
 
     long hllLong = arrOfHllArr_[outerIndex + longIdx];
     int oldValue = (int)(hllLong >>> shift) & SIX_BIT_MASK;
-    //print("hllIdx: " +hllIdx + ", newV: " + newValue + ", oldV: " + oldValue);
-    //print("; invPwr2Sum: "+(invPow2SumHiArr_[outerIndex] + invPow2SumLoArr_[outerIndex]));
     if (newValue <= oldValue) return false;
     // newValue > oldValue
 
@@ -292,7 +290,6 @@ class HllMap extends Map {
     double invPow2Sum = invPow2SumHiArr_[outerIndex] + invPow2SumLoArr_[outerIndex];
     double oneOverQ = k_ / invPow2Sum;
     hipEstAccumArr_[outerIndex] += oneOverQ;
-    //print("; invPwr2Sum: "+invPow2Sum); //TODO
 
     //update invPow2Sum
     if (oldValue < 32) { invPow2SumHiArr_[outerIndex] -= Util.invPow2(oldValue); }
@@ -344,8 +341,8 @@ class HllMap extends Map {
   }
 
   private static void test1() {
-    int k = 512;
-    int u = 100000;
+    int k = 1024;
+    int u = 1000;
     int initEntries = 16;
     int keySize = 4;
     float rf = (float)1.2;
@@ -364,7 +361,7 @@ class HllMap extends Map {
       id = intToBytes(i, id);
       int coupon = Util.coupon16(id, k);
       est = map.update(key, coupon);
-      if (i % 1000 == 0) {
+      if (true ) {
         double err = (est/i -1.0) * 100;
         String eStr = String.format("%.3f%%", err);
         println("i: "+i + "\t Est: " + est + TAB + eStr);
@@ -376,6 +373,9 @@ class HllMap extends Map {
 
     //map.printEntry(key);
   }
+
+
+
 
   public static void main(String[] args) {
     test1();

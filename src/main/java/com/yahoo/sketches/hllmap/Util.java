@@ -125,7 +125,7 @@ public final class Util {
    */
   public static double invPow2(int e) {
     assert (e | (1024 - e - 1)) >= 0 : "e cannot be negative or greater than 1023: " + e;
-    return Double.longBitsToDouble((0x3ffL - e) << 52);
+    return Double.longBitsToDouble((1023L - e) << 52);
   }
 
   static void println(String s) { System.out.println(s); }

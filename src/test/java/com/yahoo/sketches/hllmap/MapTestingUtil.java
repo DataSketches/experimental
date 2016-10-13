@@ -51,7 +51,7 @@ public class MapTestingUtil {
    */
   public static final byte[] intToBytes(int v, byte[] arr) {
     for (int i=0; i<4; i++) {
-      arr[i] = (byte) (v & 0XFFL);
+      arr[i] = (byte) (v & 0XFF);
       v >>>= 8;
     }
     return arr;
@@ -65,7 +65,7 @@ public class MapTestingUtil {
   public static final int bytesToInt(byte[] arr) {
     int v = 0;
     for (int i=0; i<4; i++) {
-      v |= (arr[i] & 0XFFL) << i * 8;
+      v |= (arr[i] & 0XFF) << i * 8;
     }
     return v;
   }

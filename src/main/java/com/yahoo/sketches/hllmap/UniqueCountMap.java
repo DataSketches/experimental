@@ -71,7 +71,9 @@ public class UniqueCountMap {
         newMap.update(key, it.getValue());
       }
     }
-    //if (lastLevelMap == null) lastLevelMap = HllMap.getInstance(targetSizeBytes_, baseLevelMap.getKeySizeBytes(), 512, 2f);
+    if (lastLevelMap == null) {
+      lastLevelMap = HllMap.getInstance(100, baseLevelMap.getKeySizeBytes(), 512, 2f);
+    }
     return lastLevelMap.update(key, coupon);
   }
 

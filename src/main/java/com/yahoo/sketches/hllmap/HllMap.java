@@ -3,6 +3,7 @@ package com.yahoo.sketches.hllmap;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.LS;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.TAB;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.bytesToInt;
+import static com.yahoo.sketches.hllmap.MapTestingUtil.intToBytes;
 
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
@@ -10,6 +11,10 @@ import com.yahoo.sketches.hash.MurmurHash3;
 @SuppressWarnings("unused")
 class HllMap extends Map {
   private static final double LOAD_FACTOR = 15.0/16.0;
+  private static final int SIX_BIT_MASK = 0X3F; // 6 bits
+  private static final int TEN_BIT_MASK = 0X3FF; //10 bits
+  private static final int EIGHT_BIT_MASK = 0XFF;
+
   private final int k_;
   private final int hllArrLongs_;
   private final float entrySizeBytes_;
@@ -39,28 +44,34 @@ class HllMap extends Map {
     entrySizeBytes_ = (float) (keySizeBytes + hllArrLongs_ * 8 + 3 * 8 + 0.125);
   }
 
-  HllMap getInstance(int tgtEntries, int keySizeBytes, int k, float growthFactor) {
+  public static HllMap getInstance(int tgtEntries, int keySizeBytes, int k, float growthFactor) {
     if (!com.yahoo.sketches.Util.isPowerOf2(k) || (k > 1024) || (k < 16)) {
       throw new SketchesArgumentException("K must be power of 2 and (16 <= k <= 1024): " + k);
     }
     if (growthFactor <= 1.0) {
       throw new SketchesArgumentException("growthFactor must be > 1.0: " + growthFactor);
     }
+    if (tgtEntries < 16) {
+      throw new SketchesArgumentException("tgtEntries must be >= 16");
+    }
+
 
     HllMap map = new HllMap(keySizeBytes, k);
 
     int entries = (int)Math.ceil(tgtEntries / LOAD_FACTOR);
-    tableEntries_ = Util.nextPrime(entries);
-    capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
-    curCountEntries_ = 0;
-    growthFactor_ = growthFactor;
 
-    keysArr_ = new byte[tableEntries_ * keySizeBytes_];
-    arrOfHllArr_ = new long[tableEntries_ * hllArrLongs_];
-    invPow2SumHiArr_ = new double[tableEntries_];
-    invPow2SumLoArr_ = new double[tableEntries_];
-    hipEstAccumArr_ = new double[tableEntries_];
-    validBitArr_ = new byte[tableEntries_/8 + 1];
+    int tableEntries = Util.nextPrime(entries);
+    map.tableEntries_ = tableEntries;
+    map.capacityEntries_ = (int)(tableEntries * LOAD_FACTOR);
+    map.curCountEntries_ = 0;
+    map.growthFactor_ = growthFactor;
+
+    map.keysArr_ = new byte[tableEntries * map.keySizeBytes_];
+    map.arrOfHllArr_ = new long[tableEntries * map.hllArrLongs_];
+    map.invPow2SumHiArr_ = new double[tableEntries];
+    map.invPow2SumLoArr_ = new double[tableEntries];
+    map.hipEstAccumArr_ = new double[tableEntries];
+    map.validBitArr_ = new byte[tableEntries/8 + 1];
 
     return map;
   }
@@ -71,6 +82,10 @@ class HllMap extends Map {
 
   public int getCapacityEntries() {
     return capacityEntries_;
+  }
+
+  public int getTableEntries() {
+    return tableEntries_;
   }
 
   public int getSizeOfArrays() {
@@ -90,7 +105,7 @@ class HllMap extends Map {
   @Override
   double update(byte[] key, int coupon) {
     if (key == null) return Double.NaN;
-    boolean updated;
+    boolean updated = false;
     int outerIndex = outerSearchForKey(keysArr_, key, validBitArr_);
     if (outerIndex < 0) {
       //not found, initialize new row
@@ -100,15 +115,20 @@ class HllMap extends Map {
       invPow2SumHiArr_[emptyOuterIndex] = k_;
       invPow2SumLoArr_[emptyOuterIndex] = 0;
       hipEstAccumArr_[emptyOuterIndex] = 0;
-      updated = updateHll(emptyOuterIndex, coupon); //update HLL array
+      updated = updateHll(emptyOuterIndex, coupon); //update HLL array, updates HIP
+      double est = hipEstAccumArr_[emptyOuterIndex];
+
       curCountEntries_++;
       if (curCountEntries_ > capacityEntries_) {
         growSize();
       }
-      return 1.0;
+
+      //print("; "+updated + " ");
+      return est;
     }
     //matching key found
     updated = updateHll(outerIndex, coupon); //update HLL array
+    //print("; "+updated + " ");
     return hipEstAccumArr_[outerIndex];
   }
 
@@ -127,7 +147,7 @@ class HllMap extends Map {
       if (Util.isBitZero(validBitArr_, oldIndex)) continue;
       byte[] key = new byte[keySizeBytes_];
       System.arraycopy(keysArr_, oldIndex * keySizeBytes_, key, 0, keySizeBytes_); //get old key
-      int newIndex = outerSearchForEmpty(key, newTableEntries, newValidBit); //TODO
+      int newIndex = outerSearchForEmpty(key, newTableEntries, newValidBit);
 
       System.arraycopy(key, 0, keysArr_, newIndex * keySizeBytes_, keySizeBytes_); //put key
       //put the rest of the row
@@ -243,19 +263,20 @@ class HllMap extends Map {
    * @return the long shift for the hll index
    */
   private static final int hllShift(int hllIdx) {
-    return ((hllIdx % 10) * 6) & 0XFF;
+    return ((hllIdx % 10) * 6) & SIX_BIT_MASK;
   }
 
   private final boolean updateHll(int outerIndex, int coupon) {
-    int hllIdx = coupon & 0X3FF;            //lower 10 bits
-    int newValue = (coupon >>> 10) & 0X3F;  //upper 6 bits
+    int hllIdx = coupon & TEN_BIT_MASK;            //lower 10 bits
+    int newValue = (coupon >>> 10) & SIX_BIT_MASK;  //upper 6 bits
 
     int shift = hllShift(hllIdx);
     int longIdx = hllLongIdx(hllIdx);
 
     long hllLong = arrOfHllArr_[outerIndex + longIdx];
-    int oldValue = (int)(hllLong >>> shift) & 0X3F;
-
+    int oldValue = (int)(hllLong >>> shift) & SIX_BIT_MASK;
+    //print("hllIdx: " +hllIdx + ", newV: " + newValue + ", oldV: " + oldValue);
+    //print("; invPwr2Sum: "+(invPow2SumHiArr_[outerIndex] + invPow2SumLoArr_[outerIndex]));
     if (newValue <= oldValue) return false;
     // newValue > oldValue
 
@@ -263,6 +284,7 @@ class HllMap extends Map {
     double invPow2Sum = invPow2SumHiArr_[outerIndex] + invPow2SumLoArr_[outerIndex];
     double oneOverQ = k_ / invPow2Sum;
     hipEstAccumArr_[outerIndex] += oneOverQ;
+    //print("; invPwr2Sum: "+invPow2Sum); //TODO
 
     //update invPow2Sum
     if (oldValue < 32) { invPow2SumHiArr_[outerIndex] -= Util.invPow2(oldValue); }
@@ -271,15 +293,22 @@ class HllMap extends Map {
     else               { invPow2SumLoArr_[outerIndex] += Util.invPow2(newValue); }
 
     //insert the new value
-    hllLong &= ~(0X3FF << shift);  //zero out the 6-bit field
-    hllLong |=  newValue << shift; //insert
+    hllLong &= ~(0X3FL << shift);  //zero out the 6-bit field
+    hllLong |=  ((long)newValue) << shift; //insert
     arrOfHllArr_[outerIndex + longIdx] = hllLong;
     return true;
   }
 
+  static int getHllValue(long[] arrOfHllArr, int outerIndex, int hllIdx) {
+    int shift = hllShift(hllIdx);
+    int longIdx = hllLongIdx(hllIdx);
+    long hllLong = arrOfHllArr[outerIndex + longIdx];
+    return (int)(hllLong >>> shift) & SIX_BIT_MASK;
+  }
+
   /****Testing***********/
 
-  void printEntry1(byte[] key) {
+  void printEntry(byte[] key) {
     if (key.length != 4) throw new SketchesArgumentException("Key must be 4 bytes");
     int keyInt = bytesToInt(key);
     StringBuilder sb = new StringBuilder();
@@ -287,26 +316,62 @@ class HllMap extends Map {
     if (outerIndex < 0) throw new SketchesArgumentException("Not Found: " + keyInt);
     sb.append(keyInt).append(TAB);
     sb.append(Util.isBitOne(validBitArr_, outerIndex)? "1" : "0").append(TAB);
-    sb.append(Double.toHexString(invPow2SumHiArr_[outerIndex])).append(TAB);
-    sb.append(Double.toHexString(invPow2SumLoArr_[outerIndex])).append(TAB);
+    sb.append(Double.toString(invPow2SumHiArr_[outerIndex])).append(TAB);
+    sb.append(Double.toString(invPow2SumLoArr_[outerIndex])).append(TAB);
     sb.append(hipEstAccumArr_[outerIndex]).append(LS);
 
-    //sb.append()
-
+    sb.append(hllToString(arrOfHllArr_, outerIndex, k_));
+    Util.println(sb.toString());
   }
 
-  String hllToString(long[] hllArrLongs) {
+  String hllToString(long[] arrOfhllArr, int outerIndex, int k) {
     StringBuilder sb = new StringBuilder();
-    for (int i=0; i< k_; i++) {
-
+    for (int i = 0; i < k_-1; i++) {
+      int v = getHllValue(arrOfHllArr_, outerIndex, i);
+      sb.append(v).append(":");
     }
-    return null;
+    int v = getHllValue(arrOfHllArr_, outerIndex, k_ - 1);
+    sb.append(v);
+    return sb.toString();
   }
 
+  private static void test1() {
+    int k = 512;
+    int u = 100000;
+    int initEntries = 16;
+    int keySize = 4;
+    float rf = (float)1.2;
+    HllMap map = HllMap.getInstance(initEntries, keySize, k, rf);
+    println("Entry bytes   : " + map.getEntrySizeBytes());
+    println("Capacity      : " + map.getCapacityEntries());
+    println("Table Entries : " + map.getTableEntries());
+    println("Est Arr Size  : " + (map.getEntrySizeBytes() * map.getTableEntries()));
+    println("Size of Arrays: "+ map.getSizeOfArrays());
+
+    byte[] key = new byte[4];
+    byte[] id = new byte[4];
+    double est;
+    key = intToBytes(1, key);
+    for (int i=1; i<= u; i++) {
+      id = intToBytes(i, id);
+      int coupon = Util.coupon16(id, k);
+      est = map.update(key, coupon);
+      if (i % 1000 == 0) {
+        double err = (est/i -1.0) * 100;
+        String eStr = String.format("%.3f%%", err);
+        println("i: "+i + "\t Est: " + est + TAB + eStr);
+      }
+    }
+    println("Table Entries : " + map.getTableEntries());
+    println("Cur Count     : " + map.curCountEntries_);
+    println("RSE           : " + (1/Math.sqrt(k)));
+
+    //map.printEntry(key);
+  }
 
   public static void main(String[] args) {
-    //bktProbList(64);
-    //deltaBktProb(6, 4);
+    test1();
   }
-
+  static void println(String s) { System.out.println(s); }
+  static void print(String s) { System.out.print(s); }
 }

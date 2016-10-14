@@ -91,8 +91,10 @@ class HllMap extends Map {
     return tableEntries_;
   }
 
-  public int getSizeOfArrays() {
-    return keysArr_.length + arrOfHllArr_.length * 8 + tableEntries_ * 24 + validBitArr_.length;
+  public int getMemoryUsageBytes() {
+    int arrays = keysArr_.length + arrOfHllArr_.length * 8 + tableEntries_ * 24 + validBitArr_.length;
+    int other = 4 * 7;
+    return arrays + other;
   }
 
   @Override
@@ -139,7 +141,6 @@ class HllMap extends Map {
       throw new SketchesArgumentException("Key not found. ");
     }
     double curEst = hipEstAccumArr_[outerIndex];
-    //println("curHLLest: "+ curEst + "\t inEst: " + estimate); //TODO
     hipEstAccumArr_[outerIndex] = estimate;
   }
 

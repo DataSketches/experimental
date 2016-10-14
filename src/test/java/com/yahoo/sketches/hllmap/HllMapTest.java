@@ -6,8 +6,9 @@
 package com.yahoo.sketches.hllmap;
 
 import static com.yahoo.sketches.hllmap.MapTestingUtil.TAB;
-import static com.yahoo.sketches.hllmap.MapTestingUtil.bytesToInt;
+import static com.yahoo.sketches.hllmap.MapTestingUtil.bytesToLong;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.intToBytes;
+import static com.yahoo.sketches.hllmap.MapTestingUtil.longToBytes;
 import static org.testng.Assert.assertEquals;
 
 import org.testng.annotations.Test;
@@ -27,7 +28,7 @@ public class HllMapTest {
     println("Capacity      : " + map.getCapacityEntries());
     println("Table Entries : " + map.getTableEntries());
     println("Est Arr Size  : " + (map.getEntrySizeBytes() * map.getTableEntries()));
-    println("Size of Arrays: "+ map.getSizeOfArrays());
+    println("Size of Arrays: "+ map.getMemoryUsageBytes());
 
     byte[] key = new byte[4];
     byte[] id = new byte[4];
@@ -57,21 +58,21 @@ public class HllMapTest {
     int keys = 20;
     int initEntries = 16;
     int keySize = 4;
+    long v = 0;
     float rf = (float)2.0;
     HllMap map = HllMap.getInstance(initEntries, keySize, k, rf);
     println("Entry bytes   : " + map.getEntrySizeBytes());
     println("Capacity      : " + map.getCapacityEntries());
     println("Table Entries : " + map.getTableEntries());
-    println("Est Arr Size  : " + (map.getEntrySizeBytes() * map.getTableEntries()));
-    println("Size of Arrays: "+ map.getSizeOfArrays());
+    println("Size of Arrays: " + map.getMemoryUsageBytes());
     byte[] key = new byte[4];
-    byte[] id = new byte[4];
+    byte[] id = new byte[8];
     int i, j;
     for (j=1; j<=keys; j++) {
       key = intToBytes(j, key);
-      for (i=1; i<= u; i++) {
-        id = intToBytes(i, id);
-        assertEquals(i, bytesToInt(id)); //TODO
+      for (i=0; i< u; i++) {
+        id = longToBytes(++v, id);
+        assertEquals(v, bytesToLong(id)); //TODO remove
         int coupon = Util.coupon16(id, k);
         map.update(key, coupon);
       }
@@ -81,9 +82,9 @@ public class HllMapTest {
       println("key: " + j + "\tu: "+u + "\t Est: " + est + TAB + eStr);
     }
 
-    println("Table Entries : " + map.getTableEntries());
-    println("Cur Count     : " + map.getCurrentCountEntries());
-    println("RSE           : " + (1/Math.sqrt(k)));
+    println("Table Entries  : " + map.getTableEntries());
+    println("Cur Count      : " + map.getCurrentCountEntries());
+    println("Theoretical RSE: " + (1/Math.sqrt(k)));
     for (j=1; j<=keys; j++) {
       key = intToBytes(j, key);
       double est = map.getEstimate(key);

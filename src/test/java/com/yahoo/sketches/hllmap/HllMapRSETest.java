@@ -18,11 +18,17 @@ import static org.testng.Assert.assertTrue;
 
 import org.testng.annotations.Test;
 
+import com.yahoo.sketches.ResizeFactor;
+import com.yahoo.sketches.hll.HllSketch;
+import com.yahoo.sketches.hll.HllSketchBuilder;
 import com.yahoo.sketches.theta.Sketch;
 import com.yahoo.sketches.theta.Sketches;
 import com.yahoo.sketches.theta.UpdateSketch;
+import com.yahoo.sketches.theta.UpdateSketchBuilder;
 
 public class HllMapRSETest {
+
+  enum SketchEnum { HLL_MAP, THETA, HLL}
 
   //@Test
   public void test1() {
@@ -32,23 +38,30 @@ public class HllMapRSETest {
     println(TAB + LS);
   }
 
+
   @Test
   public void testHllMap() {
-    testRSE(true);
+    testRSE(SketchEnum.HLL_MAP);
     println(LS);
   }
   @Test
-  public void testSketch() {
-    testRSE(false);
+  public void testTheta() {
+    testRSE(SketchEnum.THETA);
+    println(LS);
+  }
+
+  @Test
+  public void testHll() {
+    testRSE(SketchEnum.HLL);
     println(LS);
   }
 
   @SuppressWarnings("null")
-  public void testRSE(boolean useHllMap) {
+  public void testRSE(SketchEnum skEnum) {
     //test parameters
-    int startLgX = 0;
-    int endLgX = 16; //65K
-    int startLgTrials = 10;
+    int startLgX = 0; //1
+    int endLgX = 16;  //65K
+    int startLgTrials = 16;
     int endLgTrials = startLgTrials;
     int ppo = 4; //Points per Octave
 
@@ -58,26 +71,33 @@ public class HllMapRSETest {
 
     //HllMap config
     int keySize = 4;
-    int k = 512;
+    int lgK = 9;
+    int k = 1 << lgK;
     float rf = 2.0F;
     int initEntries = 1 << startLgTrials;
 
     //Other
     HllMap hllMap = null;
-    UpdateSketch sketch = null;
+    UpdateSketchBuilder thBldr = Sketches.updateSketchBuilder().setResizeFactor(ResizeFactor.X1).setNominalEntries(k);
+    UpdateSketch thSketch = null;
+    HllSketchBuilder hllBldr = HllSketch.builder().setLogBuckets(lgK).setHipEstimator(true);
+    HllSketch hllSk = null;
     long v = 0;
     byte[] ipv4bytes = new byte[4];
     //byte[] ipv6bytes = new byte[16];
     byte[] valBytes = new byte[8];
 
-    if (useHllMap) {
-      println("HllMap: k: " + k);
-    } else {
-      sketch = Sketches.updateSketchBuilder().build(k);
-      println("Theta Sketch: k: " + k);
+    if (skEnum == SketchEnum.HLL_MAP) {
+      println("HllMap: k:\t" + k);
+    } else if (skEnum == SketchEnum.THETA) {
+      thSketch = thBldr.build();
+      println("Theta Sketch: k:\t" + k);
+    } else { //HLL
+      hllSk = hllBldr.build();
+      println("HLL Sketch: k:\t" + k);
     }
 
-    println("U\tTrials\tMean\tBias\tRE");
+    println("U\tTrials\tMean\tBias\tRSE");
     double sum=0, sumErr=0,sumErrSq=0;
 
     //at each point do multiple trials.
@@ -91,40 +111,58 @@ public class HllMapRSETest {
       sum = sumErr = sumErrSq = 0;
       int trials = tPoints[pt];
       int ipv4 = 10 << 24; //10.0.0.0
-      if (useHllMap) {
-        hllMap = HllMap.getInstance(initEntries, keySize, k, rf);
-      }
+      if (skEnum == SketchEnum.HLL_MAP) {
+        hllMap = HllMap.getInstance(initEntries, keySize, k, rf); //renew per trial set
+      } //else do nothing to the other sketches
       for (int t = 0; t < trials; t++) { //each trial
-        if (useHllMap) {
-          ipv4++;  //different IP for each trial
-        } else {
-          sketch.reset();
-        }
         double est = 0;
-        long startnS = System.nanoTime();
-        for (long i=0; i< x; i++) { //x is the #uniques per trial
-          v++;  //different values for the uniques
-          if (useHllMap) {
+        long startnS = 0, endnS = 0;
+        if (skEnum == SketchEnum.HLL_MAP) {
+          ipv4++;  //different IP for each trial
+          /********************/
+          startnS = System.nanoTime();
+          for (long i=0; i< x; i++) { //x is the #uniques per trial
+            v++;  //different values for the uniques
             ipv4bytes = intToBytes(ipv4, ipv4bytes);
             valBytes = longToBytes(v, valBytes);
-            //printIPandValue(ipv4bytes, valBytes);
             int coupon = Util.coupon16(valBytes, k);
             est = hllMap.update(ipv4bytes, coupon);
-          } else {
-            sketch.update(v);
           }
+          endnS = System.nanoTime();
+          /********************/
+        } else if (skEnum == SketchEnum.THETA) {
+          thSketch.reset();
+          /********************/
+          startnS = System.nanoTime();
+          for (long i=0; i< x; i++) { //x is the #uniques per trial
+            v++;  //different values for the uniques
+            thSketch.update(v);
+          }
+          endnS = System.nanoTime();
+          /********************/
+        } else { //HLL
+          hllSk = hllBldr.build(); //no reset on HLL !
+          /********************/
+          startnS = System.nanoTime();
+          for (long i=0; i< x; i++) { //x is the #uniques per trial
+            v++;  //different values for the uniques
+            hllSk.update(v);
+          }
+          endnS = System.nanoTime();
+          /********************/
         }
-        long endnS = System.nanoTime();
         totnS += endnS - startnS;
-        if (!useHllMap) {
-          est = sketch.getEstimate();
+        if (skEnum == SketchEnum.THETA) {
+          thSketch.rebuild();
+          est = thSketch.getEstimate();
+        } else if (skEnum == SketchEnum.HLL) {
+          est = hllSk.getEstimate();
         }
         sum += est;
         double err = est - x;
         sumErr += err;
         sumErrSq += err * err;
       }
-
       double mean = sum /trials;
       double meanErr = sumErr/trials;
       double varErr = (sumErrSq - meanErr * sumErr/trials)/(trials -1);
@@ -133,28 +171,30 @@ public class HllMapRSETest {
       String line = String.format("%d\t%d\t%.2f\t%.2f%%\t%.2f%%", x, trials, mean, bias*100, relErr*100);
       println(line);
     }
-    println(String.format("\nUpdates          : %,d", v));
-    if (useHllMap) {
-      println(String.format("Table  Entries   : %,d",hllMap.getTableEntries()));
-      println(String.format("Capacity Entries : %,d",hllMap.getCapacityEntries()));
-      println(String.format("Count Entries    : %,d",hllMap.getCurrentCountEntries()));
-      println(               "Entry bytes     : " + hllMap.getEntrySizeBytes());
-      println(String.format("RAM Usage Bytes  : %,d",hllMap.getMemoryUsageBytes()));
+    println(String.format("\nUpdates          :\t%,d", v));
+    if (skEnum == SketchEnum.HLL_MAP) {
+      println(String.format("Table  Entries   :\t%,d",hllMap.getTableEntries()));
+      println(String.format("Capacity Entries :\t%,d",hllMap.getCapacityEntries()));
+      println(String.format("Count Entries    :\t%,d",hllMap.getCurrentCountEntries()));
+      println(              "Entry bytes      :\t" + hllMap.getEntrySizeBytes());
+      println(String.format("RAM Usage Bytes  :\t%,d",hllMap.getMemoryUsageBytes()));
+    } else if (skEnum == SketchEnum.THETA) {
+      println(String.format("Sketch Size Bytes:\t%,d", Sketch.getMaxUpdateSketchBytes(k)));
     } else {
-      println(String.format("Sketch Size Bytes: %,d", Sketch.getMaxUpdateSketchBytes(k)));
+      println(String.format("Sketch Size Bytes:\t%,d", k + 16));
     }
     long endMs = System.currentTimeMillis();
     long deltamS = endMs - startMs;
     double updnS2 = ((double)totnS)/v;
-    println(String.format(  "nS/Update       : %.1f", updnS2));
-    println("Total: H:M:S.mS : "+milliSecToString(deltamS));
+    println(String.format(  "nS/Update        :\t%.1f", updnS2));
+    println(                "Total: H:M:S.mS  :\t"+milliSecToString(deltamS));
   }
 
 
 
   static void printIPandValue(byte[] ip, byte[] value) {
-    println("IP: "+bytesToString(ip, false, false, ".")
-      + "; Val: "+bytesToString(value, false, false, "."));
+    println("IP:\t"+bytesToString(ip, false, false, ".")
+      + "\tVal:\t"+bytesToString(value, false, false, "."));
   }
 
   public static void main(String[] args) {

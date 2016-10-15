@@ -61,7 +61,7 @@ class CouponHashMap extends CouponMap {
     int index = getIndex(hash[0], currentSizeKeys_);
     int firstDeletedIndex = -1;
     while (counts_[index] != 0) {
-      if (counts_[index] == DELETED_KEY_MARKER) {
+      if ((firstDeletedIndex == -1) && (counts_[index] == DELETED_KEY_MARKER)) {
         firstDeletedIndex = index;
       } else if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) {
         return index;

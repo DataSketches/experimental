@@ -58,7 +58,7 @@ class CouponTraverseMap extends CouponMap {
     int index = getIndex(hash[0], currentSizeKeys_);
     int firstDeletedIndex = -1;
     while (getBit(state_, index)) {
-      if (values_[index * numValuesPerKey_] == 0) {
+      if ((firstDeletedIndex == -1) && (values_[index * numValuesPerKey_] == 0)) {
         firstDeletedIndex = index;
       } else if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) {
         return index;

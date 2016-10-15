@@ -19,7 +19,9 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 class CouponHashMap extends CouponMap {
 
+  private static final double GROW_THRESHOLD = 0.9;
   private static final double INNER_HASH_MAP_RATIO = 0.75;
+  private static final byte DELETED_KEY_MARKER = (byte) 255;
 
   private final int numValuesPerKey_;
   private int currentSizeKeys_;
@@ -41,9 +43,6 @@ class CouponHashMap extends CouponMap {
   @Override
   double update(final byte[] key, final int coupon) {
     int index = findOrInsertKey(key);
-    if (index < 0) {
-      index = ~index;
-    }
     return findOrInsertValue(index, (short) coupon);
   }
 
@@ -54,31 +53,39 @@ class CouponHashMap extends CouponMap {
     return countValues(index);
   }
 
+  // returns index if the given key is found
+  // if not found, returns two's complement index of an empty slot for insertion
   @Override
-  int findKey(byte[] key) {
+  int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
+    int firstDeletedIndex = -1;
     while (counts_[index] != 0) {
-      if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) return index;
+      if (counts_[index] == DELETED_KEY_MARKER) {
+        firstDeletedIndex = index;
+      } else if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) {
+        return index;
+      }
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
     }
-    return ~index;
+    return firstDeletedIndex == -1 ? ~index : ~firstDeletedIndex;
   }
 
   @Override
-  int findOrInsertKey(byte[] key) {
+  int findOrInsertKey(final byte[] key) {
     int index = findKey(key);
     if (index < 0) {
       if (resizeIfNeeded()) {
         index = findKey(key);
       }
-      System.arraycopy(key, 0, keys_, ~index * keySizeBytes_, keySizeBytes_);
+      index = ~index;
+      System.arraycopy(key, 0, keys_, index * keySizeBytes_, keySizeBytes_);
       numActiveKeys_++;
     }
     return index;
   }
 
-  // for internal use during resize, so no resize check here
+  // for internal use during resize, so no resize check and no deleted key check here
   int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
@@ -91,17 +98,19 @@ class CouponHashMap extends CouponMap {
   }
 
   @Override
-  void deleteKey(int index) {
-    // TODO Auto-generated method stub
+  void deleteKey(final int index) {
+    counts_[index] = DELETED_KEY_MARKER;
+    numDeletedKeys_++;
   }
 
   private boolean resizeIfNeeded() {
-    if (numActiveKeys_ + numDeletedKeys_ > currentSizeKeys_ * 0.9) {
+    if (numActiveKeys_ + numDeletedKeys_ > currentSizeKeys_ * GROW_THRESHOLD) {
       final byte[] oldKeys = keys_;
       final short[] oldValues = values_;
       final byte[] oldCounts = counts_;
       final int oldSizeKeys = currentSizeKeys_;
       currentSizeKeys_ = Util.nextPrime((int) (10.0 / 7 * numActiveKeys_));
+      System.out.println("resizing from " + oldSizeKeys + " to " + currentSizeKeys_);
       keys_ = new byte[currentSizeKeys_ * keySizeBytes_];
       values_ = new short[currentSizeKeys_ * numValuesPerKey_];
       counts_ = new byte[currentSizeKeys_];
@@ -136,7 +145,7 @@ class CouponHashMap extends CouponMap {
   }
 
   @Override
-  int countValues(int index) {
+  int countValues(final int index) {
     return (counts_[index] & 0xff);
   }
 

@@ -10,6 +10,7 @@ public class UniqueCountMap {
   private static final int NUM_LEVELS = 8;
   private static final int NUM_TRAVERSE_LEVELS = 3;
   private static final int HLL_K = 1024;
+  private static final float HLL_RESIZE_FACTOR = 2;
 
   // coupon is a 16-bit value similar to HLL sketch value: 10-bit address,
   // 6-bit number of leading zeroes in a 64-bit hash of the key + 1
@@ -61,7 +62,8 @@ public class UniqueCountMap {
     int level = baseLevelMapValue;
     while (level <= NUM_LEVELS) {
       final CouponMap map = intermediateLevelMaps[level - 1];
-      final double numValues = map.update(key, coupon);
+      final int index = map.findOrInsertKey(key);
+      final double numValues = map.findOrInsertValue(index, coupon);
       if (numValues > 0) return numValues;
       // promote to the next level
       level++;
@@ -70,7 +72,6 @@ public class UniqueCountMap {
       if (level <= NUM_LEVELS) {
         if (intermediateLevelMaps[level - 1] == null) {
           if (level <= NUM_TRAVERSE_LEVELS) {
-            
             intermediateLevelMaps[level - 1] = new CouponTraverseMap(keySizeBytes_, newLevelCapacity);
           } else {
             intermediateLevelMaps[level - 1] = new CouponHashMap(keySizeBytes_, newLevelCapacity);
@@ -78,24 +79,21 @@ public class UniqueCountMap {
         }
         final Map newMap = intermediateLevelMaps[level - 1];
         final MapValuesIterator it = map.getValuesIterator(key);
-        int num = 0;
         while (it.next()) {
           newMap.update(key, it.getValue());
-          num++;
         }
+        map.deleteKey(index);
         return newMap.update(key, coupon);
       } else { // promoting to the last level
         if (lastLevelMap == null) {
-          lastLevelMap = HllMap.getInstance(100, keySizeBytes_, HLL_K, 2f);
+          lastLevelMap = HllMap.getInstance(100, keySizeBytes_, HLL_K, HLL_RESIZE_FACTOR);
         }
         final MapValuesIterator it = map.getValuesIterator(key);
-        int num = 0;
         while (it.next()) {
           lastLevelMap.update(key, it.getValue());
-          num++;
         }
-        //System.out.println("estimate: " + map.getEstimate(key));
-        lastLevelMap.updateEstimate(key, map.getEstimate(key));
+        map.deleteKey(index);
+        lastLevelMap.updateEstimate(key, -numValues);
       }
     }
     return lastLevelMap.update(key, coupon);

@@ -18,6 +18,8 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 class CouponTraverseMap extends CouponMap {
 
+  private static final double GROW_THRESHOLD = 0.9;
+
   private final int numValuesPerKey_;
   private int currentSizeKeys_;
   private byte[] keys_;
@@ -38,9 +40,6 @@ class CouponTraverseMap extends CouponMap {
   @Override
   double update(final byte[] key, final int coupon) {
     int index = findOrInsertKey(key);
-    if (index < 0) {
-      index = ~index;
-    }
     return findOrInsertValue(index, (short) coupon);
   }
 
@@ -51,16 +50,22 @@ class CouponTraverseMap extends CouponMap {
     return countValues(index);
   }
 
-  // returns index if the key is found, negative index otherwise so that insert can be done there
+  // returns index if the given key is found
+  // if not found, returns two's complement index of an empty slot for insertion
   @Override
   int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int index = getIndex(hash[0], currentSizeKeys_);
+    int firstDeletedIndex = -1;
     while (getBit(state_, index)) {
-      if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) return index;
+      if (values_[index * numValuesPerKey_] == 0) {
+        firstDeletedIndex = index;
+      } else if (Util.equals(keys_, index * keySizeBytes_, key, 0, keySizeBytes_)) {
+        return index;
+      }
       index = (index + getStride(hash[1], currentSizeKeys_)) % currentSizeKeys_;
     }
-    return ~index;
+    return firstDeletedIndex == -1 ? ~index : ~firstDeletedIndex;
   }
 
   @Override
@@ -70,8 +75,9 @@ class CouponTraverseMap extends CouponMap {
       if (resizeIfNeeded()) {
         index = findKey(key);
       }
-      System.arraycopy(key, 0, keys_, ~index * keySizeBytes_, keySizeBytes_);
-      setBit(state_, ~index);
+      index = ~index;
+      System.arraycopy(key, 0, keys_, index * keySizeBytes_, keySizeBytes_);
+      setBit(state_, index);
       numActiveKeys_++;
     }
     return index;
@@ -92,12 +98,13 @@ class CouponTraverseMap extends CouponMap {
 
   @Override
   void deleteKey(final int index) {
-    // TODO Auto-generated method stub
+    values_[index * numValuesPerKey_] = 0;
+    numDeletedKeys_++;
   }
 
   // returns true if resized
   private boolean resizeIfNeeded() {
-    if (numActiveKeys_ + numDeletedKeys_ > currentSizeKeys_ * 0.9) {
+    if (numActiveKeys_ + numDeletedKeys_ > currentSizeKeys_ * GROW_THRESHOLD) {
       final byte[] oldKeys = keys_;
       final short[] oldValues = values_;
       final byte[] oldState = state_;

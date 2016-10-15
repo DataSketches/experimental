@@ -1,9 +1,5 @@
 package com.yahoo.sketches.hllmap;
 
-import static com.yahoo.sketches.hllmap.MapTestingUtil.LS;
-import static com.yahoo.sketches.hllmap.MapTestingUtil.TAB;
-import static com.yahoo.sketches.hllmap.MapTestingUtil.bytesToInt;
-
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
 
@@ -225,7 +221,7 @@ class HllMap extends Map {
   }
 
   /**
-   * Find an empty slot for the given key. Throws an exception if no empty slots.
+   * Find the first empty slot for the given key. Throws an exception if no empty slots.
    * @param key the given key
    * @param tableEntries prime size of table
    * @param validBit the valid bit array
@@ -308,47 +304,40 @@ class HllMap extends Map {
     return true;
   }
 
-  static int getHllValue(long[] arrOfHllArr, int outerIndex, int hllIdx) {
-    int shift = hllShift(hllIdx);
-    int longIdx = hllLongIdx(hllIdx);
-    long hllLong = arrOfHllArr[outerIndex + longIdx];
-    return (int)(hllLong >>> shift) & SIX_BIT_MASK;
-  }
+//  static int getHllValue(long[] arrOfHllArr, int outerIndex, int hllIdx) {
+//    int shift = hllShift(hllIdx);
+//    int longIdx = hllLongIdx(hllIdx);
+//    long hllLong = arrOfHllArr[outerIndex + longIdx];
+//    return (int)(hllLong >>> shift) & SIX_BIT_MASK;
+//  }
 
-  /****Testing***********/
+//  /****Testing***********/
+//
+//  void printEntry(byte[] key) {
+//    if (key.length != 4) throw new SketchesArgumentException("Key must be 4 bytes");
+//    int keyInt = bytesToInt(key);
+//    StringBuilder sb = new StringBuilder();
+//    int outerIndex = outerSearchForKey(keysArr_, key, validBitArr_);
+//    if (outerIndex < 0) throw new SketchesArgumentException("Not Found: " + keyInt);
+//    sb.append(keyInt).append(TAB);
+//    sb.append(Util.isBitOne(validBitArr_, outerIndex)? "1" : "0").append(TAB);
+//    sb.append(Double.toString(invPow2SumHiArr_[outerIndex])).append(TAB);
+//    sb.append(Double.toString(invPow2SumLoArr_[outerIndex])).append(TAB);
+//    sb.append(hipEstAccumArr_[outerIndex]).append(LS);
+//
+//    sb.append(hllToString(arrOfHllArr_, outerIndex, k_));
+//    Util.println(sb.toString());
+//  }
+//
+//  String hllToString(long[] arrOfhllArr, int outerIndex, int k) {
+//    StringBuilder sb = new StringBuilder();
+//    for (int i = 0; i < k_-1; i++) {
+//      int v = getHllValue(arrOfHllArr_, outerIndex, i);
+//      sb.append(v).append(":");
+//    }
+//    int v = getHllValue(arrOfHllArr_, outerIndex, k_ - 1);
+//    sb.append(v);
+//    return sb.toString();
+//  }
 
-  void printEntry(byte[] key) {
-    if (key.length != 4) throw new SketchesArgumentException("Key must be 4 bytes");
-    int keyInt = bytesToInt(key);
-    StringBuilder sb = new StringBuilder();
-    int outerIndex = outerSearchForKey(keysArr_, key, validBitArr_);
-    if (outerIndex < 0) throw new SketchesArgumentException("Not Found: " + keyInt);
-    sb.append(keyInt).append(TAB);
-    sb.append(Util.isBitOne(validBitArr_, outerIndex)? "1" : "0").append(TAB);
-    sb.append(Double.toString(invPow2SumHiArr_[outerIndex])).append(TAB);
-    sb.append(Double.toString(invPow2SumLoArr_[outerIndex])).append(TAB);
-    sb.append(hipEstAccumArr_[outerIndex]).append(LS);
-
-    sb.append(hllToString(arrOfHllArr_, outerIndex, k_));
-    Util.println(sb.toString());
-  }
-
-  String hllToString(long[] arrOfhllArr, int outerIndex, int k) {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < k_-1; i++) {
-      int v = getHllValue(arrOfHllArr_, outerIndex, i);
-      sb.append(v).append(":");
-    }
-    int v = getHllValue(arrOfHllArr_, outerIndex, k_ - 1);
-    sb.append(v);
-    return sb.toString();
-  }
-
-
-  public static void main(String[] args) {
-    //test1();
-  }
-
-  static void println(String s) { System.out.println(s); }
-  static void print(String s) { System.out.print(s); }
 }

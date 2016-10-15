@@ -92,7 +92,6 @@ public class HllMapTest {
       String eStr = String.format("%.3f%%", err);
       println("key: " + j + "\tu: "+u + "\t Est: " + est + TAB + eStr);
     }
-
   }
 
   public static void main(String[] args) {

@@ -73,8 +73,8 @@ public class UniqueCountMap {
     while (level <= NUM_LEVELS) {
       final CouponMap map = intermediateLevelMaps[level - 1];
       final int index = map.findOrInsertKey(key);
-      final double numValues = map.findOrInsertCoupon(index, coupon);
-      if (numValues > 0) return numValues;
+      final double estimate = map.findOrInsertCoupon(index, coupon);
+      if (estimate > 0) return estimate;
       // promote to the next level
       level++;
       baseLevelMap.setCoupon(baseLevelIndex, (short) level, true); //very dangerous; state = 1
@@ -84,18 +84,21 @@ public class UniqueCountMap {
           if (level <= NUM_TRAVERSE_LEVELS) {
             intermediateLevelMaps[level - 1] = new CouponTraverseMap(keySizeBytes_, newLevelCapacity);
           } else {
-            intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(13, keySizeBytes_, newLevelCapacity, k_, 2F);
+            intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(17, keySizeBytes_, newLevelCapacity, k_, 2F);
           }
         }
-        final Map newMap = intermediateLevelMaps[level - 1];
+        final CouponMap newMap = intermediateLevelMaps[level - 1];
         final CouponsIterator it = map.getCouponsIterator(key);
+        final int newMapIndex = newMap.findOrInsertKey(key); 
         while (it.next()) {
-          newMap.update(key, it.getValue());
+          final double est = newMap.findOrInsertCoupon(newMapIndex, it.getValue());
+          assert(est > 0);
         }
-        double hipEst = map.getEstimate(key); //get the HIP estimate
+        newMap.updateEstimate(newMapIndex, -estimate);
         map.deleteKey(index);
-        double est = newMap.update(key, coupon);
-        return est;
+        final double newEstimate = newMap.update(key, coupon);
+        assert(newEstimate > 0);  // this must be positive since we have just promoted
+        return newEstimate;
       } else { // promoting to the last level
         if (lastLevelMap == null) {
           lastLevelMap = HllMap.getInstance(100, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
@@ -105,7 +108,7 @@ public class UniqueCountMap {
           lastLevelMap.update(key, it.getValue());
         }
         map.deleteKey(index);
-        lastLevelMap.updateEstimate(key, -numValues);
+        lastLevelMap.updateEstimate(key, -estimate);
       }
     }
     return lastLevelMap.update(key, coupon);
@@ -123,13 +126,6 @@ public class UniqueCountMap {
       return map.getEstimate(key);
     }
     return lastLevelMap.getEstimate(key);
-  }
-
-  static final int ADDRESS_SIZE_BITS = 10;
-
-  static double hipEstimate(final int numberOfCoupons) {
-    final int value3L = 3 * (1 << ADDRESS_SIZE_BITS);
-    return value3L * Math.log((double) value3L / (value3L - numberOfCoupons));
   }
 
 }

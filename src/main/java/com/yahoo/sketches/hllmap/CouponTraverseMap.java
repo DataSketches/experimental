@@ -195,9 +195,14 @@ class CouponTraverseMap extends CouponMap {
   }
 
   @Override
-  void deleteKey(byte[] key) {
+  void deleteKey(final byte[] key) {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  void updateEstimate(final int index, final double estimate) {
+    // not used in this map
   }
 
 }

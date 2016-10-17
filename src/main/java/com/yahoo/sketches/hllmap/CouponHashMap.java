@@ -109,12 +109,13 @@ class CouponHashMap extends CouponMap {
     }
   }
 
-  void updateEstimate(final int entryIndex, final float estimate) {
+  @Override
+  void updateEstimate(final int entryIndex, final double estimate) {
     if (entryIndex < 0) {
-      throw new SketchesArgumentException("Key not found. ");
+      throw new SketchesArgumentException("Key not found.");
     }
     //double curEst = hipEstAccumArr_[index];
-    hipEstAccumArr_[entryIndex] = estimate;
+    hipEstAccumArr_[entryIndex] = (float) estimate;
   }
 
   @Override
@@ -154,14 +155,15 @@ class CouponHashMap extends CouponMap {
       index = ~index;
       //insert new key
       System.arraycopy(key, 0, keysArr_, index * keySizeBytes_, keySizeBytes_);
+      curCountsArr_[index]++;
       //initialize HIP:  qt <- k; hip <- 0;
       invPow2SumArr_[index] = k_;
       hipEstAccumArr_[index] = 0;
       numActiveKeys_++;
-    }
-    if (numActiveKeys_ + numDeletedKeys_ > capacityEntries_) {
-      resizeIfNeeded();
-      index = findKey(key);
+      if (numActiveKeys_ + numDeletedKeys_ > capacityEntries_) {
+        resize();
+        index = findKey(key);
+      }
     }
     return index;
   }
@@ -181,7 +183,7 @@ class CouponHashMap extends CouponMap {
 
   /**
    */
-  private void resizeIfNeeded() {
+  private void resize() {
     final byte[] oldKeysArr = keysArr_;
     final short[] oldCouponMapArr = couponMapArr_;
     final byte[] oldCurCountsArr = curCountsArr_;
@@ -189,6 +191,7 @@ class CouponHashMap extends CouponMap {
     final float[] oldHipEstAccumArr = hipEstAccumArr_;
     final int oldSizeKeys = tableEntries_;
     tableEntries_ = Util.nextPrime((int) (growthFactor_ * numActiveKeys_));
+    capacityEntries_ = (int)(tableEntries_ * OUTER_LOAD_FACTOR);
     System.out.println("resizing from " + oldSizeKeys + " to " + tableEntries_);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponMapArr_ = new short[tableEntries_ * maxCouponsPerKey_];
@@ -221,7 +224,7 @@ class CouponHashMap extends CouponMap {
   double findOrInsertCoupon(final int entryIndex, final short coupon) {
     final int couponMapArrEntryIndex = entryIndex * maxCouponsPerKey_;
 
-    int innerCouponIndex = coupon % maxCouponsPerKey_;
+    int innerCouponIndex = (coupon & 0xffff) % maxCouponsPerKey_;
 
     while (couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] != 0) {
       if (couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] == coupon) {
@@ -229,25 +232,17 @@ class CouponHashMap extends CouponMap {
       }
       innerCouponIndex = (innerCouponIndex + 1) % maxCouponsPerKey_; //linear search
     }
-    couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] = coupon; //insert
-    curCountsArr_[entryIndex]++;
-    hipEstAccumArr_[entryIndex] += k_/invPow2SumArr_[entryIndex];
-    invPow2SumArr_[entryIndex] -= Util.invPow2(coupon16Value(coupon));
-
     if ((curCountsArr_[entryIndex] & BYTE_MASK) > capacityCouponsPerKey_) {
       //returns the negative estimate, as signal to promote
       return -hipEstAccumArr_[entryIndex];
     }
 
+    couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] = coupon; //insert
+    curCountsArr_[entryIndex]++;
+    hipEstAccumArr_[entryIndex] += k_/invPow2SumArr_[entryIndex];
+    invPow2SumArr_[entryIndex] -= Util.invPow2(coupon16Value(coupon));
     return hipEstAccumArr_[entryIndex]; //returns the estimate
   }
-
-  @SuppressWarnings("unused")
-  private static double updateHIP(int couponOffset, int curCoupon, int newCoupon) {
-
-    return 0;
-  }
-
 
   @Override
   int getCouponCount(final int index) {

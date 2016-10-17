@@ -56,7 +56,7 @@ class SingleCouponMap extends Map {
   double update(byte[] key, int coupon) {
     int entryIndex = findKey(key);
     if (entryIndex < 0) { //empty case
-      setKey(~entryIndex, key);
+      System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);
       setCoupon(~entryIndex, (short) coupon, false);
       curCountEntries_++;
       if (curCountEntries_ > capacityEntries_) {
@@ -106,7 +106,7 @@ class SingleCouponMap extends Map {
     int entryIndex = findKey(key);
     if (entryIndex < 0) {
       //will return negative: was not found, inserted
-      setKey(~entryIndex, key);
+      System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);
     }
     curCountEntries_++;
     if (curCountEntries_ > capacityEntries_) {
@@ -116,9 +116,9 @@ class SingleCouponMap extends Map {
     return entryIndex;
   }
 
-  // insert key and coupon at entryIndex.  We know that the key does not exist in the table.
-  void insertEntry(int entryIndex, final byte[] key, int coupon, boolean setStateOne) {
-    setKey(entryIndex, key);
+  // insert key and coupon at entryIndex. We know that the key does not exist in the table.
+  void insertEntry(final int entryIndex, final byte[] key, final int coupon, final boolean setStateOne) {
+    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
     setCoupon(entryIndex, (short)coupon, setStateOne);
   }
 
@@ -145,14 +145,6 @@ class SingleCouponMap extends Map {
           throw new SketchesArgumentException("Key should not have existed.");
         }
       }
-    }
-  }
-
-  //TODO use System.arraycopy instead
-  private void setKey(final int entryIndex, final byte[] key) {
-    final int offset = entryIndex * keySizeBytes_;
-    for (int i = 0; i < keySizeBytes_; i++) {
-      keysArr_[offset + i] = key[i];
     }
   }
 

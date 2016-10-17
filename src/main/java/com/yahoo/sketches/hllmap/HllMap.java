@@ -67,31 +67,34 @@ class HllMap extends Map {
 
   @Override
   double update(byte[] key, int coupon) {
-    if (key == null) return Double.NaN;
-    //boolean updated = false;  may use later
-    int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
-    if (entryIndex < 0) {
-      //not found, initialize new row
-      int emptyEntryIndex = ~entryIndex;
-      System.arraycopy(key, 0, keysArr_, emptyEntryIndex * keySizeBytes_, keySizeBytes_);
-      Util.setBitToOne(stateArr_, emptyEntryIndex);
-      invPow2SumHiArr_[emptyEntryIndex] = k_;
-      invPow2SumLoArr_[emptyEntryIndex] = 0;
-      hipEstAccumArr_[emptyEntryIndex] = 0;
-      ///updated =
-      updateHll(emptyEntryIndex, coupon); //update HLL array, updates HIP
-      double est = hipEstAccumArr_[emptyEntryIndex];
+    int entryIndex = findOrInsertKey(key);
+    return findOrInsertCoupon(entryIndex, coupon);
 
-      curCountEntries_++;
-      if (curCountEntries_ > capacityEntries_) {
-        growSize();
-      }
-      return est;
-    }
-    //matching key found
-    //updated =
-    updateHll(entryIndex, coupon); //update HLL array, updates HIP
-    return hipEstAccumArr_[entryIndex];
+//    if (key == null) return Double.NaN;
+//    //boolean updated = false;  may use later
+//    int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
+//    if (entryIndex < 0) {
+//      //not found, initialize new row
+//      int emptyEntryIndex = ~entryIndex;
+//      System.arraycopy(key, 0, keysArr_, emptyEntryIndex * keySizeBytes_, keySizeBytes_);
+//      Util.setBitToOne(stateArr_, emptyEntryIndex);
+//      invPow2SumHiArr_[emptyEntryIndex] = k_;
+//      invPow2SumLoArr_[emptyEntryIndex] = 0;
+//      hipEstAccumArr_[emptyEntryIndex] = 0;
+//      ///updated =
+////      updateHll(emptyEntryIndex, coupon); //update HLL array, updates HIP
+////      double est = hipEstAccumArr_[emptyEntryIndex];
+//
+//      curCountEntries_++;
+//      if (curCountEntries_ > capacityEntries_) {
+//        growSize();
+//      }
+//      //return est;
+//    }
+//    //matching key found
+//    //updated =
+//    updateHll(entryIndex, coupon); //update HLL array, updates HIP
+//    return hipEstAccumArr_[entryIndex];
   }
 
   @Override
@@ -104,12 +107,7 @@ class HllMap extends Map {
     return hipEstAccumArr_[entryIndex];
   }
 
-  void updateEstimate(byte[] key, double estimate) {
-    int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
-    if (entryIndex < 0) {
-      throw new SketchesArgumentException("Key not found. ");
-    }
-    //double curEst = hipEstAccumArr_[entryIndex];
+  void updateEstimate(int entryIndex, double estimate) {
     hipEstAccumArr_[entryIndex] = estimate;
   }
 
@@ -150,6 +148,29 @@ class HllMap extends Map {
     invPow2SumLoArr_ = newInvPow2Sum2; //init to 0
     hipEstAccumArr_ = newHipEstAccum;  //init to 0
     stateArr_ = newStateArr;
+  }
+
+  int findOrInsertKey(final byte[] key) {
+    int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
+    if (entryIndex < 0) { //key not found
+    //not found, initialize new row
+      entryIndex = ~entryIndex;
+      System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+      Util.setBitToOne(stateArr_, entryIndex);
+      invPow2SumHiArr_[entryIndex] = k_;
+      invPow2SumLoArr_[entryIndex] = 0;
+      hipEstAccumArr_[entryIndex] = 0;
+      curCountEntries_++;
+      if (curCountEntries_ > capacityEntries_) {
+        growSize();
+      }
+    }
+    return entryIndex;
+  }
+
+  double findOrInsertCoupon(final int entryIndex, final int coupon) {
+    updateHll(entryIndex, coupon); //update HLL array, updates HIP
+    return hipEstAccumArr_[entryIndex];
   }
 
   /**

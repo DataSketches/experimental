@@ -150,22 +150,22 @@ class CouponHashMap extends CouponMap {
 
   @Override
   int findOrInsertKey(final byte[] key) {
-    int index = findKey(key);
-    if (index < 0) { //key not found
-      index = ~index;
+    int entryIndex = findKey(key);
+    if (entryIndex < 0) { //key not found
+      entryIndex = ~entryIndex;
       //insert new key
-      System.arraycopy(key, 0, keysArr_, index * keySizeBytes_, keySizeBytes_);
-      curCountsArr_[index]++;
+      System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+      curCountsArr_[entryIndex]++;
       //initialize HIP:  qt <- k; hip <- 0;
-      invPow2SumArr_[index] = k_;
-      hipEstAccumArr_[index] = 0;
+      invPow2SumArr_[entryIndex] = k_;
+      hipEstAccumArr_[entryIndex] = 0;
       numActiveKeys_++;
       if (numActiveKeys_ + numDeletedKeys_ > capacityEntries_) {
         resize();
-        index = findKey(key);
+        entryIndex = findKey(key);
       }
     }
-    return index;
+    return entryIndex;
   }
 
   // for internal use by resize, no resize check and no deleted key check here

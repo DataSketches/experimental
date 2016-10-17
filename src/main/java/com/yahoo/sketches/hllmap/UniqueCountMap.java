@@ -89,7 +89,7 @@ public class UniqueCountMap {
         }
         final CouponMap newMap = intermediateLevelMaps[level - 1];
         final CouponsIterator it = map.getCouponsIterator(key);
-        final int newMapIndex = newMap.findOrInsertKey(key); 
+        final int newMapIndex = newMap.findOrInsertKey(key);
         while (it.next()) {
           final double est = newMap.findOrInsertCoupon(newMapIndex, it.getValue());
           assert(est > 0);
@@ -104,11 +104,12 @@ public class UniqueCountMap {
           lastLevelMap = HllMap.getInstance(100, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
         }
         final CouponsIterator it = map.getCouponsIterator(key);
+        final int lastLevelIndex = lastLevelMap.findOrInsertKey(key);
         while (it.next()) {
-          lastLevelMap.update(key, it.getValue());
+          lastLevelMap.findOrInsertCoupon(lastLevelIndex, it.getValue());
         }
+        lastLevelMap.updateEstimate(lastLevelIndex, -estimate);
         map.deleteKey(index);
-        lastLevelMap.updateEstimate(key, -estimate);
       }
     }
     return lastLevelMap.update(key, coupon);

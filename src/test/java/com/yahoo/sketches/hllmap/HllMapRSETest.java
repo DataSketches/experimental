@@ -43,7 +43,7 @@ public class HllMapRSETest {
     println(LS);
   }
 
-  //@Test
+  @Test
   public void testCouponHashMap() {
     testRSE(SketchEnum.COUPON_HASH_MAP);
     println(LS);
@@ -54,9 +54,9 @@ public class HllMapRSETest {
     //test parameters
     int startLgX = 0; //1
     int endLgX = 16;  //65K
-    int startLgTrials = 7;
+    int startLgTrials = 16;
     if (skEnum == SketchEnum.COUPON_HASH_MAP) {
-      startLgTrials = 7;
+      endLgX = 7;
     }
     int endLgTrials = startLgTrials;
     int ppo = 4; //Points per Octave
@@ -70,16 +70,15 @@ public class HllMapRSETest {
     int lgK = 9;
     int k = 1 << lgK;
     float rf = 2.0F;
-    int initEntries = 1 << startLgTrials;
+    int initEntries = 1 << (startLgTrials +1);
 
     //Other
-    HllMap hllMap = null;
+    Map map = null;
     UpdateSketchBuilder thBldr =
         Sketches.updateSketchBuilder().setResizeFactor(ResizeFactor.X1).setNominalEntries(k);
     UpdateSketch thSketch = null;
     HllSketchBuilder hllBldr = HllSketch.builder().setLogBuckets(lgK).setHipEstimator(true);
     HllSketch hllSk = null;
-    CouponHashMap chMap = null;
     long v = 0;
     byte[] ipv4bytes = new byte[4];
     //byte[] ipv6bytes = new byte[16];
@@ -113,24 +112,24 @@ public class HllMapRSETest {
       int ipv4 = 10 << 24; //10.0.0.0
 
       if (skEnum == SketchEnum.HLL_MAP) {
-        hllMap = HllMap.getInstance(initEntries, keySize, k, rf); //renew per trial set
+        map = HllMap.getInstance(initEntries, keySize, k, rf); //renew per trial set
       } else if (skEnum == SketchEnum.COUPON_HASH_MAP) {
-        chMap = CouponHashMap.getInstance(initEntries, 4, 256, k, 2F); //renew per trial set
+        map = CouponHashMap.getInstance(initEntries, 4, 256, k, 2F); //renew per trial set
       } //else do nothing to the other sketches
 
       for (int t = 0; t < trials; t++) { //each trial
         double est = 0;
         long startnS = 0, endnS = 0;
-        if (skEnum == SketchEnum.HLL_MAP) {
+        if ((skEnum == SketchEnum.HLL_MAP) || (skEnum == SketchEnum.COUPON_HASH_MAP)){
           ipv4++;  //different IP for each trial
-          /***START HLL MAP*****************/
+          /***START HLL MAP*OR*COUPON HASH MAP***/
           startnS = System.nanoTime();
           for (long i=0; i< x; i++) { //x is the #uniques per trial
             v++;  //different values for the uniques
             ipv4bytes = intToBytes(ipv4, ipv4bytes);
             valBytes = longToBytes(v, valBytes);
             int coupon = Map.coupon16(valBytes, k);
-            est = hllMap.update(ipv4bytes, coupon);
+            est = map.update(ipv4bytes, coupon);
           }
           endnS = System.nanoTime();
           /***END HLL MAP*****************/
@@ -144,7 +143,7 @@ public class HllMapRSETest {
           }
           endnS = System.nanoTime();
           /***END THETA*****************/
-        } else if (skEnum == SketchEnum.HLL) {
+        } else { //if (skEnum == SketchEnum.HLL) {
           hllSk = hllBldr.build(); //no reset on HLL !
           /***START HLL*****************/
           startnS = System.nanoTime();
@@ -154,18 +153,6 @@ public class HllMapRSETest {
           }
           endnS = System.nanoTime();
           /***END HLL*****************/
-        } else { //COUPON_HASH_MAP
-          /***START COUPON HASH MAP*****************/
-          startnS = System.nanoTime();
-          for (long i=0; i< x; i++) { //x is the #uniques per trial
-            v++;  //different values for the uniques
-            ipv4bytes = intToBytes(ipv4, ipv4bytes);
-            valBytes = longToBytes(v, valBytes);
-            int coupon = Map.coupon16(valBytes, k);
-            est = chMap.update(ipv4bytes, coupon);
-          }
-          endnS = System.nanoTime();
-          /***END COUPON HASH MAP*****************/
         }
         totnS += endnS - startnS;
         if (skEnum == SketchEnum.THETA) {
@@ -189,11 +176,11 @@ public class HllMapRSETest {
     }
     println(String.format("\nUpdates          :\t%,d", v));
     if ((skEnum == SketchEnum.HLL_MAP) || (skEnum == SketchEnum.COUPON_HASH_MAP)) {
-      println(String.format("Table  Entries   :\t%,d",hllMap.getTableEntries()));
-      println(String.format("Capacity Entries :\t%,d",hllMap.getCapacityEntries()));
-      println(String.format("Count Entries    :\t%,d",hllMap.getCurrentCountEntries()));
-      println(              "Entry bytes      :\t" + hllMap.getEntrySizeBytes());
-      println(String.format("RAM Usage Bytes  :\t%,d",hllMap.getMemoryUsageBytes()));
+      println(String.format("Table  Entries   :\t%,d",map.getTableEntries()));
+      println(String.format("Capacity Entries :\t%,d",map.getCapacityEntries()));
+      println(String.format("Count Entries    :\t%,d",map.getCurrentCountEntries()));
+      println(              "Entry bytes      :\t" + map.getEntrySizeBytes());
+      println(String.format("RAM Usage Bytes  :\t%,d",map.getMemoryUsageBytes()));
     } else if (skEnum == SketchEnum.THETA) {
       println(String.format("Sketch Size Bytes:\t%,d", Sketch.getMaxUpdateSketchBytes(k)));
     } else { //HLL

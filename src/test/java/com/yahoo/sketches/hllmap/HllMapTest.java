@@ -36,7 +36,7 @@ public class HllMapTest {
     key = intToBytes(1, key);
     for (int i=1; i<= u; i++) {
       id = intToBytes(i, id);
-      int coupon = Util.coupon16(id, k);
+      int coupon = Map.coupon16(id, k);
       est = map.update(key, coupon);
       if (i % 100 == 0) {
         double err = (est/i -1.0) * 100;
@@ -73,7 +73,7 @@ public class HllMapTest {
       for (i=0; i< u; i++) {
         id = longToBytes(++v, id);
         assertEquals(v, bytesToLong(id)); //TODO remove
-        int coupon = Util.coupon16(id, k);
+        int coupon = Map.coupon16(id, k);
         map.update(key, coupon);
       }
       double est = map.getEstimate(key);

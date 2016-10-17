@@ -61,7 +61,7 @@ public class HllMapRSETest {
     //test parameters
     int startLgX = 0; //1
     int endLgX = 16;  //65K
-    int startLgTrials = 16;
+    int startLgTrials = 6;
     int endLgTrials = startLgTrials;
     int ppo = 4; //Points per Octave
 
@@ -125,7 +125,7 @@ public class HllMapRSETest {
             v++;  //different values for the uniques
             ipv4bytes = intToBytes(ipv4, ipv4bytes);
             valBytes = longToBytes(v, valBytes);
-            int coupon = Util.coupon16(valBytes, k);
+            int coupon = Map.coupon16(valBytes, k);
             est = hllMap.update(ipv4bytes, coupon);
           }
           endnS = System.nanoTime();

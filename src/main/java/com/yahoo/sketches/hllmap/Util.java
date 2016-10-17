@@ -7,50 +7,9 @@ package com.yahoo.sketches.hllmap;
 
 import java.math.BigInteger;
 
-import com.yahoo.sketches.hash.MurmurHash3;
+import com.yahoo.sketches.SketchesArgumentException;
 
 public final class Util {
-
-  /**
-   * Returns the HLL array index and value as a 16-bit coupon given the identifier to be hashed
-   * and k.
-   * @param identifier the given identifier
-   * @param k the size of the HLL array and cannot exceed 1024
-   * @return the HLL array index and value
-   */
-  static final int coupon16(byte[] identifier, int k) {
-    long[] hash = MurmurHash3.hash(identifier, 0L);
-    int hllIdx = (int) (((hash[0] >>> 1) % k) & 0X3FF); //hash[0] for 10-bit address
-    int lz = Long.numberOfLeadingZeros(hash[1]);
-    int value = ((lz > 62)? 62 : lz) + 1;
-    return (value << 10) | hllIdx;
-  }
-
-  /**
-   * Returns <tt>true</tt> if the two specified sub-arrays of bytes are <i>equal</i> to one another.
-   * Two arrays are considered equal if all corresponding pairs of elements in the two arrays are
-   * equal. In other words, two arrays are equal if and only if they contain the same elements
-   * in the same order.
-   *
-   * @param a one sub-array to be tested for equality
-   * @param offsetA the offset in bytes of the start of sub-array <i>a</i>.
-   * @param b the other sub-array to be tested for equality
-   * @param offsetB the offset in bytes of the start of sub-array <i>b</i>.
-   * @param length the length in bytes of the two sub-arrays.
-   * @return <tt>true</tt> if the two sub-arrays are equal
-   */
-  public static boolean equals(byte[] a, int offsetA, byte[] b, int offsetB, int length) {
-      if (a==b)
-          return true;
-      if (a==null || b==null)
-          return false;
-
-      for (int i=0; i<length; i++)
-          if (a[i + offsetA] != b[i + offsetB])
-              return false;
-
-      return true;
-  }
 
   /**
    * Returns a string view of a byte array
@@ -80,7 +39,7 @@ public final class Util {
   }
 
   /**
-   * Returns the next prime number that is greater than or equal to the given target. There will be
+   * Returns the next prime number that is greater than the given target. There will be
    * no prime numbers less than the returned prime number that are greater than the given target.
    * @param target the starting value to begin the search for the next prime
    * @return the next prime number that is greater than or equal to the given target.
@@ -88,6 +47,30 @@ public final class Util {
   static final int nextPrime(int target) {
     //We may want to replace this with a table lookup for our application.
     return BigInteger.valueOf(target).nextProbablePrime().intValueExact();
+  }
+
+  static final void checkK(int k) {
+    if (!com.yahoo.sketches.Util.isPowerOf2(k) || (k > 1024) || (k < 16)) {
+      throw new SketchesArgumentException("K must be power of 2 and (16 <= k <= 1024): " + k);
+    }
+  }
+
+  static final void checkGrowthFactor(float growthFactor) {
+    if (growthFactor <= 1.0) {
+      throw new SketchesArgumentException("growthFactor must be > 1.0: " + growthFactor);
+    }
+  }
+
+  static final void checkTgtEntries(int tgtEntries) {
+    if (tgtEntries < 16) {
+      throw new SketchesArgumentException("tgtEntries must be >= 16");
+    }
+  }
+
+  static final void checkKeySizeBytes(int keySizeBytes) {
+    if (keySizeBytes < 4) {
+      throw new SketchesArgumentException("KeySizeBytes must be >= 4: " + keySizeBytes);
+    }
   }
 
   static final boolean isBitOne(byte[] byteArr, int bitIndex) {
@@ -127,6 +110,10 @@ public final class Util {
     assert (e | (1024 - e - 1)) >= 0 : "e cannot be negative or greater than 1023: " + e;
     return Double.longBitsToDouble((1023L - e) << 52);
   }
+
+//  public static void main(String[] args) {
+//    println(""+ nextPrime(13));
+//  }
 
   static void println(String s) { System.out.println(s); }
 }

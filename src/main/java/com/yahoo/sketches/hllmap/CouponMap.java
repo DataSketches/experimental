@@ -12,15 +12,15 @@ public abstract class CouponMap extends Map {
    */
   CouponMap(int keySizeBytes) {
     super(keySizeBytes);
-    // TODO Auto-generated constructor stub
   }
 
   abstract int findKey(byte[] key);
   abstract int findOrInsertKey(byte[] key);
   abstract void deleteKey(int index);
+  abstract void deleteKey(byte[] key);
 
-  abstract int findOrInsertValue(int index, short coupon);
-  abstract int countValues(int index);
-  abstract MapValuesIterator getValuesIterator(byte[] key);
+  abstract double findOrInsertCoupon(int index, short coupon);
+  abstract int getCouponCount(int index);
+  abstract CouponsIterator getCouponsIterator(byte[] key);
 
 }

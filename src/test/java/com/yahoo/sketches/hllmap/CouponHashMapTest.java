@@ -4,17 +4,18 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class CouponHashMapTest {
+  static final int k_ = 512;
 
   @Test
   public void getEstimateNovelKey() {
-    CouponHashMap map = new CouponHashMap(1, 8);
+    CouponHashMap map = CouponHashMap.getInstance(13, 1, 8, k_, 2F);
     byte[] key = new byte[] {0};
     Assert.assertEquals(map.getEstimate(key), 0.0);
   }
 
   @Test
   public void oneKeyOneValue() {
-    CouponHashMap map = new CouponHashMap(1, 8);
+    CouponHashMap map = CouponHashMap.getInstance(13, 1, 8, k_, 2F);
     byte[] key = new byte[] {0};
     double estimate = map.update(key, 1);
     Assert.assertEquals(estimate, 1.0);
@@ -23,7 +24,7 @@ public class CouponHashMapTest {
 
   @Test
   public void resize() {
-    CouponHashMap map = new CouponHashMap(4, 8);
+    CouponHashMap map = CouponHashMap.getInstance(13, 4, 8, k_, 2F);
     for (int i = 0; i < 1000; i++) {
       byte[] key = String.format("%4s", i).getBytes();
       double estimate = map.update(key, 1);
@@ -38,7 +39,7 @@ public class CouponHashMapTest {
 
   @Test
   public void delete() {
-    CouponHashMap map = new CouponHashMap(1, 8);
+    CouponHashMap map = CouponHashMap.getInstance(13, 1, 8, k_, 2F);
     double estimate = map.update("1".getBytes(), 1);
     Assert.assertEquals(estimate, 1.0);
     int index1 = map.findKey("1".getBytes());

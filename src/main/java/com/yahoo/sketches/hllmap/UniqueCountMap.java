@@ -1,16 +1,17 @@
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.MapDistribution.BASE_GROWTH_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.BASE_TGT_ENTRIES;
+import static com.yahoo.sketches.hllmap.MapDistribution.HLL_RESIZE_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.NUM_LEVELS;
+import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
+
 @SuppressWarnings("unused")
 public class UniqueCountMap {
 
   private final int targetSizeBytes_;
   private final int keySizeBytes_;
-
-  // excluding the first and the last levels
-  private static final int NUM_LEVELS = 8;
-  private static final int NUM_TRAVERSE_LEVELS = 3;
-  private static final int HLL_K = 1024;
-  private static final float HLL_RESIZE_FACTOR = 2;
+  private final int k_;
 
   // coupon is a 16-bit value similar to HLL sketch value: 10-bit address,
   // 6-bit number of leading zeroes in a 64-bit hash of the key + 1
@@ -28,67 +29,78 @@ public class UniqueCountMap {
   // needs to keep 2 double values and 1 float value for HIP estimator
   private HllMap lastLevelMap;
 
-  public UniqueCountMap(final int targetSizeBytes, final int keySizeBytes) {
-    // to do: figure out how to distribute that size between the levels
+  //@param keySizeBytes must be at least 4 bytes.
+  public UniqueCountMap(final int targetSizeBytes, final int keySizeBytes, final int k) {
+    Util.checkK(k);
+    Util.checkKeySizeBytes(keySizeBytes);
+    k_ = k;
+    //TODO: figure out how to distribute that size between the levels
     targetSizeBytes_ = targetSizeBytes;
     keySizeBytes_ = keySizeBytes;
-    baseLevelMap = new SingleCouponMap(targetSizeBytes, keySizeBytes);
+    baseLevelMap = SingleCouponMap.getInstance(BASE_TGT_ENTRIES, keySizeBytes, BASE_GROWTH_FACTOR);
     intermediateLevelMaps = new CouponMap[NUM_LEVELS];
   }
 
   // This class will decide the transition points of when to promote between types of maps.
   public double update(final byte[] key, final byte[] identifier) {
     if (key == null) return Double.NaN;
-    if (key.length != keySizeBytes_) throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
+    if (key.length != keySizeBytes_) {
+      throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
+    }
     if (identifier == null) return getEstimate(key);
-    short coupon = (short) Util.coupon16(identifier, HLL_K);
+    short coupon = (short) Map.coupon16(identifier, k_);
 
     final int baseLevelIndex = baseLevelMap.findOrInsertKey(key);
     if (baseLevelIndex < 0) {
-      baseLevelMap.setValue(~baseLevelIndex, coupon, true);
+      //this is a new key for the baseLevelMap. Set the coupon, keep the state bit clear.
+      baseLevelMap.setCoupon(~baseLevelIndex, coupon, false);
       return 1;
     }
-    final short baseLevelMapValue = baseLevelMap.getValue(baseLevelIndex);
+    final short baseLevelMapCoupon = baseLevelMap.getCoupon(baseLevelIndex);
     if (baseLevelMap.isCoupon(baseLevelIndex)) {
-      if (baseLevelMapValue == coupon) return 1;
+      if (baseLevelMapCoupon == coupon) return 1; //duplicate
       // promote from the base level
-      baseLevelMap.setValue(baseLevelIndex, (short) 1, false);
-      if (intermediateLevelMaps[0] == null) intermediateLevelMaps[0] = new CouponTraverseMap(keySizeBytes_, 2);
-      intermediateLevelMaps[0].update(key, baseLevelMapValue);
+      baseLevelMap.setCoupon(baseLevelIndex, (short) 1, true); //set coupon = Level 1; state = 1
+      if (intermediateLevelMaps[0] == null) {
+        intermediateLevelMaps[0] = new CouponTraverseMap(keySizeBytes_, 2);
+      }
+      intermediateLevelMaps[0].update(key, baseLevelMapCoupon);
       intermediateLevelMaps[0].update(key, coupon);
       return 2;
     }
 
-    int level = baseLevelMapValue;
+    int level = baseLevelMapCoupon;
     while (level <= NUM_LEVELS) {
       final CouponMap map = intermediateLevelMaps[level - 1];
       final int index = map.findOrInsertKey(key);
-      final double numValues = map.findOrInsertValue(index, coupon);
+      final double numValues = map.findOrInsertCoupon(index, coupon);
       if (numValues > 0) return numValues;
       // promote to the next level
       level++;
-      baseLevelMap.setValue(baseLevelIndex, (short) level, false);
+      baseLevelMap.setCoupon(baseLevelIndex, (short) level, true); //very dangerous; state = 1
       final int newLevelCapacity = 1 << level;
       if (level <= NUM_LEVELS) {
         if (intermediateLevelMaps[level - 1] == null) {
           if (level <= NUM_TRAVERSE_LEVELS) {
             intermediateLevelMaps[level - 1] = new CouponTraverseMap(keySizeBytes_, newLevelCapacity);
           } else {
-            intermediateLevelMaps[level - 1] = new CouponHashMap(keySizeBytes_, newLevelCapacity);
+            intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(13, keySizeBytes_, newLevelCapacity, k_, 2F);
           }
         }
         final Map newMap = intermediateLevelMaps[level - 1];
-        final MapValuesIterator it = map.getValuesIterator(key);
+        final CouponsIterator it = map.getCouponsIterator(key);
         while (it.next()) {
           newMap.update(key, it.getValue());
         }
+        double hipEst = map.getEstimate(key); //get the HIP estimate
         map.deleteKey(index);
-        return newMap.update(key, coupon);
+        double est = newMap.update(key, coupon);
+        return est;
       } else { // promoting to the last level
         if (lastLevelMap == null) {
-          lastLevelMap = HllMap.getInstance(100, keySizeBytes_, HLL_K, HLL_RESIZE_FACTOR);
+          lastLevelMap = HllMap.getInstance(100, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
         }
-        final MapValuesIterator it = map.getValuesIterator(key);
+        final CouponsIterator it = map.getCouponsIterator(key);
         while (it.next()) {
           lastLevelMap.update(key, it.getValue());
         }
@@ -105,7 +117,7 @@ public class UniqueCountMap {
     final int index = baseLevelMap.findKey(key);
     if (index < 0) return 0;
     if (baseLevelMap.isCoupon(index)) return 1;
-    final short level = baseLevelMap.getValue(index);
+    final short level = baseLevelMap.getCoupon(index);
     if (level <= NUM_LEVELS) {
       final Map map = intermediateLevelMaps[level - 1];
       return map.getEstimate(key);

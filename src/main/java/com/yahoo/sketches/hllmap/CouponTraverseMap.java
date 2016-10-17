@@ -184,20 +184,13 @@ class CouponTraverseMap extends CouponMap {
 
   @Override
   public int getCurrentCountEntries() {
-    // TODO Auto-generated method stub
-    return 0;
+    return numActiveKeys_ + numDeletedKeys_;
   }
 
   @Override
   public int getMemoryUsageBytes() {
     // TODO Auto-generated method stub
     return 0;
-  }
-
-  @Override
-  void deleteKey(final byte[] key) {
-    // TODO Auto-generated method stub
-
   }
 
   @Override

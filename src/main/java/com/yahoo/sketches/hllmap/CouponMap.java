@@ -17,7 +17,6 @@ public abstract class CouponMap extends Map {
   abstract int findKey(byte[] key);
   abstract int findOrInsertKey(byte[] key);
   abstract void deleteKey(int index);
-  abstract void deleteKey(byte[] key);
   abstract void updateEstimate(int index, double estimate);
 
   abstract double findOrInsertCoupon(int index, short coupon);

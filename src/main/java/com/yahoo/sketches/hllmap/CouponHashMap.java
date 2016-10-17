@@ -88,21 +88,13 @@ class CouponHashMap extends CouponMap {
   }
 
   @Override
-  void deleteKey(byte[] key) {
-    int entryIndex = findKey(key);
+  void deleteKey(final int entryIndex) {
     clearCouponArea(entryIndex);
     curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
     numDeletedKeys_++;
   }
 
-  @Override
-  void deleteKey(int entryIndex) {
-    clearCouponArea(entryIndex);
-    curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
-    numDeletedKeys_++;
-  }
-
-  void clearCouponArea(int entryIndex) {
+  void clearCouponArea(final int entryIndex) {
     final int couponAreaIndex = entryIndex * maxCouponsPerKey_;
     for (int i = 0; i < maxCouponsPerKey_; i++) {
       couponMapArr_[couponAreaIndex + i] = 0;
@@ -283,7 +275,7 @@ class CouponHashMap extends CouponMap {
     return arrays + other;
   }
 
-  private static final void checkMaxCouponsPerKey(int maxCouponsPerKey, int k) {
+  private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey, final int k) {
     checkIfPowerOf2(maxCouponsPerKey, "maxCouponsPerKey");
     int cpk = maxCouponsPerKey;
     if ((cpk < 16) || (cpk > 256 || cpk > k)) {

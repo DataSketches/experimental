@@ -94,7 +94,7 @@ class SingleCouponMap extends Map {
       if (couponsArr_[entryIndex] == 0) {
         return ~entryIndex; //empty
       }
-      if (keyEquals(key, entryIndex)) {
+      if (Map.arraysEqual(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_)) {
         return entryIndex;
       }
       entryIndex = (entryIndex + stride) % tableEntries_;
@@ -147,14 +147,6 @@ class SingleCouponMap extends Map {
         }
       }
     }
-  }
-
-  private boolean keyEquals(final byte[] key, final int entryIndex) {
-    final int offset = entryIndex * keySizeBytes_;
-    for (int i = 0; i < keySizeBytes_; i++) {
-      if (keysArr_[offset + i] != key[i]) return false;
-    }
-    return true;
   }
 
   boolean isCoupon(final int entryIndex) {

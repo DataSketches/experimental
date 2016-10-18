@@ -70,7 +70,7 @@ public class UniqueCountMap {
     }
 
     int level = baseLevelMapCoupon;
-    while (level <= NUM_LEVELS) {
+    if (level <= NUM_LEVELS) {
       final CouponMap map = intermediateLevelMaps[level - 1];
       final int index = map.findOrInsertKey(key);
       final double estimate = map.findOrInsertCoupon(index, coupon);
@@ -80,6 +80,7 @@ public class UniqueCountMap {
       baseLevelMap.setCoupon(baseLevelIndex, (short) level, true); //very dangerous; state = 1
       final int newLevelCapacity = 1 << level;
       if (level <= NUM_LEVELS) {
+        //System.out.println("promoting to level " + level + " with capacity of " + newLevelCapacity);
         if (intermediateLevelMaps[level - 1] == null) {
           if (level <= NUM_TRAVERSE_LEVELS) {
             intermediateLevelMaps[level - 1] = new CouponTraverseMap(keySizeBytes_, newLevelCapacity);
@@ -90,26 +91,36 @@ public class UniqueCountMap {
         final CouponMap newMap = intermediateLevelMaps[level - 1];
         final CouponsIterator it = map.getCouponsIterator(key);
         final int newMapIndex = newMap.findOrInsertKey(key);
+        int num = 0;
         while (it.next()) {
           final double est = newMap.findOrInsertCoupon(newMapIndex, it.getValue());
           assert(est > 0);
+          num++;
         }
         newMap.updateEstimate(newMapIndex, -estimate);
         map.deleteKey(index);
-        final double newEstimate = newMap.update(key, coupon);
+        //System.out.println("promoted coupons: " + num + ", estimate: " + -estimate);
+        final double newEstimate = newMap.findOrInsertCoupon(newMapIndex, coupon);
         assert(newEstimate > 0);  // this must be positive since we have just promoted
         return newEstimate;
       } else { // promoting to the last level
+        //System.out.println("promoting to the last level");
         if (lastLevelMap == null) {
           lastLevelMap = HllMap.getInstance(100, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
         }
         final CouponsIterator it = map.getCouponsIterator(key);
         final int lastLevelIndex = lastLevelMap.findOrInsertKey(key);
+        int num = 0;
         while (it.next()) {
           lastLevelMap.findOrInsertCoupon(lastLevelIndex, it.getValue());
+          num++;
         }
+        //System.out.println("promoted coupons: " + num + ", estimate: " + -estimate);
         lastLevelMap.updateEstimate(lastLevelIndex, -estimate);
         map.deleteKey(index);
+        final double newEstimate = lastLevelMap.findOrInsertCoupon(lastLevelIndex, coupon);
+        assert(newEstimate > 0);  // this must be positive since we have just promoted
+        return newEstimate;
       }
     }
     return lastLevelMap.update(key, coupon);

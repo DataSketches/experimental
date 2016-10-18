@@ -156,7 +156,7 @@ public class HllMapRSETest {
           endnS = System.nanoTime();
         }
 
-        if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {
+        else if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {
           ipv4++;  //different IP for each trial
           startnS = System.nanoTime();
           for (long i=0; i< x; i++) { //x is the #uniques per trial
@@ -179,7 +179,7 @@ public class HllMapRSETest {
           endnS = System.nanoTime();
         }
 
-        else { //if (skEnum == SketchEnum.HLL) {
+        else { // if (skEnum == SketchEnum.HLL) {
           hllSk = hllBldr.build(); //no reset on HLL !
           startnS = System.nanoTime();
           for (long i=0; i< x; i++) { //x is the #uniques per trial
@@ -190,10 +190,13 @@ public class HllMapRSETest {
         }
 
         totnS += endnS - startnS;
+
         if (skEnum == SketchEnum.THETA) {
           thSketch.rebuild();
           est = thSketch.getEstimate();
-        } else if (skEnum == SketchEnum.HLL) {
+        }
+
+        else if (skEnum == SketchEnum.HLL) {
           est = hllSk.getEstimate();
         }
 
@@ -246,7 +249,8 @@ public class HllMapRSETest {
   }
 
   public static void main(String[] args) {
-
+    HllMapRSETest test = new HllMapRSETest();
+    test.testUniqueCountMap();
   }
 
   static void println(String s) { System.out.println(s); }

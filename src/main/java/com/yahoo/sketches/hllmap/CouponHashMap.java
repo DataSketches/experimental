@@ -106,7 +106,6 @@ class CouponHashMap extends CouponMap {
     if (entryIndex < 0) {
       throw new SketchesArgumentException("Key not found.");
     }
-    //double curEst = hipEstAccumArr_[index];
     hipEstAccumArr_[entryIndex] = (float) estimate;
   }
 
@@ -114,9 +113,7 @@ class CouponHashMap extends CouponMap {
   double getEstimate(final byte[] key) {
     final int index = findKey(key);
     if (index < 0) return 0;
-    //double est = getCouponCount(index);
-    double est = hipEstAccumArr_[index];
-    return est;
+    return hipEstAccumArr_[index];
   }
 
   // returns index if the given key is found
@@ -145,6 +142,10 @@ class CouponHashMap extends CouponMap {
     int entryIndex = findKey(key);
     if (entryIndex < 0) { //key not found
       entryIndex = ~entryIndex;
+      if (curCountsArr_[entryIndex] == DELETED_KEY_MARKER) {
+        curCountsArr_[entryIndex] = 0;
+        numDeletedKeys_--;
+      }
       //insert new key
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
       curCountsArr_[entryIndex]++;

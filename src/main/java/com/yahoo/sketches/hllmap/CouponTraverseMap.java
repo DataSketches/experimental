@@ -74,18 +74,19 @@ class CouponTraverseMap extends CouponMap {
   int findOrInsertKey(final byte[] key) {
     int index = findKey(key);
     if (index < 0) {
+      if (numActiveKeys_ + numDeletedKeys_ > tableSizeKeys_ * GROW_THRESHOLD) {
+        resize();
+        index = findKey(key);
+      }
       index = ~index;
       if (getBit(stateArr_, index)) { // reusing slot from a deleted key
+        System.out.println("reusing slot " + index);
         Arrays.fill(couponsArr_, index * maxCouponsPerKey_, (index + 1) *  maxCouponsPerKey_, (short) 0);
         numDeletedKeys_--;
       }
       System.arraycopy(key, 0, keysArr_, index * keySizeBytes_, keySizeBytes_);
       setBit(stateArr_, index);
       numActiveKeys_++;
-      if (numActiveKeys_ + numDeletedKeys_ > tableSizeKeys_ * GROW_THRESHOLD) {
-        resize();
-        index = findKey(key);
-      }
     }
     return index;
   }
@@ -115,6 +116,7 @@ class CouponTraverseMap extends CouponMap {
     final byte[] oldStateArr = stateArr_;
     final int oldSizeKeys = tableSizeKeys_;
     tableSizeKeys_ = Util.nextPrime((int) (10.0 / 7 * numActiveKeys_));
+    //System.out.println("resizing from " + oldSizeKeys + " to " + tableSizeKeys_);
     keysArr_ = new byte[tableSizeKeys_ * keySizeBytes_];
     couponsArr_ = new short[tableSizeKeys_ * maxCouponsPerKey_];
     stateArr_ = new byte[(int) Math.ceil(tableSizeKeys_ / 8.0)];

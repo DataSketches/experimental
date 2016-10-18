@@ -80,7 +80,7 @@ class CouponTraverseMap extends CouponMap {
       }
       index = ~index;
       if (getBit(stateArr_, index)) { // reusing slot from a deleted key
-        System.out.println("reusing slot " + index);
+        //System.out.println("reusing slot " + index);
         Arrays.fill(couponsArr_, index * maxCouponsPerKey_, (index + 1) *  maxCouponsPerKey_, (short) 0);
         numDeletedKeys_--;
       }

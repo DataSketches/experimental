@@ -185,7 +185,7 @@ class CouponHashMap extends CouponMap {
     final int oldSizeKeys = tableEntries_;
     tableEntries_ = Util.nextPrime((int) (growthFactor_ * numActiveKeys_));
     capacityEntries_ = (int)(tableEntries_ * OUTER_LOAD_FACTOR);
-    System.out.println("resizing from " + oldSizeKeys + " to " + tableEntries_);
+    //System.out.println("resizing from " + oldSizeKeys + " to " + tableEntries_);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponMapArr_ = new short[tableEntries_ * maxCouponsPerKey_];
     curCountsArr_ = new byte[tableEntries_];

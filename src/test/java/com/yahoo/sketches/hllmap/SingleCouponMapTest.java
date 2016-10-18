@@ -14,6 +14,20 @@ public class SingleCouponMapTest {
   }
 
   @Test
+  public void zeroKey() {
+    int entries = 16;
+    int keySizeBytes = 4;
+    float rf = 1.2F;
+    SingleCouponMap map = SingleCouponMap.getInstance(entries, keySizeBytes, rf);
+    byte[] key = new byte[] {1, 0, 0, 0};
+    byte[] id =  new byte[] {1, 0, 0, 0};
+    int coupon = Map.coupon16(id, k_);
+    double estimate = map.update(key, coupon);
+    Assert.assertEquals(estimate, 1.0);
+    Assert.assertEquals(map.getEstimate(key), 1.0);
+  }
+
+  @Test
   public void oneKeyOneValue() {
     int entries = 16;
     int keySizeBytes = 4;

@@ -105,14 +105,14 @@ class SingleCouponMap extends Map {
   int findOrInsertKey(final byte[] key) {
     int entryIndex = findKey(key);
     if (entryIndex < 0) {
+      if (curCountEntries_ > capacityEntries_) {
+        growSize();
+        entryIndex = findKey(key);
+      }
       //will return negative: was not found, inserted
       System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);
     }
     curCountEntries_++;
-    if (curCountEntries_ > capacityEntries_) {
-      growSize();
-      entryIndex = findKey(key);
-    }
     return entryIndex;
   }
 
@@ -129,7 +129,7 @@ class SingleCouponMap extends Map {
     final int oldTableEntries = tableEntries_;
     tableEntries_ = Util.nextPrime((int) (oldTableEntries * growthFactor_));
     capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
-
+    //System.out.println("resizing from " + oldTableEntries + " to " + tableEntries_);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponsArr_ = new short[tableEntries_];
     stateArr_ = new byte[(int) Math.ceil(tableEntries_ / 8.0)];

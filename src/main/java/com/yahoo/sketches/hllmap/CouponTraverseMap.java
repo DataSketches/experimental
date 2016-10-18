@@ -74,9 +74,10 @@ class CouponTraverseMap extends CouponMap {
   int findOrInsertKey(final byte[] key) {
     int index = findKey(key);
     if (index < 0) {
-      if (numActiveKeys_ + numDeletedKeys_ > tableSizeKeys_ * GROW_THRESHOLD) {
+      if (numActiveKeys_ + numDeletedKeys_ + 1 > tableSizeKeys_ * GROW_THRESHOLD) {
         resize();
         index = findKey(key);
+        assert(index < 0);
       }
       index = ~index;
       if (getBit(stateArr_, index)) { // reusing slot from a deleted key

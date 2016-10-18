@@ -156,6 +156,7 @@ class CouponHashMap extends CouponMap {
       if (numActiveKeys_ + numDeletedKeys_ > capacityEntries_) {
         resize();
         entryIndex = findKey(key);
+        assert(entryIndex >= 0);
       }
     }
     return entryIndex;

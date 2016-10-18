@@ -105,9 +105,10 @@ class SingleCouponMap extends Map {
   int findOrInsertKey(final byte[] key) {
     int entryIndex = findKey(key);
     if (entryIndex < 0) {
-      if (curCountEntries_ > capacityEntries_) {
+      if (curCountEntries_ + 1 > capacityEntries_) {
         growSize();
         entryIndex = findKey(key);
+        assert(entryIndex < 0);
       }
       //will return negative: was not found, inserted
       System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);

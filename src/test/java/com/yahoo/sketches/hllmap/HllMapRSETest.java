@@ -57,10 +57,11 @@ public class HllMapRSETest {
 
   @SuppressWarnings("null")
   public void testRSE(SketchEnum skEnum) {
+    /***************************************/
     //test parameters
     int startLgX = 0; //1
-    int endLgX = 16;  //65K # of uniques per trial
-    int startLgTrials = 8; //16 # of Keys
+    int endLgX = 12;  //was 65K # of uniques per trial
+    int startLgTrials = 16; //16 # of Keys
     if (skEnum == SketchEnum.COUPON_HASH_MAP) {
       endLgX = 7;
     }
@@ -80,7 +81,7 @@ public class HllMapRSETest {
 
     //UniqueCountMap config
     int initialSizeBytes = 1 << 22; //4MB
-
+    /***************************************/
     //Other
     Map map = null;
     UniqueCountMap ucMap = null;
@@ -132,7 +133,7 @@ public class HllMapRSETest {
       }
 
       else if (skEnum == SketchEnum.COUPON_HASH_MAP) {
-        map = CouponHashMap.getInstance(4, 256, k); //renew per trial set
+        map = CouponHashMap.getInstance(4, 256); //renew per trial set
       }
 
       else if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {

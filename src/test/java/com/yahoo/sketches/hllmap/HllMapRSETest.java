@@ -60,7 +60,7 @@ public class HllMapRSETest {
     //test parameters
     int startLgX = 0; //1
     int endLgX = 16;  //65K # of uniques per trial
-    int startLgTrials = 13; //16 # of Keys
+    int startLgTrials = 8; //16 # of Keys
     if (skEnum == SketchEnum.COUPON_HASH_MAP) {
       endLgX = 7;
     }

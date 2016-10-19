@@ -8,15 +8,15 @@ public class CouponHashMapTest {
 
   @Test
   public void getEstimateNovelKey() {
-    CouponHashMap map = CouponHashMap.getInstance(1, 16, k_);
-    byte[] key = new byte[] {0};
+    CouponHashMap map = CouponHashMap.getInstance(4, 16, k_);
+    byte[] key = new byte[] {0, 0, 0, 0};
     Assert.assertEquals(map.getEstimate(key), 0.0);
   }
 
   @Test
   public void oneKeyOneValue() {
-    CouponHashMap map = CouponHashMap.getInstance(1, 16, k_);
-    byte[] key = new byte[] {0};
+    CouponHashMap map = CouponHashMap.getInstance(4, 16, k_);
+    byte[] key = new byte[] {0, 0, 0, 0};
     double estimate = map.update(key, 1);
     Assert.assertEquals(estimate, 1.0);
     Assert.assertEquals(map.getEstimate(key), 1.0);
@@ -24,16 +24,16 @@ public class CouponHashMapTest {
 
   @Test
   public void delete() {
-    CouponHashMap map = CouponHashMap.getInstance(1, 16, k_);
-    double estimate = map.update("1".getBytes(), 1);
+    CouponHashMap map = CouponHashMap.getInstance(4, 16, k_);
+    double estimate = map.update("1234".getBytes(), 1);
     Assert.assertEquals(estimate, 1.0);
-    int index1 = map.findKey("1".getBytes());
+    int index1 = map.findKey("1234".getBytes());
     Assert.assertTrue(index1 >= 0);
     map.deleteKey(index1);
-    int index2 = map.findKey("1".getBytes());
+    int index2 = map.findKey("1234".getBytes());
     // should be complement of the same index as before
     Assert.assertEquals(~index2, index1);
-    Assert.assertEquals(map.getEstimate("1".getBytes()), 0.0);
+    Assert.assertEquals(map.getEstimate("1234".getBytes()), 0.0);
   }
 
   @Test

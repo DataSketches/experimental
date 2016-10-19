@@ -8,13 +8,10 @@ package com.yahoo.sketches.hllmap;
 import java.math.BigInteger;
 import java.util.Random;
 
-//import org.testng.Assert;
-import org.testng.annotations.Test;
-
 public class PrimeSpeedTest {
   private static Random rand = new Random(0);
 
-  @Test
+  //@Test
   public void testPrimes() {
     int lowerBound = 1 << 16;
     int upperBound = 1 << 30;

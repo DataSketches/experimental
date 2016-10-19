@@ -22,21 +22,6 @@ public class CouponTraverseMapTest {
   }
 
   @Test
-  public void resize() {
-    CouponTraverseMap map = new CouponTraverseMap(4, 1);
-    for (int i = 0; i < 1000; i++) {
-      byte[] key = String.format("%4s", i).getBytes();
-      double estimate = map.update(key, 1);
-      Assert.assertEquals(estimate, 1.0);
-    }
-    for (int i = 0; i < 1000; i++) {
-      byte[] key = String.format("%4s", i).getBytes();
-      double estimate = map.getEstimate(key);
-      Assert.assertEquals(estimate, 1.0);
-    }
-  }
-
-  @Test
   public void delete() {
     CouponTraverseMap map = new CouponTraverseMap(1, 1);
     double estimate = map.update("1".getBytes(), 1);
@@ -45,9 +30,29 @@ public class CouponTraverseMapTest {
     Assert.assertTrue(index1 >= 0);
     map.deleteKey(index1);
     int index2 = map.findKey("1".getBytes());
-    // should be two's complement of the same index as before
+    // should be complement of the same index as before
     Assert.assertEquals(~index2, index1);
     Assert.assertEquals(map.getEstimate("1".getBytes()), 0.0);
+  }
+
+  @Test
+  public void growAndShrink() {
+    CouponTraverseMap map = new CouponTraverseMap(4, 1);
+    long sizeBytes1 = map.getMemoryUsageBytes();
+    for (int i = 0; i < 1000; i ++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      map.update(key, 1);
+    }
+    long sizeBytes2 = map.getMemoryUsageBytes();
+    Assert.assertTrue(sizeBytes2 > sizeBytes1);
+    for (int i = 0; i < 1000; i ++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      int index = map.findKey(key);
+      Assert.assertTrue(index >= 0);
+      map.deleteKey(index);
+    }
+    long sizeBytes3 = map.getMemoryUsageBytes();
+    Assert.assertTrue(sizeBytes3 < sizeBytes2);
   }
 
 }

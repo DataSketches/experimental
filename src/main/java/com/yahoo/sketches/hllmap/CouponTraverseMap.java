@@ -18,8 +18,6 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 class CouponTraverseMap extends CouponMap {
 
-  private static final double GROW_THRESHOLD = 0.9;
-
   private final int maxCouponsPerKey_;
 
   private int tableSizeKeys_;
@@ -32,7 +30,7 @@ class CouponTraverseMap extends CouponMap {
   CouponTraverseMap(final int keySizeBytes, final int maxCouponsPerKey) {
     super(keySizeBytes);
     maxCouponsPerKey_ = maxCouponsPerKey;
-    tableSizeKeys_ = 13;
+    tableSizeKeys_ = MIN_NUM_ENTRIES;
     keysArr_ = new byte[tableSizeKeys_ * keySizeBytes_];
     couponsArr_ = new short[tableSizeKeys_ * maxCouponsPerKey_];
     stateArr_ = new byte[(int) Math.ceil(tableSizeKeys_ / 8.0)];
@@ -74,16 +72,16 @@ class CouponTraverseMap extends CouponMap {
   int findOrInsertKey(final byte[] key) {
     int index = findKey(key);
     if (index < 0) {
-      if (numActiveKeys_ + numDeletedKeys_ + 1 > tableSizeKeys_ * GROW_THRESHOLD) {
-        resize();
-        index = findKey(key);
-        assert(index < 0);
-      }
       index = ~index;
       if (getBit(stateArr_, index)) { // reusing slot from a deleted key
         //System.out.println("reusing slot " + index);
         Arrays.fill(couponsArr_, index * maxCouponsPerKey_, (index + 1) *  maxCouponsPerKey_, (short) 0);
         numDeletedKeys_--;
+      }
+      if (numActiveKeys_ + numDeletedKeys_ + 1 > tableSizeKeys_ * GROW_TRIGGER_FACTOR) {
+        resize();
+        index = ~findKey(key);
+        assert(index >= 0);
       }
       System.arraycopy(key, 0, keysArr_, index * keySizeBytes_, keySizeBytes_);
       setBit(stateArr_, index);
@@ -108,7 +106,11 @@ class CouponTraverseMap extends CouponMap {
   @Override
   void deleteKey(final int index) {
     couponsArr_[index * maxCouponsPerKey_] = 0;
+    numActiveKeys_--;
     numDeletedKeys_++;
+    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableSizeKeys_ * SHRINK_TRIGGER_FACTOR) {
+      resize();
+    }
   }
 
   private void resize() {
@@ -116,7 +118,10 @@ class CouponTraverseMap extends CouponMap {
     final short[] oldCouponsArr = couponsArr_;
     final byte[] oldStateArr = stateArr_;
     final int oldSizeKeys = tableSizeKeys_;
-    tableSizeKeys_ = Util.nextPrime((int) (10.0 / 7 * numActiveKeys_));
+    tableSizeKeys_ = Math.max(
+      Util.nextPrime((int) (RESIZE_FACTOR * numActiveKeys_)),
+      MIN_NUM_ENTRIES
+    );
     //System.out.println("resizing from " + oldSizeKeys + " to " + tableSizeKeys_);
     keysArr_ = new byte[tableSizeKeys_ * keySizeBytes_];
     couponsArr_ = new short[tableSizeKeys_ * maxCouponsPerKey_];

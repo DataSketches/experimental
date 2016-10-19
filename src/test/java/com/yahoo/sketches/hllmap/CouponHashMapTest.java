@@ -8,14 +8,14 @@ public class CouponHashMapTest {
 
   @Test
   public void getEstimateNovelKey() {
-    CouponHashMap map = CouponHashMap.getInstance(17, 1, 16, k_, 2F);
+    CouponHashMap map = CouponHashMap.getInstance(1, 16, k_);
     byte[] key = new byte[] {0};
     Assert.assertEquals(map.getEstimate(key), 0.0);
   }
 
   @Test
   public void oneKeyOneValue() {
-    CouponHashMap map = CouponHashMap.getInstance(17, 1, 16, k_, 2F);
+    CouponHashMap map = CouponHashMap.getInstance(1, 16, k_);
     byte[] key = new byte[] {0};
     double estimate = map.update(key, 1);
     Assert.assertEquals(estimate, 1.0);
@@ -23,32 +23,37 @@ public class CouponHashMapTest {
   }
 
   @Test
-  public void resize() {
-    CouponHashMap map = CouponHashMap.getInstance(17, 4, 16, k_, 2F);
-    for (int i = 0; i < 1000; i++) {
-      byte[] key = String.format("%4s", i).getBytes();
-      double estimate = map.update(key, Map.coupon16(new byte[] {1}, k_));
-      Assert.assertEquals(estimate, 1.0);
-    }
-    for (int i = 0; i < 1000; i++) {
-      byte[] key = String.format("%4s", i).getBytes();
-      double estimate = map.getEstimate(key);
-      Assert.assertEquals(estimate, 1.0);
-    }
-  }
-
-  @Test
   public void delete() {
-    CouponHashMap map = CouponHashMap.getInstance(17, 1, 16, k_, 2F);
+    CouponHashMap map = CouponHashMap.getInstance(1, 16, k_);
     double estimate = map.update("1".getBytes(), 1);
     Assert.assertEquals(estimate, 1.0);
     int index1 = map.findKey("1".getBytes());
     Assert.assertTrue(index1 >= 0);
     map.deleteKey(index1);
     int index2 = map.findKey("1".getBytes());
-    // should be two's complement of the same index as before
+    // should be complement of the same index as before
     Assert.assertEquals(~index2, index1);
     Assert.assertEquals(map.getEstimate("1".getBytes()), 0.0);
+  }
+
+  @Test
+  public void growAndShrink() {
+    CouponHashMap map = CouponHashMap.getInstance(4, 16, k_);
+    long sizeBytes1 = map.getMemoryUsageBytes();
+    for (int i = 0; i < 1000; i ++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      map.update(key, Map.coupon16(new byte[] {1}, k_));
+    }
+    long sizeBytes2 = map.getMemoryUsageBytes();
+    Assert.assertTrue(sizeBytes2 > sizeBytes1);
+    for (int i = 0; i < 1000; i ++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      int index = map.findKey(key);
+      Assert.assertTrue(index >= 0);
+      map.deleteKey(index);
+    }
+    long sizeBytes3 = map.getMemoryUsageBytes();
+    Assert.assertTrue(sizeBytes3 < sizeBytes2);
   }
 
 }

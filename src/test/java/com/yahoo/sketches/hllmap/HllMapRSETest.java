@@ -132,7 +132,7 @@ public class HllMapRSETest {
       }
 
       else if (skEnum == SketchEnum.COUPON_HASH_MAP) {
-        map = CouponHashMap.getInstance(initEntries, 4, 256, k, 2F); //renew per trial set
+        map = CouponHashMap.getInstance(4, 256, k); //renew per trial set
       }
 
       else if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {

@@ -22,7 +22,6 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 class CouponHashMap extends CouponMap {
 
-  private static final double OUTER_LOAD_FACTOR = 15.0/16.0;
   private static final double INNER_LOAD_FACTOR = 0.75;
   private static final byte DELETED_KEY_MARKER = (byte) 255;
   private static final int BYTE_MASK = 0XFF;
@@ -37,7 +36,6 @@ class CouponHashMap extends CouponMap {
 
   private int numActiveKeys_;
   private int numDeletedKeys_;
-  private float growthFactor_;
 
   //Arrays
   private byte[] keysArr_;
@@ -57,19 +55,15 @@ class CouponHashMap extends CouponMap {
     entrySizeBytes_ = keySizeBytes + maxCouponsPerKey + 1 + 8;
   }
 
-  static CouponHashMap getInstance(final int tgtEntries, final int keySizeBytes,
-      final int maxCouponsPerKey, final int k, float growthFactor) {
+  static CouponHashMap getInstance(final int keySizeBytes, final int maxCouponsPerKey, final int k) {
     checkMaxCouponsPerKey(maxCouponsPerKey, k);
-    Util.checkGrowthFactor(growthFactor); //optional
-    Util.checkTgtEntries(tgtEntries); //optional
     CouponHashMap map = new CouponHashMap(keySizeBytes, k, maxCouponsPerKey);
 
-    int tableEntries = Util.nextPrime(tgtEntries);
+    final int tableEntries = MIN_NUM_ENTRIES;
     map.tableEntries_ = tableEntries;
-    map.capacityEntries_ = (int)(tableEntries * OUTER_LOAD_FACTOR);
+    map.capacityEntries_ = (int)(tableEntries * GROW_TRIGGER_FACTOR);
     map.numActiveKeys_ = 0;
     map.numDeletedKeys_ = 0;
-    map.growthFactor_ = growthFactor;
 
     map.keysArr_ = new byte[tableEntries * keySizeBytes];
     map.couponMapArr_ = new short[tableEntries * maxCouponsPerKey];
@@ -89,9 +83,15 @@ class CouponHashMap extends CouponMap {
 
   @Override
   void deleteKey(final int entryIndex) {
+    //System.out.println(maxCouponsPerKey_ + " map before deleting: active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_);
     clearCouponArea(entryIndex);
     curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
+    numActiveKeys_--;
     numDeletedKeys_++;
+    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableEntries_ * SHRINK_TRIGGER_FACTOR) {
+      //System.out.println(maxCouponsPerKey_ + " map shrink rule triggered: index=" + entryIndex + ", active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_ + ", table=" + tableEntries_);
+      resize();
+    }
   }
 
   void clearCouponArea(final int entryIndex) {
@@ -142,22 +142,23 @@ class CouponHashMap extends CouponMap {
     int entryIndex = findKey(key);
     if (entryIndex < 0) { //key not found
       entryIndex = ~entryIndex;
-      if (curCountsArr_[entryIndex] == DELETED_KEY_MARKER) {
+      if (curCountsArr_[entryIndex] == DELETED_KEY_MARKER) { // reusing slot from a deleted key
         curCountsArr_[entryIndex] = 0;
         numDeletedKeys_--;
       }
+      //System.out.println(maxCouponsPerKey_ + " map before inserting: active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_);
+      if (numActiveKeys_ + numDeletedKeys_ >= capacityEntries_) {
+        //System.out.println(maxCouponsPerKey_ + " map growth rule triggered: index=" + entryIndex + ", active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_ + ", table=" + tableEntries_);
+        resize();
+        entryIndex = ~findKey(key);
+        assert(entryIndex >= 0);
+      }
       //insert new key
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-      curCountsArr_[entryIndex]++;
       //initialize HIP:  qt <- k; hip <- 0;
       invPow2SumArr_[entryIndex] = k_;
       hipEstAccumArr_[entryIndex] = 0;
       numActiveKeys_++;
-      if (numActiveKeys_ + numDeletedKeys_ > capacityEntries_) {
-        resize();
-        entryIndex = findKey(key);
-        assert(entryIndex >= 0);
-      }
     }
     return entryIndex;
   }
@@ -176,6 +177,7 @@ class CouponHashMap extends CouponMap {
   }
 
   /**
+   * @param newNumEntries TODO
    */
   private void resize() {
     final byte[] oldKeysArr = keysArr_;
@@ -183,10 +185,13 @@ class CouponHashMap extends CouponMap {
     final byte[] oldCurCountsArr = curCountsArr_;
     final float[] oldInvPow2SumArr = invPow2SumArr_;
     final float[] oldHipEstAccumArr = hipEstAccumArr_;
-    final int oldSizeKeys = tableEntries_;
-    tableEntries_ = Util.nextPrime((int) (growthFactor_ * numActiveKeys_));
-    capacityEntries_ = (int)(tableEntries_ * OUTER_LOAD_FACTOR);
-    //System.out.println("resizing from " + oldSizeKeys + " to " + tableEntries_);
+    final int oldNumEntries = tableEntries_;
+    tableEntries_ = Math.max(
+      Util.nextPrime((int) (RESIZE_FACTOR * numActiveKeys_)),
+      MIN_NUM_ENTRIES
+    );
+    capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);
+    //System.out.println("resizing from " + oldNumEntries + " to " + tableEntries_);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponMapArr_ = new short[tableEntries_ * maxCouponsPerKey_];
     curCountsArr_ = new byte[tableEntries_];
@@ -194,8 +199,8 @@ class CouponHashMap extends CouponMap {
     hipEstAccumArr_ = new float[tableEntries_];
     numActiveKeys_ = 0;
     numDeletedKeys_ = 0;
-    for (int i = 0; i < oldSizeKeys; i++) {
-      if (oldCurCountsArr[i] != 0) {
+    for (int i = 0; i < oldNumEntries; i++) {
+      if (oldCurCountsArr[i] != 0 && oldCurCountsArr[i] != DELETED_KEY_MARKER) {
         //extract an old valid key
         final byte[] key =
             Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);

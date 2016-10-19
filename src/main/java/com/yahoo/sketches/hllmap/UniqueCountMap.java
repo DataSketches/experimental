@@ -85,7 +85,7 @@ public class UniqueCountMap {
           if (level <= NUM_TRAVERSE_LEVELS) {
             intermediateLevelMaps[level - 1] = new CouponTraverseMap(keySizeBytes_, newLevelCapacity);
           } else {
-            intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(17, keySizeBytes_, newLevelCapacity, k_, 2F);
+            intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(keySizeBytes_, newLevelCapacity, k_);
           }
         }
         final CouponMap newMap = intermediateLevelMaps[level - 1];

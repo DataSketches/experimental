@@ -7,10 +7,10 @@ package com.yahoo.sketches.hllmap;
 
 public abstract class CouponMap extends Map {
 
-  static final int MIN_NUM_ENTRIES = 127;
+  static final int MIN_NUM_ENTRIES = 157;
   static final double SHRINK_TRIGGER_FACTOR = 0.5;
   static final double GROW_TRIGGER_FACTOR = 15.0 / 16.0;
-  static final double RESIZE_FACTOR = 1.5;
+  static final double TARGET_FILL_FACTOR = 2.0 / 3.0;
 
   /**
    * @param keySizeBytes

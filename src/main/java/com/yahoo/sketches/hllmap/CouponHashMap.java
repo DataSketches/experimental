@@ -187,7 +187,7 @@ class CouponHashMap extends CouponMap {
     final float[] oldHipEstAccumArr = hipEstAccumArr_;
     final int oldNumEntries = tableEntries_;
     tableEntries_ = Math.max(
-      Util.nextPrime((int) (RESIZE_FACTOR * numActiveKeys_)),
+      Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
       MIN_NUM_ENTRIES
     );
     capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);

@@ -119,7 +119,7 @@ class CouponTraverseMap extends CouponMap {
     final byte[] oldStateArr = stateArr_;
     final int oldSizeKeys = tableSizeKeys_;
     tableSizeKeys_ = Math.max(
-      Util.nextPrime((int) (RESIZE_FACTOR * numActiveKeys_)),
+      Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
       MIN_NUM_ENTRIES
     );
     //System.out.println("resizing from " + oldSizeKeys + " to " + tableSizeKeys_);

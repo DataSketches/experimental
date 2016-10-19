@@ -163,6 +163,8 @@ class HllMap extends Map {
       curCountEntries_++;
       if (curCountEntries_ > capacityEntries_) {
         growSize();
+        entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
+        assert entryIndex >= 0;
       }
     }
     return entryIndex;
@@ -246,9 +248,14 @@ class HllMap extends Map {
   }
 
   @Override
-  public int getMemoryUsageBytes() {
-    int arrays = (int) Math.ceil(entrySizeBytes_ * tableEntries_);
-    int other = 4 * 6 + 8;
+  public long getMemoryUsageBytes() {
+    long arrays = keysArr_.length
+        + (long)arrOfHllArr_.length * Long.BYTES
+        + invPow2SumLoArr_.length * Double.BYTES
+        + invPow2SumHiArr_.length * Double.BYTES
+        + hipEstAccumArr_.length * Double.BYTES
+        + stateArr_.length;
+    long other = 5 * Integer.BYTES + Float.BYTES + Double.BYTES;
     return arrays + other;
   }
 

@@ -192,8 +192,10 @@ class CouponTraverseMap extends CouponMap {
   }
 
   @Override
-  public int getMemoryUsageBytes() {
-    return keysArr_.length + couponsArr_.length * Short.BYTES + stateArr_.length + 4 * Integer.BYTES;
+  public long getMemoryUsageBytes() {
+    return keysArr_.length
+        + (long)couponsArr_.length * Short.BYTES
+        + stateArr_.length + 4 * Integer.BYTES;
   }
 
   @Override

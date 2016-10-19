@@ -271,9 +271,13 @@ class CouponHashMap extends CouponMap {
   }
 
   @Override
-  public int getMemoryUsageBytes() {
-    int arrays = entrySizeBytes_ * tableEntries_;
-    int other = 4 * 5;
+  public long getMemoryUsageBytes() {
+    long arrays = keysArr_.length
+        + (long)couponMapArr_.length * Short.BYTES
+        + curCountsArr_.length
+        + invPow2SumArr_.length * Float.BYTES
+        + hipEstAccumArr_.length * Float.BYTES;
+    long other = 4 * 5;
     return arrays + other;
   }
 

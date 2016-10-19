@@ -47,7 +47,7 @@ public abstract class Map {
 
   abstract int getCurrentCountEntries();
 
-  abstract int getMemoryUsageBytes();
+  abstract long getMemoryUsageBytes();
 
   /**
    * Returns <tt>true</tt> if the two specified sub-arrays of bytes are <i>equal</i> to one another.

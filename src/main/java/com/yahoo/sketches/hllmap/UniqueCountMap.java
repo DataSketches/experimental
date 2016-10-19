@@ -140,8 +140,8 @@ public class UniqueCountMap {
     return lastLevelMap.getEstimate(key);
   }
 
-  public int getMemoryUsageBytes() {
-    int total = baseLevelMap.getMemoryUsageBytes();
+  public long getMemoryUsageBytes() {
+    long total = baseLevelMap.getMemoryUsageBytes();
     for (int i = 0; i < intermediateLevelMaps.length; i++) {
       if (intermediateLevelMaps[i] != null) {
         total += intermediateLevelMaps[i].getMemoryUsageBytes();

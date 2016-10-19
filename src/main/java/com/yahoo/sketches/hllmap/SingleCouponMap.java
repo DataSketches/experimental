@@ -188,9 +188,11 @@ class SingleCouponMap extends Map {
   }
 
   @Override
-  public int getMemoryUsageBytes() {
-    int arrays =(int) Math.ceil(entrySizeBytes_ * tableEntries_);
-    int other = 4 * 4 + 8;
+  public long getMemoryUsageBytes() {
+    long arrays = keysArr_.length
+        + (long)couponsArr_.length * Short.BYTES
+        + stateArr_.length;
+    long other = 4 * 4 + 8;
     return arrays + other;
   }
 

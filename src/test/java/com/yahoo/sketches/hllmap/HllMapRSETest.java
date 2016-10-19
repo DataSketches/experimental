@@ -59,8 +59,8 @@ public class HllMapRSETest {
   public void testRSE(SketchEnum skEnum) {
     //test parameters
     int startLgX = 0; //1
-    int endLgX = 16;  //65K
-    int startLgTrials = 10; //16
+    int endLgX = 16;  //65K # of uniques per trial
+    int startLgTrials = 13; //16 # of Keys
     if (skEnum == SketchEnum.COUPON_HASH_MAP) {
       endLgX = 7;
     }
@@ -118,6 +118,7 @@ public class HllMapRSETest {
     long startMs = System.currentTimeMillis(); //start the clock
     long totnS = 0;
     long lastX = 0;
+    long memUsage = 0;
     for (int pt = 0; pt < points ; pt++) {
       int x = xPoints[pt];
       if (x == lastX) continue;
@@ -143,30 +144,51 @@ public class HllMapRSETest {
         double est = 0;
         long startnS = 0, endnS = 0;
 
-        if ((skEnum == SketchEnum.HLL_MAP) || (skEnum == SketchEnum.COUPON_HASH_MAP)) {
+        if (skEnum == SketchEnum.HLL_MAP) {
           ipv4++;  //different IP for each trial
+          HllMap hllMap = (HllMap) map;
+          ipv4bytes = intToBytes(ipv4, ipv4bytes);
           startnS = System.nanoTime();
+          int index = hllMap.findOrInsertKey(ipv4bytes);
           for (long i=0; i< x; i++) { //x is the #uniques per trial
             v++;  //different values for the uniques
-            ipv4bytes = intToBytes(ipv4, ipv4bytes);
             valBytes = longToBytes(v, valBytes);
             int coupon = Map.coupon16(valBytes, k);
-            est = map.update(ipv4bytes, coupon);
+            est = hllMap.findOrInsertCoupon(index, (short)coupon);
+            //est = map.update(ipv4bytes, coupon);
           }
           endnS = System.nanoTime();
+          memUsage = hllMap.getMemoryUsageBytes();
+        }
+
+        else if (skEnum == SketchEnum.COUPON_HASH_MAP) {
+          ipv4++;  //different IP for each trial
+          ipv4bytes = intToBytes(ipv4, ipv4bytes);
+          CouponMap cMap = (CouponMap) map;
+          startnS = System.nanoTime();
+          int index = cMap.findOrInsertKey(ipv4bytes);
+          for (long i=0; i< x; i++) { //x is the #uniques per trial
+            v++;  //different values for the uniques
+            valBytes = longToBytes(v, valBytes);
+            int coupon = Map.coupon16(valBytes, k);
+            est = cMap.findOrInsertCoupon(index, (short)coupon);
+            //est = map.update(ipv4bytes, coupon);
+          }
+          endnS = System.nanoTime();
+          memUsage = map.getMemoryUsageBytes();
         }
 
         else if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {
           ipv4++;  //different IP for each trial
+          ipv4bytes = intToBytes(ipv4, ipv4bytes);
           startnS = System.nanoTime();
           for (long i=0; i< x; i++) { //x is the #uniques per trial
             v++;  //different values for the uniques
-            ipv4bytes = intToBytes(ipv4, ipv4bytes);
             valBytes = longToBytes(v, valBytes);
-            //int coupon = Map.coupon16(valBytes, k);
             est = ucMap.update(ipv4bytes, valBytes);
           }
           endnS = System.nanoTime();
+          memUsage = ucMap.getMemoryUsageBytes();
         }
 
         else if (skEnum == SketchEnum.THETA) {
@@ -210,7 +232,8 @@ public class HllMapRSETest {
       double varErr = (sumErrSq - meanErr * sumErr/trials)/(trials -1);
       double relErr = Math.sqrt(varErr)/x;
       double bias = mean/x - 1.0;
-      String line = String.format("%d\t%d\t%.2f\t%.2f%%\t%.2f%%", x, trials, mean, bias*100, relErr*100);
+
+      String line = String.format("%d\t%d\t%.2f\t%.2f%%\t%.2f%%\t%,d", x, trials, mean, bias*100, relErr*100, memUsage);
       println(line);
     }
     println(String.format("\nUpdates          :\t%,d", v));
@@ -251,6 +274,8 @@ public class HllMapRSETest {
   public static void main(String[] args) {
     HllMapRSETest test = new HllMapRSETest();
     test.testUniqueCountMap();
+//    println(String.format("%d\t%d\t%.2f\t%.2f%%\t%.2f%%\t%,d", 1, 2, 3.5F, 4.5F, 5.5F, 1L << 60));
+//    println(String.format("%,d", 1L << 60));
   }
 
   static void println(String s) { System.out.println(s); }

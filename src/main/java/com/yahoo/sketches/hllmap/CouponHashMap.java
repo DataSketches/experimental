@@ -25,8 +25,8 @@ class CouponHashMap extends CouponMap {
   private static final double INNER_LOAD_FACTOR = 0.75;
   private static final byte DELETED_KEY_MARKER = (byte) 255;
   private static final int BYTE_MASK = 0XFF;
+  private static final int COUPON_K = 1024;
 
-  private final int k_;
   private final int maxCouponsPerKey_;
   private final int capacityCouponsPerKey_;
   private final int entrySizeBytes_;
@@ -47,17 +47,16 @@ class CouponHashMap extends CouponMap {
   // qt <- k; hip <- 0;
   // hip +=  k/qt; qt -= 1/2^(val);
 
-  private CouponHashMap(final int keySizeBytes, int k, int maxCouponsPerKey) {
+  private CouponHashMap(final int keySizeBytes, int maxCouponsPerKey) {
     super(keySizeBytes);
-    k_ = k;
     maxCouponsPerKey_ = maxCouponsPerKey;
     capacityCouponsPerKey_ = (int)(maxCouponsPerKey * INNER_LOAD_FACTOR);
     entrySizeBytes_ = keySizeBytes + maxCouponsPerKey + 1 + 8;
   }
 
-  static CouponHashMap getInstance(final int keySizeBytes, final int maxCouponsPerKey, final int k) {
-    checkMaxCouponsPerKey(maxCouponsPerKey, k);
-    CouponHashMap map = new CouponHashMap(keySizeBytes, k, maxCouponsPerKey);
+  static CouponHashMap getInstance(final int keySizeBytes, final int maxCouponsPerKey) {
+    checkMaxCouponsPerKey(maxCouponsPerKey);
+    CouponHashMap map = new CouponHashMap(keySizeBytes, maxCouponsPerKey);
 
     final int tableEntries = MIN_NUM_ENTRIES;
     map.tableEntries_ = tableEntries;
@@ -156,7 +155,7 @@ class CouponHashMap extends CouponMap {
       //insert new key
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
       //initialize HIP:  qt <- k; hip <- 0;
-      invPow2SumArr_[entryIndex] = k_;
+      invPow2SumArr_[entryIndex] = COUPON_K;
       hipEstAccumArr_[entryIndex] = 0;
       numActiveKeys_++;
     }
@@ -238,7 +237,7 @@ class CouponHashMap extends CouponMap {
 
     couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] = coupon; //insert
     curCountsArr_[entryIndex]++;
-    hipEstAccumArr_[entryIndex] += k_/invPow2SumArr_[entryIndex];
+    hipEstAccumArr_[entryIndex] += COUPON_K/invPow2SumArr_[entryIndex];
     invPow2SumArr_[entryIndex] -= Util.invPow2(coupon16Value(coupon));
     return hipEstAccumArr_[entryIndex]; //returns the estimate
   }
@@ -286,10 +285,10 @@ class CouponHashMap extends CouponMap {
     return arrays + other;
   }
 
-  private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey, final int k) {
+  private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey) {
     checkIfPowerOf2(maxCouponsPerKey, "maxCouponsPerKey");
     int cpk = maxCouponsPerKey;
-    if ((cpk < 16) || (cpk > 256 || cpk > k)) {
+    if ((cpk < 16) || (cpk > 256)) {
       throw new SketchesArgumentException(
           "Required: 16 <= maxCouponsPerKey <= 256 : "+maxCouponsPerKey);
     }

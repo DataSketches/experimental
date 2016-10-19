@@ -48,7 +48,7 @@ public class UniqueCountMap {
       throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
     }
     if (identifier == null) return getEstimate(key);
-    short coupon = (short) Map.coupon16(identifier, k_);
+    short coupon = (short) Map.coupon16(identifier);
 
     final int baseLevelIndex = baseLevelMap.findOrInsertKey(key);
     if (baseLevelIndex < 0) {

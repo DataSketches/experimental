@@ -27,7 +27,7 @@ public class CouponHashMapTest {
     CouponHashMap map = CouponHashMap.getInstance(17, 4, 16, k_, 2F);
     for (int i = 0; i < 1000; i++) {
       byte[] key = String.format("%4s", i).getBytes();
-      double estimate = map.update(key, Map.coupon16(new byte[] {1}, k_));
+      double estimate = map.update(key, Map.coupon16(new byte[] {1}));
       Assert.assertEquals(estimate, 1.0);
     }
     for (int i = 0; i < 1000; i++) {

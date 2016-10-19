@@ -69,32 +69,6 @@ class HllMap extends Map {
   double update(byte[] key, int coupon) {
     int entryIndex = findOrInsertKey(key);
     return findOrInsertCoupon(entryIndex, coupon);
-
-//    if (key == null) return Double.NaN;
-//    //boolean updated = false;  may use later
-//    int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
-//    if (entryIndex < 0) {
-//      //not found, initialize new row
-//      int emptyEntryIndex = ~entryIndex;
-//      System.arraycopy(key, 0, keysArr_, emptyEntryIndex * keySizeBytes_, keySizeBytes_);
-//      Util.setBitToOne(stateArr_, emptyEntryIndex);
-//      invPow2SumHiArr_[emptyEntryIndex] = k_;
-//      invPow2SumLoArr_[emptyEntryIndex] = 0;
-//      hipEstAccumArr_[emptyEntryIndex] = 0;
-//      ///updated =
-////      updateHll(emptyEntryIndex, coupon); //update HLL array, updates HIP
-////      double est = hipEstAccumArr_[emptyEntryIndex];
-//
-//      curCountEntries_++;
-//      if (curCountEntries_ > capacityEntries_) {
-//        growSize();
-//      }
-//      //return est;
-//    }
-//    //matching key found
-//    //updated =
-//    updateHll(entryIndex, coupon); //update HLL array, updates HIP
-//    return hipEstAccumArr_[entryIndex];
   }
 
   @Override
@@ -259,43 +233,23 @@ class HllMap extends Map {
     return arrays + other;
   }
 
-  //These methods are specifically tied to the HLL array layout
-
-  /**
-   * Returns the long that contains the hll index.
-   * This is a function of the HLL array storage layout.
-   * @param hllIdx the given hll index
-   * @return the long that contains the hll index
-   */
-  private static final int hllLongIdx(int hllIdx) {
-    return hllIdx/10;
-  }
-
-  /**
-   * Returns the long shift for the hll value index.
-   * This is a function of the HLL array storage layout.
-   * @param hllIdx the given hll index
-   * @return the long shift for the hll index
-   */
-  private static final int hllShift(int hllIdx) {
-    return ((hllIdx % 10) * 6) & SIX_BIT_MASK;
-  }
+  //This method is specifically tied to the HLL array layout
 
   private final boolean updateHll(int entryIndex, int coupon) {
-    int hllIdx = coupon & TEN_BIT_MASK;             //lower 10 bits
-    int newValue = (coupon >>> 10) & SIX_BIT_MASK;  //upper 6 bits
+    final int newValue = coupon16Value(coupon);
 
-    int shift = hllShift(hllIdx);
-    int longIdx = hllLongIdx(hllIdx);
+    final int hllIdx = coupon & (k_ - 1); //lower lgK bits
+    final int longIdx = hllIdx / 10;
+    final int shift = ((hllIdx % 10) * 6) & SIX_BIT_MASK;
 
     long hllLong = arrOfHllArr_[entryIndex * hllArrLongs_ + longIdx];
-    int oldValue = (int)(hllLong >>> shift) & SIX_BIT_MASK;
+    final int oldValue = (int)(hllLong >>> shift) & SIX_BIT_MASK;
     if (newValue <= oldValue) return false;
     // newValue > oldValue
 
     //update hipEstAccum BEFORE updating invPow2Sum
-    double invPow2Sum = invPow2SumHiArr_[entryIndex] + invPow2SumLoArr_[entryIndex];
-    double oneOverQ = k_ / invPow2Sum;
+    final double invPow2Sum = invPow2SumHiArr_[entryIndex] + invPow2SumLoArr_[entryIndex];
+    final double oneOverQ = k_ / invPow2Sum;
     hipEstAccumArr_[entryIndex] += oneOverQ;
 
     //update invPow2Sum
@@ -310,41 +264,5 @@ class HllMap extends Map {
     arrOfHllArr_[entryIndex * hllArrLongs_ + longIdx] = hllLong;
     return true;
   }
-
-//  static int getHllValue(long[] arrOfHllArr, int entryIndex, int hllIdx) {
-//    int shift = hllShift(hllIdx);
-//    int longIdx = hllLongIdx(hllIdx);
-//    long hllLong = arrOfHllArr[entryIndex + longIdx];
-//    return (int)(hllLong >>> shift) & SIX_BIT_MASK;
-//  }
-
-//  /****Testing***********/
-//
-//  void printEntry(byte[] key) {
-//    if (key.length != 4) throw new SketchesArgumentException("Key must be 4 bytes");
-//    int keyInt = bytesToInt(key);
-//    StringBuilder sb = new StringBuilder();
-//    int entryIndex = outerSearchForKey(keysArr_, key, validBitArr_);
-//    if (entryIndex < 0) throw new SketchesArgumentException("Not Found: " + keyInt);
-//    sb.append(keyInt).append(TAB);
-//    sb.append(Util.isBitOne(validBitArr_, entryIndex)? "1" : "0").append(TAB);
-//    sb.append(Double.toString(invPow2SumHiArr_[entryIndex])).append(TAB);
-//    sb.append(Double.toString(invPow2SumLoArr_[entryIndex])).append(TAB);
-//    sb.append(hipEstAccumArr_[entryIndex]).append(LS);
-//
-//    sb.append(hllToString(arrOfHllArr_, entryIndex, k_));
-//    Util.println(sb.toString());
-//  }
-//
-//  String hllToString(long[] arrOfhllArr, int entryIndex, int k) {
-//    StringBuilder sb = new StringBuilder();
-//    for (int i = 0; i < k_-1; i++) {
-//      int v = getHllValue(arrOfHllArr_, entryIndex, i);
-//      sb.append(v).append(":");
-//    }
-//    int v = getHllValue(arrOfHllArr_, entryIndex, k_ - 1);
-//    sb.append(v);
-//    return sb.toString();
-//  }
 
 }

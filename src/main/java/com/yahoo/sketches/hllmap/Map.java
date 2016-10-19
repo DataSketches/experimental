@@ -1,6 +1,7 @@
 package com.yahoo.sketches.hllmap;
 
-import com.yahoo.sketches.SketchesArgumentException;
+import static com.yahoo.sketches.hllmap.Util.checkKeySizeBytes;
+
 import com.yahoo.sketches.hash.MurmurHash3;
 
 /**
@@ -15,9 +16,7 @@ public abstract class Map {
   final int keySizeBytes_;
 
   Map(int keySizeBytes) {
-    if (keySizeBytes < 1) {
-      throw new SketchesArgumentException("keyBytes must be > 0: " + keySizeBytes);
-    }
+    checkKeySizeBytes(keySizeBytes);
     keySizeBytes_ = keySizeBytes;
   }
 
@@ -75,12 +74,11 @@ public abstract class Map {
    * Returns the HLL array index and value as a 16-bit coupon given the identifier to be hashed
    * and k.
    * @param identifier the given identifier
-   * @param k the size of the HLL array and cannot exceed 1024
    * @return the HLL array index and value
    */
-  static final int coupon16(byte[] identifier, int k) {
+  static final int coupon16(byte[] identifier) {
     long[] hash = MurmurHash3.hash(identifier, SEED);
-    int hllIdx = (int) (((hash[0] >>> 1) % k) & TEN_BIT_MASK); //hash[0] for 10-bit address
+    int hllIdx = (int) (((hash[0] >>> 1) % 1024) & TEN_BIT_MASK); //hash[0] for 10-bit address
     int lz = Long.numberOfLeadingZeros(hash[1]);
     int value = ((lz > 62)? 62 : lz) + 1;
     return (value << 10) | hllIdx;
@@ -88,10 +86,6 @@ public abstract class Map {
 
   static final int coupon16Value(int coupon) {
     return (coupon >>> 10) & SIX_BIT_MASK;
-  }
-
-  static final int coupon16HllIndex(int coupon) {
-    return coupon & TEN_BIT_MASK;
   }
 
   static final int getIndex(final long hash, final int tableEntries) {

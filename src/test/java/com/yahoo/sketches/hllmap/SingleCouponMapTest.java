@@ -4,7 +4,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class SingleCouponMapTest {
-  private static final int k_ = 1024;
 
   @Test
   public void getEstimateNoneKey() {
@@ -21,7 +20,7 @@ public class SingleCouponMapTest {
     SingleCouponMap map = SingleCouponMap.getInstance(entries, keySizeBytes, rf);
     byte[] key = new byte[] {0, 0, 0, 0}; // zero key must work
     byte[] id =  new byte[] {1, 0, 0, 0};
-    int coupon = Map.coupon16(id, k_);
+    int coupon = Map.coupon16(id);
     double estimate = map.update(key, coupon);
     Assert.assertEquals(estimate, 1.0);
     Assert.assertEquals(map.getEstimate(key), 1.0);
@@ -38,7 +37,7 @@ public class SingleCouponMapTest {
     for (int i = 0; i < numKeys; i++) {
       byte[] key = String.format("%4s", i).getBytes();
       byte[] id =  new byte[] {1, 0, 0, 0};
-      int coupon = Map.coupon16(id, k_);
+      int coupon = Map.coupon16(id);
       double estimate = map.update(key, coupon);
       Assert.assertEquals(estimate, 1.0);
     }

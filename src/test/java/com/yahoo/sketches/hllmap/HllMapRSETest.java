@@ -153,7 +153,7 @@ public class HllMapRSETest {
           for (long i=0; i< x; i++) { //x is the #uniques per trial
             v++;  //different values for the uniques
             valBytes = longToBytes(v, valBytes);
-            int coupon = Map.coupon16(valBytes, k);
+            int coupon = Map.coupon16(valBytes);
             est = hllMap.findOrInsertCoupon(index, (short)coupon);
             //est = map.update(ipv4bytes, coupon);
           }
@@ -170,7 +170,7 @@ public class HllMapRSETest {
           for (long i=0; i< x; i++) { //x is the #uniques per trial
             v++;  //different values for the uniques
             valBytes = longToBytes(v, valBytes);
-            int coupon = Map.coupon16(valBytes, k);
+            int coupon = Map.coupon16(valBytes);
             est = cMap.findOrInsertCoupon(index, (short)coupon);
             //est = map.update(ipv4bytes, coupon);
           }

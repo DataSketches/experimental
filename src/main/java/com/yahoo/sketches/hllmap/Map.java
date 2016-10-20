@@ -38,6 +38,10 @@ abstract class Map {
    */
   abstract double getEstimate(byte[] key);
 
+  int getKeySizeBytes() {
+    return keySizeBytes_;
+  }
+
   abstract double getEntrySizeBytes();
 
   abstract int getTableEntries();

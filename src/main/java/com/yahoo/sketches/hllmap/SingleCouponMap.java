@@ -56,7 +56,7 @@ class SingleCouponMap extends Map {
     return map;
   }
 
-  @Override //must be an actual coupon
+  @Override
   double update(byte[] key, int coupon) {
     final int entryIndex = findOrInsertKey(key);
     if (entryIndex < 0) { // insert
@@ -68,7 +68,7 @@ class SingleCouponMap extends Map {
     if (coupon == coupon2) {
       return 1.0;
     }
-    return -couponsArr_[entryIndex]; //indicates coupon contains table # //TODO
+    return -couponsArr_[entryIndex]; //indicates coupon contains table #
   }
 
   @Override
@@ -76,12 +76,16 @@ class SingleCouponMap extends Map {
     final int entryIndex = findKey(key);
     if (entryIndex < 0) return 0;
     if (isCoupon(entryIndex)) return 1;
-    return ~couponsArr_[entryIndex]; //indicates coupon contains table # //TODO
+    return ~couponsArr_[entryIndex]; //indicates coupon contains table #
   }
 
-  // Returns index if the key is found.
-  // If entry is empty, returns the one's complement index
-  // The coupon may be valid or contain a table index.
+  /**
+   * Returns entryIndex if the given key is found. The coupon may be valid or contain a table index.
+   * If not found, returns one's complement entryIndex
+   * of an empty slot for insertion, which may be over a deleted key.
+   * @param key the given key
+   * @return the entryIndex
+   */
   int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
@@ -104,7 +108,7 @@ class SingleCouponMap extends Map {
     int entryIndex = findKey(key);
     if (entryIndex < 0) {
       if (curCountEntries_ + 1 > capacityEntries_) {
-        growSize();
+        resize();
         entryIndex = findKey(key);
         assert(entryIndex < 0);
       }
@@ -115,13 +119,76 @@ class SingleCouponMap extends Map {
     return entryIndex;
   }
 
-  // insert key and coupon at entryIndex. We know that the key does not exist in the table.
-  void insertEntry(final int entryIndex, final byte[] key, final int coupon, final boolean setStateOne) {
-    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-    setCoupon(entryIndex, (short)coupon, setStateOne);
+  boolean isCoupon(final int entryIndex) {
+    return !getBit(stateArr_, entryIndex);
   }
 
-  private void growSize() {
+  short getCoupon(final int entryIndex) {
+    return couponsArr_[entryIndex];
+  }
+
+  // assumes that the state bit is never cleared
+  void setCoupon(final int entryIndex, final short coupon, final boolean isLevel) {
+    couponsArr_[entryIndex] = coupon;
+    if (isLevel) {
+      setBit(stateArr_, entryIndex);
+    } else {
+      clearBit(stateArr_, entryIndex);
+    }
+  }
+
+  @Override
+  double getEntrySizeBytes() {
+    return entrySizeBytes_;
+  }
+
+  @Override
+  int getTableEntries() {
+    return tableEntries_;
+  }
+
+  @Override
+  int getCapacityEntries() {
+    return capacityEntries_;
+  }
+
+  @Override
+  int getCurrentCountEntries() {
+    return curCountEntries_;
+  }
+
+  @Override
+  long getMemoryUsageBytes() {
+    long arrays = keysArr_.length
+        + (long)couponsArr_.length * Short.BYTES
+        + stateArr_.length;
+    long other = 4 * 4 + 8;
+    return arrays + other;
+  }
+
+  @Override
+  public String toString() {
+    String te = fmtLong(getTableEntries());
+    String ce = fmtLong(getCapacityEntries());
+    String cce = fmtLong(getCurrentCountEntries());
+    String esb = fmtDouble(getEntrySizeBytes());
+    String mub = fmtLong(getMemoryUsageBytes());
+
+    StringBuilder sb = new StringBuilder();
+    String thisSimpleName = this.getClass().getSimpleName();
+    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("    Max Coupons Per Entry     : ").append(1).append(LS);
+    sb.append("    Capacity Coupons Per Entry: ").append(1).append(LS);
+    sb.append("    Table Entries             : ").append(te).append(LS);
+    sb.append("    Capacity Entries          : ").append(ce).append(LS);
+    sb.append("    Current Count Entries     : ").append(cce).append(LS);
+    sb.append("    Entry Size Bytes          : ").append(esb).append(LS);
+    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
+    sb.append("### END SKETCH SUMMARY").append(LS);
+    return sb.toString();
+  }
+
+  private void resize() {
     final byte[] oldKeysArr = keysArr_;
     final short[] oldCouponsArr = couponsArr_;
     final byte[] oldStateArr = stateArr_;
@@ -147,72 +214,10 @@ class SingleCouponMap extends Map {
     }
   }
 
-  boolean isCoupon(final int entryIndex) {
-    return !getBit(stateArr_, entryIndex);
+  // insert key and coupon at entryIndex. We know that the key does not exist in the table.
+  private void insertEntry(final int entryIndex, final byte[] key, final int coupon,
+      final boolean setStateOne) {
+    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+    setCoupon(entryIndex, (short)coupon, setStateOne);
   }
-
-  short getCoupon(final int entryIndex) {
-    return couponsArr_[entryIndex];
-  }
-
-  // assumes that the state bit is never cleared
-  void setCoupon(final int entryIndex, final short coupon, final boolean isLevel) {
-    couponsArr_[entryIndex] = coupon;
-    if (isLevel) {
-      setBit(stateArr_, entryIndex);
-    } else {
-      clearBit(stateArr_, entryIndex);
-    }
-  }
-
-  @Override
-  public double getEntrySizeBytes() {
-    return entrySizeBytes_;
-  }
-
-  @Override
-  public int getTableEntries() {
-    return tableEntries_;
-  }
-
-  @Override
-  public int getCapacityEntries() {
-    return capacityEntries_;
-  }
-
-  @Override
-  public int getCurrentCountEntries() {
-    return curCountEntries_;
-  }
-
-  @Override
-  public long getMemoryUsageBytes() {
-    long arrays = keysArr_.length
-        + (long)couponsArr_.length * Short.BYTES
-        + stateArr_.length;
-    long other = 4 * 4 + 8;
-    return arrays + other;
-  }
-
-  @Override
-  public String toString() {
-    String te = fmtLong(getTableEntries());
-    String ce = fmtLong(getCapacityEntries());
-    String cce = fmtLong(getCurrentCountEntries());
-    String esb = fmtDouble(getEntrySizeBytes());
-    String mub = fmtLong(getMemoryUsageBytes());
-
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
-    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-    sb.append("    Max Coupons Per Entry : ").append(1).append(LS);
-    sb.append("    Table Entries         : ").append(te).append(LS);
-    sb.append("    Capacity Entries      : ").append(ce).append(LS);
-    sb.append("    Current Count Entries : ").append(cce).append(LS);
-    sb.append("    Entry Size Bytes      : ").append(esb).append(LS);
-    sb.append("    Memory Usage Bytes    : ").append(mub).append(LS);
-    sb.append("### END SKETCH SUMMARY").append(LS);
-    return sb.toString();
-  }
-
 }

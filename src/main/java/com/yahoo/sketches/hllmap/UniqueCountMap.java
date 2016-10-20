@@ -170,10 +170,10 @@ public class UniqueCountMap {
     StringBuilder sb = new StringBuilder();
     String thisSimpleName = this.getClass().getSimpleName();
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-    sb.append("    Key Size Bytes     : ").append(ksb).append(LS);
-    sb.append("    HLL K              : ").append(hllk).append(LS);
-    sb.append("    Active Levels      : ").append(lvls).append(LS);
-    sb.append("    Memory Usage Bytes : ").append(mub).append(LS);
+    sb.append("    Key Size Bytes            : ").append(ksb).append(LS);
+    sb.append("    HLL k                     : ").append(hllk).append(LS);
+    sb.append("    Active Levels             : ").append(lvls).append(LS);
+    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
     sb.append(LS);
     sb.append(baseLevelMap.toString());
     sb.append(LS);

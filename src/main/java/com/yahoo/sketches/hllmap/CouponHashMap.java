@@ -1,8 +1,6 @@
 package com.yahoo.sketches.hllmap;
 
 import static com.yahoo.sketches.Util.checkIfPowerOf2;
-import static com.yahoo.sketches.hllmap.Util.fmtDouble;
-import static com.yahoo.sketches.hllmap.Util.fmtLong;
 
 import java.util.Arrays;
 
@@ -23,7 +21,6 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // Probably starts after Traverse > 8.  Need to be able to adjust this.
 
 class CouponHashMap extends CouponMap {
-  public static final String LS = System.getProperty("line.separator");
   private static final double INNER_LOAD_FACTOR = 0.75;
   private static final byte DELETED_KEY_MARKER = (byte) 255;
   private static final int BYTE_MASK = 0XFF;
@@ -35,19 +32,15 @@ class CouponHashMap extends CouponMap {
 
   private int tableEntries_;
   private int capacityEntries_;
-
   private int numActiveKeys_;
   private int numDeletedKeys_;
 
   //Arrays
   private byte[] keysArr_;
-  private short[] couponMapArr_;
+  private short[] couponsArr_;
   private byte[] curCountsArr_; //also acts as a stateArr: 0 empty, 255 deleted
   private float[] invPow2SumArr_;
   private float[] hipEstAccumArr_;
-
-  // qt <- k; hip <- 0;
-  // hip +=  k/qt; qt -= 1/2^(val);
 
   private CouponHashMap(final int keySizeBytes, int maxCouponsPerKey) {
     super(keySizeBytes);
@@ -67,15 +60,13 @@ class CouponHashMap extends CouponMap {
     map.numDeletedKeys_ = 0;
 
     map.keysArr_ = new byte[tableEntries * keySizeBytes];
-    map.couponMapArr_ = new short[tableEntries * maxCouponsPerKey];
+    map.couponsArr_ = new short[tableEntries * maxCouponsPerKey];
     map.curCountsArr_ = new byte[tableEntries];
     map.invPow2SumArr_ = new float[tableEntries];
     map.hipEstAccumArr_ = new float[tableEntries];
     return map;
   }
 
-  // qt <- k; hip <- 0;
-  // hip +=  k/qt; qt -= 1/2^(val);
   @Override
   double update(final byte[] key, final int coupon) {
     int entryIndex = findOrInsertKey(key);
@@ -83,23 +74,10 @@ class CouponHashMap extends CouponMap {
   }
 
   @Override
-  void deleteKey(final int entryIndex) {
-    //System.out.println(maxCouponsPerKey_ + " map before deleting: active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_);
-    clearCouponArea(entryIndex);
-    curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
-    numActiveKeys_--;
-    numDeletedKeys_++;
-    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableEntries_ * SHRINK_TRIGGER_FACTOR) {
-      //System.out.println(maxCouponsPerKey_ + " map shrink rule triggered: index=" + entryIndex + ", active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_ + ", table=" + tableEntries_);
-      resize();
-    }
-  }
-
-  void clearCouponArea(final int entryIndex) {
-    final int couponAreaIndex = entryIndex * maxCouponsPerKey_;
-    for (int i = 0; i < maxCouponsPerKey_; i++) {
-      couponMapArr_[couponAreaIndex + i] = 0;
-    }
+  double getEstimate(final byte[] key) {
+    final int index = findKey(key);
+    if (index < 0) return 0;
+    return hipEstAccumArr_[index];
   }
 
   @Override
@@ -110,16 +88,12 @@ class CouponHashMap extends CouponMap {
     hipEstAccumArr_[entryIndex] = (float) estimate;
   }
 
-  @Override
-  double getEstimate(final byte[] key) {
-    final int index = findKey(key);
-    if (index < 0) return 0;
-    return hipEstAccumArr_[index];
-  }
-
-  // returns index if the given key is found
-  // if not found, returns one's complement index of an empty slot for insertion
-  // which may be over a deleted key
+  /**
+   * Returns entryIndex if the given key is found. If not found, returns one's complement index
+   * of an empty slot for insertion, which may be over a deleted key.
+   * @param key the given key
+   * @return the entryIndex
+   */
   @Override
   int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
@@ -144,6 +118,7 @@ class CouponHashMap extends CouponMap {
     if (entryIndex < 0) { //key not found
       entryIndex = ~entryIndex;
       if (curCountsArr_[entryIndex] == DELETED_KEY_MARKER) { // reusing slot from a deleted key
+        Arrays.fill(couponsArr_, entryIndex * maxCouponsPerKey_, (entryIndex + 1) *  maxCouponsPerKey_, (short) 0);
         curCountsArr_[entryIndex] = 0;
         numDeletedKeys_--;
       }
@@ -164,70 +139,14 @@ class CouponHashMap extends CouponMap {
     return entryIndex;
   }
 
-  // for internal use by resize, no resize check and no deleted key check here
-  // no changes to HIP
-  int insertKey(final byte[] key) {
-    final long[] hash = MurmurHash3.hash(key, SEED);
-    int entryIndex = getIndex(hash[0], tableEntries_);
-    while (curCountsArr_[entryIndex] != 0) {
-      entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
-    }
-    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-    numActiveKeys_++;
-    return entryIndex;
-  }
-
-  /**
-   * @param newNumEntries TODO
-   */
-  private void resize() {
-    final byte[] oldKeysArr = keysArr_;
-    final short[] oldCouponMapArr = couponMapArr_;
-    final byte[] oldCurCountsArr = curCountsArr_;
-    final float[] oldInvPow2SumArr = invPow2SumArr_;
-    final float[] oldHipEstAccumArr = hipEstAccumArr_;
-    final int oldNumEntries = tableEntries_;
-    tableEntries_ = Math.max(
-      Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
-      MIN_NUM_ENTRIES
-    );
-    capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);
-    //System.out.println("resizing from " + oldNumEntries + " to " + tableEntries_);
-    keysArr_ = new byte[tableEntries_ * keySizeBytes_];
-    couponMapArr_ = new short[tableEntries_ * maxCouponsPerKey_];
-    curCountsArr_ = new byte[tableEntries_];
-    invPow2SumArr_ = new float[tableEntries_];
-    hipEstAccumArr_ = new float[tableEntries_];
-    numActiveKeys_ = 0;
-    numDeletedKeys_ = 0;
-    for (int i = 0; i < oldNumEntries; i++) {
-      if (oldCurCountsArr[i] != 0 && oldCurCountsArr[i] != DELETED_KEY_MARKER) {
-        //extract an old valid key
-        final byte[] key =
-            Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
-        //insert the key and get its index
-        final int index = insertKey(key);
-        //copy the coupons array into that index
-        System.arraycopy(oldCouponMapArr, i * maxCouponsPerKey_, couponMapArr_,
-            index * maxCouponsPerKey_, maxCouponsPerKey_);
-        //transfer the count
-        curCountsArr_[index] = oldCurCountsArr[i];
-        //transfer the HIP registers
-        invPow2SumArr_[index] = oldInvPow2SumArr[i];
-        hipEstAccumArr_[index] = oldHipEstAccumArr[i];
-      }
-    }
-  }
-
-  //hip +=  k/qt; qt -= 1/2^(val);
   @Override
   double findOrInsertCoupon(final int entryIndex, final short coupon) {
     final int couponMapArrEntryIndex = entryIndex * maxCouponsPerKey_;
 
     int innerCouponIndex = (coupon & 0xffff) % maxCouponsPerKey_;
 
-    while (couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] != 0) {
-      if (couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] == coupon) {
+    while (couponsArr_[couponMapArrEntryIndex + innerCouponIndex] != 0) {
+      if (couponsArr_[couponMapArrEntryIndex + innerCouponIndex] == coupon) {
         return hipEstAccumArr_[entryIndex]; //duplicate, returns the estimate
       }
       innerCouponIndex = (innerCouponIndex + 1) % maxCouponsPerKey_; //linear search
@@ -237,11 +156,23 @@ class CouponHashMap extends CouponMap {
       return -hipEstAccumArr_[entryIndex];
     }
 
-    couponMapArr_[couponMapArrEntryIndex + innerCouponIndex] = coupon; //insert
+    couponsArr_[couponMapArrEntryIndex + innerCouponIndex] = coupon; //insert
     curCountsArr_[entryIndex]++;
+    //hip +=  k/qt; qt -= 1/2^(val);
     hipEstAccumArr_[entryIndex] += COUPON_K/invPow2SumArr_[entryIndex];
     invPow2SumArr_[entryIndex] -= Util.invPow2(coupon16Value(coupon));
     return hipEstAccumArr_[entryIndex]; //returns the estimate
+  }
+
+  @Override
+  void deleteKey(final int entryIndex) {
+    curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
+    numActiveKeys_--;
+    numDeletedKeys_++;
+    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableEntries_ * SHRINK_TRIGGER_FACTOR) {
+      //System.out.println(maxCouponsPerKey_ + " map shrink rule triggered: index=" + entryIndex + ", active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_ + ", table=" + tableEntries_);
+      resize();
+    }
   }
 
   @Override
@@ -253,47 +184,38 @@ class CouponHashMap extends CouponMap {
   CouponsIterator getCouponsIterator(final byte[] key) {
     final int entryIndex = findKey(key);
     if (entryIndex < 0) return null;
-    return new CouponsIterator(couponMapArr_, entryIndex * maxCouponsPerKey_, maxCouponsPerKey_);
+    return new CouponsIterator(couponsArr_, entryIndex * maxCouponsPerKey_, maxCouponsPerKey_);
   }
 
   @Override
-  public double getEntrySizeBytes() {
+  double getEntrySizeBytes() {
     return entrySizeBytes_;
   }
 
   @Override
-  public int getTableEntries() {
+  int getTableEntries() {
     return tableEntries_;
   }
 
   @Override
-  public int getCapacityEntries() {
+  int getCapacityEntries() {
     return capacityEntries_;
   }
 
   @Override
-  public int getCurrentCountEntries() {
+  int getCurrentCountEntries() {
     return numActiveKeys_ + numDeletedKeys_;
   }
 
   @Override
-  public long getMemoryUsageBytes() {
+  long getMemoryUsageBytes() {
     long arrays = keysArr_.length
-        + (long)couponMapArr_.length * Short.BYTES
+        + (long)couponsArr_.length * Short.BYTES
         + curCountsArr_.length
         + invPow2SumArr_.length * Float.BYTES
         + hipEstAccumArr_.length * Float.BYTES;
     long other = 4 * 5;
     return arrays + other;
-  }
-
-  private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey) {
-    checkIfPowerOf2(maxCouponsPerKey, "maxCouponsPerKey");
-    int cpk = maxCouponsPerKey;
-    if ((cpk < 16) || (cpk > 256)) {
-      throw new SketchesArgumentException(
-          "Required: 16 <= maxCouponsPerKey <= 256 : "+maxCouponsPerKey);
-    }
   }
 
   @Override
@@ -307,31 +229,74 @@ class CouponHashMap extends CouponMap {
   }
 
   @Override
-  public String toString() {
-    String mcpe = fmtLong(maxCouponsPerKey_);
-    String ccpe = fmtLong(capacityCouponsPerKey_);
-    String te = fmtLong(getTableEntries());
-    String ce = fmtLong(getCapacityEntries());
-    String cce = fmtLong(getCurrentCountEntries());
-    String ae = fmtLong(getActiveEntries());
-    String de = fmtLong(getDeletedEntries());
-    String esb = fmtDouble(getEntrySizeBytes());
-    String mub = fmtLong(getMemoryUsageBytes());
+  int getMaxCouponsPerEntry() {
+    return maxCouponsPerKey_;
+  }
 
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
-    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-    sb.append("    Max Coupons Per Entry     : ").append(mcpe).append(LS);
-    sb.append("    Capacity Coupons Per Entry: ").append(ccpe).append(LS);
-    sb.append("    Table Entries             : ").append(te).append(LS);
-    sb.append("    Capacity Entries          : ").append(ce).append(LS);
-    sb.append("    Current Count Entries     : ").append(cce).append(LS);
-    sb.append("      Active Entries          : ").append(ae).append(LS);
-    sb.append("      Deleted Entries         : ").append(de).append(LS);
-    sb.append("    Entry Size Bytes          : ").append(esb).append(LS);
-    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
-    sb.append("### END SKETCH SUMMARY").append(LS);
-    return sb.toString();
+  @Override
+  int getCapacityCouponsPerEntry() {
+    return capacityCouponsPerKey_;
+  }
+
+  private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey) {
+    checkIfPowerOf2(maxCouponsPerKey, "maxCouponsPerKey");
+    int cpk = maxCouponsPerKey;
+    if ((cpk < 16) || (cpk > 256)) {
+      throw new SketchesArgumentException(
+          "Required: 16 <= maxCouponsPerKey <= 256 : "+maxCouponsPerKey);
+    }
+  }
+
+  private void resize() {
+    final byte[] oldKeysArr = keysArr_;
+    final short[] oldCouponMapArr = couponsArr_;
+    final byte[] oldCurCountsArr = curCountsArr_;
+    final float[] oldInvPow2SumArr = invPow2SumArr_;
+    final float[] oldHipEstAccumArr = hipEstAccumArr_;
+    final int oldNumEntries = tableEntries_;
+    tableEntries_ = Math.max(
+      Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
+      MIN_NUM_ENTRIES
+    );
+    capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);
+    //System.out.println("resizing from " + oldNumEntries + " to " + tableEntries_);
+    keysArr_ = new byte[tableEntries_ * keySizeBytes_];
+    couponsArr_ = new short[tableEntries_ * maxCouponsPerKey_];
+    curCountsArr_ = new byte[tableEntries_];
+    invPow2SumArr_ = new float[tableEntries_];
+    hipEstAccumArr_ = new float[tableEntries_];
+    numActiveKeys_ = 0;
+    numDeletedKeys_ = 0;
+    for (int i = 0; i < oldNumEntries; i++) {
+      if (oldCurCountsArr[i] != 0 && oldCurCountsArr[i] != DELETED_KEY_MARKER) {
+        //extract an old valid key
+        final byte[] key =
+            Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
+        //insert the key and get its index
+        final int index = insertKey(key);
+        //copy the coupons array into that index
+        System.arraycopy(oldCouponMapArr, i * maxCouponsPerKey_, couponsArr_,
+            index * maxCouponsPerKey_, maxCouponsPerKey_);
+        //transfer the count
+        curCountsArr_[index] = oldCurCountsArr[i];
+        //transfer the HIP registers
+        invPow2SumArr_[index] = oldInvPow2SumArr[i];
+        hipEstAccumArr_[index] = oldHipEstAccumArr[i];
+      }
+    }
+  }
+
+  // for internal use by resize, no resize check and no deleted key check here
+  // no changes to HIP
+  private int insertKey(final byte[] key) {
+    final long[] hash = MurmurHash3.hash(key, SEED);
+    int entryIndex = getIndex(hash[0], tableEntries_);
+    while (curCountsArr_[entryIndex] != 0) {
+      entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
+    }
+    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+    numActiveKeys_++;
+    return entryIndex;
   }
 
 }

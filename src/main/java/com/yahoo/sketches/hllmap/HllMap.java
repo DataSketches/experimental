@@ -205,27 +205,27 @@ class HllMap extends Map {
   }
 
   @Override
-  public double getEntrySizeBytes() {
+  double getEntrySizeBytes() {
     return entrySizeBytes_;
   }
 
   @Override
-  public int getTableEntries() {
+  int getTableEntries() {
     return tableEntries_;
   }
 
   @Override
-  public int getCapacityEntries() {
+  int getCapacityEntries() {
     return capacityEntries_;
   }
 
   @Override
-  public int getCurrentCountEntries() {
+  int getCurrentCountEntries() {
     return curCountEntries_;
   }
 
   @Override
-  public long getMemoryUsageBytes() {
+  long getMemoryUsageBytes() {
     long arrays = keysArr_.length
         + (long)arrOfHllArr_.length * Long.BYTES
         + invPow2SumLoArr_.length * Double.BYTES
@@ -280,7 +280,7 @@ class HllMap extends Map {
     StringBuilder sb = new StringBuilder();
     String thisSimpleName = this.getClass().getSimpleName();
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-    sb.append("    k                         : ").append(kStr).append(LS);
+    sb.append("    HLL k                     : ").append(kStr).append(LS);
     sb.append("    Table Entries             : ").append(te).append(LS);
     sb.append("    Capacity Entries          : ").append(ce).append(LS);
     sb.append("    Current Count Entries     : ").append(cce).append(LS);

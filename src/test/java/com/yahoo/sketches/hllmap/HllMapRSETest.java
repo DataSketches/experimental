@@ -271,8 +271,8 @@ public class HllMapRSETest {
   }
 
   public static void main(String[] args) {
-//    HllMapRSETest test = new HllMapRSETest();
-//    test.testHllMap();
+    HllMapRSETest test = new HllMapRSETest();
+    test.testHllMap();
 //    test.testTheta();
 //    test.testHll();
 //    test.testCouponHashMap();

@@ -40,6 +40,7 @@ public class CmdLine {
     UniqueCountMap map = new UniqueCountMap(4, 1024);
     UpdateSketch sketch = UpdateSketch.builder().setNominalEntries(65536).build();
     long count = 0;
+    long updateTimenS = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       while ((itemStr = br.readLine()) != null) {
         String[] tokens = itemStr.split("\t");
@@ -48,13 +49,17 @@ public class CmdLine {
         InetAddress iAddr = InetAddress.getByName(tokens[0]);
         byte[] iAddBytes = iAddr.getAddress();
         byte[] valBytes = tokens[1].getBytes();
+        long startnS = System.nanoTime();
         map.update(iAddBytes, valBytes);
+        long endnS = System.nanoTime();
+        updateTimenS += endnS - startnS;
         sketch.update(tokens[0]);
         count++;
       }
       println(map.toString());
       println("Lines Read: "+count);
-      println("Unique IPs: " + (int) sketch.getEstimate());
+      println("Theta Sketch Estimated Unique IPs: " + (int) sketch.getEstimate());
+      println("nS Per update: " + ((double)updateTimenS/count));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

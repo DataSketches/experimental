@@ -9,6 +9,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 
+import com.yahoo.sketches.theta.UpdateSketch;
+
 public class CmdLine {
 
   CmdLine() {}
@@ -36,6 +38,7 @@ public class CmdLine {
   private static void processToUCMap() {
     String itemStr = "";
     UniqueCountMap map = new UniqueCountMap(4, 1024);
+    UpdateSketch sketch = UpdateSketch.builder().setNominalEntries(65536).build();
     long count = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       while ((itemStr = br.readLine()) != null) {
@@ -46,10 +49,12 @@ public class CmdLine {
         byte[] iAddBytes = iAddr.getAddress();
         byte[] valBytes = tokens[1].getBytes();
         map.update(iAddBytes, valBytes);
+        sketch.update(tokens[0]);
         count++;
       }
       println(map.toString());
       println("Lines Read: "+count);
+      println("Unique IPs: " + (int) sketch.getEstimate());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

@@ -54,17 +54,11 @@ class SingleCouponMap extends Map {
 
   @Override //must be an actual coupon
   double update(byte[] key, int coupon) {
-    int entryIndex = findKey(key);
-    if (entryIndex < 0) { //empty case
-      System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);
+    final int entryIndex = findOrInsertKey(key);
+    if (entryIndex < 0) { // insert
       setCoupon(~entryIndex, (short) coupon, false);
-      curCountEntries_++;
-      if (curCountEntries_ > capacityEntries_) {
-        growSize();
-      }
       return 1.0;
     }
-
     int coupon2 = couponsArr_[entryIndex];
     //depends on the fact that a valid coupon can never be a small number.
     if (coupon == coupon2) {
@@ -112,8 +106,8 @@ class SingleCouponMap extends Map {
       }
       //will return negative: was not found, inserted
       System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);
+      curCountEntries_++;
     }
-    curCountEntries_++;
     return entryIndex;
   }
 

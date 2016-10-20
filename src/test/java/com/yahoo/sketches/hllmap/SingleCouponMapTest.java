@@ -46,6 +46,23 @@ public class SingleCouponMapTest {
       double estimate = map.getEstimate(key);
       Assert.assertEquals(estimate, 1.0);
     }
+    Assert.assertEquals(map.getCurrentCountEntries(), numKeys);
+  }
+
+  @Test
+  public void manyKeys() {
+    SingleCouponMap map = SingleCouponMap.getInstance(2000, 4, 2);
+    for (int i = 1; i <= 1000; i++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      double estimate = map.update(key, 1);
+      Assert.assertEquals(estimate, 1.0);
+    }
+    for (int i = 1; i <= 1000; i++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      double estimate = map.update(key, 2);
+      Assert.assertEquals(estimate, -1.0);
+    }
+    Assert.assertEquals(map.getCurrentCountEntries(), 1000);
   }
 
   public static void main(String[] args) {

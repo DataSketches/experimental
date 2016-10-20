@@ -32,7 +32,6 @@ public class UniqueCountMap {
     Util.checkK(k);
     Util.checkKeySizeBytes(keySizeBytes);
     k_ = k;
-    //TODO: figure out how to distribute that size between the levels
     keySizeBytes_ = keySizeBytes;
     baseLevelMap = SingleCouponMap.getInstance(BASE_TGT_ENTRIES, keySizeBytes, BASE_GROWTH_FACTOR);
     intermediateLevelMaps = new CouponMap[NUM_LEVELS];

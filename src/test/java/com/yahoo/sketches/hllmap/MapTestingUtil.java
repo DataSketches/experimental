@@ -190,6 +190,16 @@ public class MapTestingUtil {
     println(Long.toHexString(v));
   }
 
-  public static void println(String s) { System.out.println(s); }
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
 
 }

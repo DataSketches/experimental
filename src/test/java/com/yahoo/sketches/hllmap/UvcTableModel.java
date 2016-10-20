@@ -91,6 +91,10 @@ public class UvcTableModel {
     }
   }
 
-
-  static void println(String s) { System.out.println(s); }
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+   //System.out.println(s); //disable here
+  }
 }

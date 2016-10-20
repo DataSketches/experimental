@@ -46,11 +46,20 @@ public class SingleCouponMapTest {
       double estimate = map.getEstimate(key);
       Assert.assertEquals(estimate, 1.0);
     }
+    println(map.toString());
   }
 
-  public static void main(String[] args) {
-    SingleCouponMapTest test = new SingleCouponMapTest();
-    test.resize();
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
   }
+
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
+
 
 }

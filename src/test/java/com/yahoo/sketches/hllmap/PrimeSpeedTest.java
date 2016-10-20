@@ -11,7 +11,6 @@ import java.util.Random;
 public class PrimeSpeedTest {
   private static Random rand = new Random(0);
 
-  //@Test
   public void testPrimes() {
     int lowerBound = 1 << 16;
     int upperBound = 1 << 30;

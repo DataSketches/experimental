@@ -92,14 +92,19 @@ public class HllMapTest {
       String eStr = String.format("%.3f%%", err);
       println("key: " + j + "\tu: "+u + "\t Est: " + est + TAB + eStr);
     }
+    println(map.toString());
   }
 
-  public static void main(String[] args) {
-    HllMapTest test = new HllMapTest();
-    test.resizeTest();
-    //test.singleKeyTest();
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
   }
 
-  static void println(String s) { System.out.println(s); }
-  static void print(String s) { System.out.print(s); }
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
+
 }

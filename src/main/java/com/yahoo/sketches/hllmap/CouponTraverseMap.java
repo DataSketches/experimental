@@ -1,5 +1,8 @@
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.Util.fmtDouble;
+import static com.yahoo.sketches.hllmap.Util.fmtLong;
+
 import java.util.Arrays;
 
 import com.yahoo.sketches.hash.MurmurHash3;
@@ -17,7 +20,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // BigInteger nextPrime() can be used
 
 class CouponTraverseMap extends CouponMap {
-
+  public static final String LS = System.getProperty("line.separator");
   private final int maxCouponsPerKey_;
   private final double entrySizeBytes_;
 
@@ -226,6 +229,32 @@ class CouponTraverseMap extends CouponMap {
   @Override
   int getDeletedEntries() {
     return numDeletedKeys_;
+  }
+
+  @Override
+  public String toString() {
+    String mcpe = fmtLong(maxCouponsPerKey_);
+    String te = fmtLong(getTableEntries());
+    String ce = fmtLong(getCapacityEntries());
+    String cce = fmtLong(getCurrentCountEntries());
+    String ae = fmtLong(getActiveEntries());
+    String de = fmtLong(getDeletedEntries());
+    String esb = fmtDouble(getEntrySizeBytes());
+    String mub = fmtLong(getMemoryUsageBytes());
+
+    StringBuilder sb = new StringBuilder();
+    String thisSimpleName = this.getClass().getSimpleName();
+    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("    Max Coupons Per Entry : ").append(mcpe).append(LS);
+    sb.append("    Table Entries         : ").append(te).append(LS);
+    sb.append("    Capacity Entries      : ").append(ce).append(LS);
+    sb.append("    Current Count Entries : ").append(cce).append(LS);
+    sb.append("      Active Entries      : ").append(ae).append(LS);
+    sb.append("      Deleted Entries     : ").append(de).append(LS);
+    sb.append("    Entry Size Bytes      : ").append(esb).append(LS);
+    sb.append("    Memory Usage Bytes    : ").append(mub).append(LS);
+    sb.append("### END SKETCH SUMMARY").append(LS);
+    return sb.toString();
   }
 
 }

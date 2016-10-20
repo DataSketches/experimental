@@ -5,6 +5,7 @@ import static com.yahoo.sketches.hllmap.MapDistribution.BASE_TGT_ENTRIES;
 import static com.yahoo.sketches.hllmap.MapDistribution.HLL_RESIZE_FACTOR;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_LEVELS;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
+import static com.yahoo.sketches.hllmap.Util.fmtLong;
 
 public class UniqueCountMap {
   public static final String LS = System.getProperty("line.separator");
@@ -150,32 +151,43 @@ public class UniqueCountMap {
     return total;
   }
 
+  public int getActiveLevels() {
+    int levels = 1;
+    int iMapsLen = intermediateLevelMaps.length;
+    for (int i = 0; i < iMapsLen; i++) {
+      if (intermediateLevelMaps[i] != null) levels++;
+    }
+    if (lastLevelMap != null) levels++;
+    return levels;
+  }
+
   @Override
   public String toString() {
+    String ksb = fmtLong(keySizeBytes_);
+    String hllk = fmtLong(k_);
+    String lvls  = fmtLong(getActiveLevels());
+    String mub = fmtLong(getMemoryUsageBytes());
+
     StringBuilder sb = new StringBuilder();
-    sb.append("UniqueCountMap Summary:").append(LS);
-    long total = baseLevelMap.getMemoryUsageBytes();
-    sb.append("Base Level Bytes: " + baseLevelMap.getMemoryUsageBytes()).append(LS);
-    sb.append("Current Count Entries: " + baseLevelMap.getCurrentCountEntries()).append(LS);
+    String thisSimpleName = this.getClass().getSimpleName();
+    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("    Key Size Bytes     : ").append(ksb).append(LS);
+    sb.append("    HLL K              : ").append(hllk).append(LS);
+    sb.append("    Active Levels      : ").append(lvls).append(LS);
+    sb.append("    Memory Usage Bytes : ").append(mub).append(LS);
+    sb.append(LS);
+    sb.append(baseLevelMap.toString());
     sb.append(LS);
     for (int i = 0; i < intermediateLevelMaps.length; i++) {
       CouponMap cMap = intermediateLevelMaps[i];
       if (cMap != null) {
-        sb.append(cMap.getClass().getSimpleName()).append(LS);
-        sb.append("Level#: " + (i+1)).append(LS);
-        sb.append("Bytes: "+ cMap.getMemoryUsageBytes()).append(LS);
-        sb.append("Active: " + cMap.getActiveEntries()).append(LS);
-        sb.append("Deleted: " + cMap.getDeletedEntries()).append(LS);
-        total += intermediateLevelMaps[i].getMemoryUsageBytes();
+        sb.append(cMap.toString());
         sb.append(LS);
       }
     }
     if (lastLevelMap != null) {
-      total += lastLevelMap.getMemoryUsageBytes();
-      sb.append("Last Level Bytes: " + lastLevelMap.getMemoryUsageBytes()).append(LS);
-      sb.append("Current Count Entries: " + lastLevelMap.getCurrentCountEntries()).append(LS);
+      sb.append(lastLevelMap.toString());
     }
-    sb.append("Total Bytes: " + total).append(LS);
     return sb.toString();
   }
 }

@@ -1,5 +1,8 @@
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.Util.fmtDouble;
+import static com.yahoo.sketches.hllmap.Util.fmtLong;
+
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
 
@@ -10,8 +13,8 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 //@SuppressWarnings("unused")
 class HllMap extends Map {
+  public static final String LS = System.getProperty("line.separator");
   private static final double LOAD_FACTOR = 15.0/16.0;
-
 
   private final int k_;
   private final int hllArrLongs_;
@@ -263,6 +266,28 @@ class HllMap extends Map {
     hllLong |=  ((long)newValue) << shift; //insert
     arrOfHllArr_[entryIndex * hllArrLongs_ + longIdx] = hllLong;
     return true;
+  }
+
+  @Override
+  public String toString() {
+    String kStr = fmtLong(k_);
+    String te = fmtLong(getTableEntries());
+    String ce = fmtLong(getCapacityEntries());
+    String cce = fmtLong(getCurrentCountEntries());
+    String esb = fmtDouble(getEntrySizeBytes());
+    String mub = fmtLong(getMemoryUsageBytes());
+
+    StringBuilder sb = new StringBuilder();
+    String thisSimpleName = this.getClass().getSimpleName();
+    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("    k                         : ").append(kStr).append(LS);
+    sb.append("    Table Entries             : ").append(te).append(LS);
+    sb.append("    Capacity Entries          : ").append(ce).append(LS);
+    sb.append("    Current Count Entries     : ").append(cce).append(LS);
+    sb.append("    Entry Size Bytes          : ").append(esb).append(LS);
+    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
+    sb.append("### END SKETCH SUMMARY").append(LS);
+    return sb.toString();
   }
 
 }

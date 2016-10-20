@@ -1,5 +1,8 @@
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.Util.fmtDouble;
+import static com.yahoo.sketches.hllmap.Util.fmtLong;
+
 import java.util.Arrays;
 
 import com.yahoo.sketches.SketchesArgumentException;
@@ -11,6 +14,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // same growth algorithm as for the next levels, except no shrink. Constants may be specific.
 
 class SingleCouponMap extends Map {
+  public static final String LS = System.getProperty("line.separator");
   private static final double LOAD_FACTOR = 15.0/16.0;
 
   private final double entrySizeBytes_;
@@ -194,6 +198,27 @@ class SingleCouponMap extends Map {
         + stateArr_.length;
     long other = 4 * 4 + 8;
     return arrays + other;
+  }
+
+  @Override
+  public String toString() {
+    String te = fmtLong(getTableEntries());
+    String ce = fmtLong(getCapacityEntries());
+    String cce = fmtLong(getCurrentCountEntries());
+    String esb = fmtDouble(getEntrySizeBytes());
+    String mub = fmtLong(getMemoryUsageBytes());
+
+    StringBuilder sb = new StringBuilder();
+    String thisSimpleName = this.getClass().getSimpleName();
+    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("    Max Coupons Per Entry : ").append(1).append(LS);
+    sb.append("    Table Entries         : ").append(te).append(LS);
+    sb.append("    Capacity Entries      : ").append(ce).append(LS);
+    sb.append("    Current Count Entries : ").append(cce).append(LS);
+    sb.append("    Entry Size Bytes      : ").append(esb).append(LS);
+    sb.append("    Memory Usage Bytes    : ").append(mub).append(LS);
+    sb.append("### END SKETCH SUMMARY").append(LS);
+    return sb.toString();
   }
 
 }

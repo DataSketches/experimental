@@ -53,6 +53,18 @@ public class CouponTraverseMapTest {
     }
     long sizeBytes3 = map.getMemoryUsageBytes();
     Assert.assertTrue(sizeBytes3 < sizeBytes2);
+    println(map.toString());
   }
 
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+    //System.out.println(s); //disable here
+  }
 }

@@ -45,7 +45,6 @@ public final class Util {
    * @return the next prime number that is greater than or equal to the given target.
    */
   static final int nextPrime(int target) {
-    //We may want to replace this with a table lookup for our application.
     return BigInteger.valueOf(target).nextProbablePrime().intValueExact();
   }
 
@@ -73,6 +72,7 @@ public final class Util {
     }
   }
 
+  //TODO consolidate these
   static final boolean isBitOne(byte[] byteArr, int bitIndex) {
     int byteIdx = bitIndex / 8;
     int shift = bitIndex % 8;
@@ -101,6 +101,8 @@ public final class Util {
     byteArr[byteIdx] = (byte)(v & ~(1 << shift));
   }
 
+  //TODO move to sketches.Util eventually
+
   /**
    * Computes the inverse integer power of 2: 1/(2^e) = 2^(-e).
    * @param e a positive value between 0 and 1023 inclusive
@@ -109,6 +111,14 @@ public final class Util {
   public static double invPow2(int e) {
     assert (e | (1024 - e - 1)) >= 0 : "e cannot be negative or greater than 1023: " + e;
     return Double.longBitsToDouble((1023L - e) << 52);
+  }
+
+  static String fmtLong(long value) {
+    return String.format("%,d", value);
+  }
+
+  static String fmtDouble(double value) {
+    return String.format("%,.3f", value);
   }
 
 //  public static void main(String[] args) {

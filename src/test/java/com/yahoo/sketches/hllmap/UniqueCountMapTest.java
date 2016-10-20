@@ -96,6 +96,28 @@ public class UniqueCountMapTest {
   }
 
   @Test
+  public void manyKeys() {
+    UniqueCountMap map = new UniqueCountMap(4, k_);
+    for (int i = 1; i <= 1000; i++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      double estimate = map.update(key, new byte[] {1});
+      Assert.assertEquals(estimate, 1.0);
+    }
+    for (int i = 1; i <= 1000; i++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      double estimate = map.update(key, new byte[] {2});
+      Assert.assertEquals(estimate, 2.0);
+    }
+    for (int i = 1; i <= 1000; i++) {
+      byte[] key = String.format("%4s", i).getBytes();
+      double estimate = map.update(key, new byte[] {3});
+      Assert.assertEquals(estimate, 3.0);
+    }
+    println(map.toString());
+  }
+
+
+  @Test
   public void printlnTest() {
     println("PRINTING: "+this.getClass().getName());
   }

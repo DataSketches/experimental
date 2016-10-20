@@ -60,12 +60,12 @@ public class HllMapRSETest {
     /***************************************/
     //test parameters
     int startLgX = 0; //1
-    int endLgX = 12;  //was 65K # of uniques per trial
-    int startLgTrials = 16; //16 # of Keys
+    int endLgX = 16;  //was 16 = 65K # of uniques per trial
     if (skEnum == SketchEnum.COUPON_HASH_MAP) {
       endLgX = 7;
     }
-    int endLgTrials = startLgTrials;
+    int startLgTrials = 20; //was 16 # of Keys
+    int endLgTrials = 10;
     int ppo = 4; //Points per Octave
 
     int points = ppo * (endLgX - startLgX) + 1;
@@ -74,7 +74,7 @@ public class HllMapRSETest {
 
     //HllMap config
     int keySize = 4;
-    int lgK = 9;
+    int lgK = 10;
     int k = 1 << lgK;
     float rf = 2.0F;
     int initEntries = 1 << (startLgTrials +1);

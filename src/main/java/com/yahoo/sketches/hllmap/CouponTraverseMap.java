@@ -21,11 +21,12 @@ class CouponTraverseMap extends CouponMap {
   private final int maxCouponsPerKey_;
 
   private int tableSizeKeys_;
+  private int numActiveKeys_;
+  private int numDeletedKeys_;
+
   private byte[] keysArr_;
   private short[] couponsArr_;
   private byte[] stateArr_;
-  private int numActiveKeys_;
-  private int numDeletedKeys_;
 
   CouponTraverseMap(final int keySizeBytes, final int maxCouponsPerKey) {
     super(keySizeBytes);

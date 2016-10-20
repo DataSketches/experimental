@@ -294,4 +294,14 @@ class CouponHashMap extends CouponMap {
     }
   }
 
+  @Override
+  int getActiveEntries() {
+    return numActiveKeys_;
+  }
+
+  @Override
+  int getDeletedEntries() {
+    return numDeletedKeys_;
+  }
+
 }

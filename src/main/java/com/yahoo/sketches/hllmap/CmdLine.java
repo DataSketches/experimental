@@ -35,7 +35,7 @@ public class CmdLine {
 
   private static void processToUCMap() {
     String itemStr = "";
-    UniqueCountMap map = new UniqueCountMap(1000, 4, 1024);
+    UniqueCountMap map = new UniqueCountMap(4, 1024);
     long count = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       while ((itemStr = br.readLine()) != null) {
@@ -48,10 +48,10 @@ public class CmdLine {
         map.update(iAddBytes, valBytes);
         count++;
       }
-      println("Bytes Usage: "+map.getMemoryUsageBytes());
+      println(map.toString());
       println("Lines Read: "+count);
     } catch (Exception e) {
-      throw new IllegalArgumentException("Read Error: Item: "+itemStr);
+      throw new RuntimeException(e);
     }
   }
 

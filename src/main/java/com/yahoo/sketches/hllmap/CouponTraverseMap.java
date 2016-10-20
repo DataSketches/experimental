@@ -19,8 +19,10 @@ import com.yahoo.sketches.hash.MurmurHash3;
 class CouponTraverseMap extends CouponMap {
 
   private final int maxCouponsPerKey_;
+  private final double entrySizeBytes_;
 
-  private int tableSizeKeys_;
+  private int tableEntries_;
+  private int capacityEntries_;
   private int numActiveKeys_;
   private int numDeletedKeys_;
 
@@ -28,14 +30,23 @@ class CouponTraverseMap extends CouponMap {
   private short[] couponsArr_;
   private byte[] stateArr_;
 
-  CouponTraverseMap(final int keySizeBytes, final int maxCouponsPerKey) {
+  private CouponTraverseMap(final int keySizeBytes, final int maxCouponsPerKey) {
     super(keySizeBytes);
     maxCouponsPerKey_ = maxCouponsPerKey;
-    tableSizeKeys_ = MIN_NUM_ENTRIES;
-    keysArr_ = new byte[tableSizeKeys_ * keySizeBytes_];
-    couponsArr_ = new short[tableSizeKeys_ * maxCouponsPerKey_];
-    stateArr_ = new byte[(int) Math.ceil(tableSizeKeys_ / 8.0)];
+    double byteFraction = Math.ceil(MIN_NUM_ENTRIES / 8.0) / MIN_NUM_ENTRIES;
+    entrySizeBytes_ = keySizeBytes + maxCouponsPerKey * 2 + byteFraction;
   }
+
+  public static CouponTraverseMap getInstance(final int keySizeBytes, final int maxCouponsPerKey) {
+    CouponTraverseMap map = new CouponTraverseMap(keySizeBytes, maxCouponsPerKey);
+    map.tableEntries_ = MIN_NUM_ENTRIES;
+    map.keysArr_ = new byte[MIN_NUM_ENTRIES * keySizeBytes];
+    map.couponsArr_ = new short[MIN_NUM_ENTRIES * maxCouponsPerKey];
+    map.stateArr_ = new byte[(int) Math.ceil(MIN_NUM_ENTRIES / 8.0)];
+    map.capacityEntries_ = (int)(map.tableEntries_ * GROW_TRIGGER_FACTOR);
+    return map;
+  }
+
 
   @Override
   double update(final byte[] key, final int coupon) {
@@ -56,7 +67,7 @@ class CouponTraverseMap extends CouponMap {
   @Override
   int findKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
-    int index = getIndex(hash[0], tableSizeKeys_);
+    int index = getIndex(hash[0], tableEntries_);
     int firstDeletedIndex = -1;
     while (getBit(stateArr_, index)) {
       if (couponsArr_[index * maxCouponsPerKey_] == 0) {
@@ -64,7 +75,7 @@ class CouponTraverseMap extends CouponMap {
       } else if (Map.arraysEqual(keysArr_, index * keySizeBytes_, key, 0, keySizeBytes_)) {
         return index;
       }
-      index = (index + getStride(hash[1], tableSizeKeys_)) % tableSizeKeys_;
+      index = (index + getStride(hash[1], tableEntries_)) % tableEntries_;
     }
     return firstDeletedIndex == -1 ? ~index : ~firstDeletedIndex;
   }
@@ -79,7 +90,7 @@ class CouponTraverseMap extends CouponMap {
         Arrays.fill(couponsArr_, index * maxCouponsPerKey_, (index + 1) *  maxCouponsPerKey_, (short) 0);
         numDeletedKeys_--;
       }
-      if (numActiveKeys_ + numDeletedKeys_ + 1 > tableSizeKeys_ * GROW_TRIGGER_FACTOR) {
+      if (numActiveKeys_ + numDeletedKeys_ + 1 > capacityEntries_) {
         resize();
         index = ~findKey(key);
         assert(index >= 0);
@@ -94,9 +105,9 @@ class CouponTraverseMap extends CouponMap {
   // for internal use during resize, so no resize check here
   int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
-    int index = getIndex(hash[0], tableSizeKeys_);
+    int index = getIndex(hash[0], tableEntries_);
     while (getBit(stateArr_, index)) {
-      index = (index + getStride(hash[1], tableSizeKeys_)) % tableSizeKeys_;
+      index = (index + getStride(hash[1], tableEntries_)) % tableEntries_;
     }
     System.arraycopy(key, 0, keysArr_, index * keySizeBytes_, keySizeBytes_);
     setBit(stateArr_, index);
@@ -109,7 +120,7 @@ class CouponTraverseMap extends CouponMap {
     couponsArr_[index * maxCouponsPerKey_] = 0;
     numActiveKeys_--;
     numDeletedKeys_++;
-    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableSizeKeys_ * SHRINK_TRIGGER_FACTOR) {
+    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableEntries_ * SHRINK_TRIGGER_FACTOR) {
       resize();
     }
   }
@@ -118,15 +129,16 @@ class CouponTraverseMap extends CouponMap {
     final byte[] oldKeysArr = keysArr_;
     final short[] oldCouponsArr = couponsArr_;
     final byte[] oldStateArr = stateArr_;
-    final int oldSizeKeys = tableSizeKeys_;
-    tableSizeKeys_ = Math.max(
+    final int oldSizeKeys = tableEntries_;
+    tableEntries_ = Math.max(
       Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
       MIN_NUM_ENTRIES
     );
+    capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);
     //System.out.println("resizing from " + oldSizeKeys + " to " + tableSizeKeys_);
-    keysArr_ = new byte[tableSizeKeys_ * keySizeBytes_];
-    couponsArr_ = new short[tableSizeKeys_ * maxCouponsPerKey_];
-    stateArr_ = new byte[(int) Math.ceil(tableSizeKeys_ / 8.0)];
+    keysArr_ = new byte[tableEntries_ * keySizeBytes_];
+    couponsArr_ = new short[tableEntries_ * maxCouponsPerKey_];
+    stateArr_ = new byte[(int) Math.ceil(tableEntries_ / 8.0)];
     numActiveKeys_ = 0;
     numDeletedKeys_ = 0;
     for (int i = 0; i < oldSizeKeys; i++) {
@@ -176,20 +188,17 @@ class CouponTraverseMap extends CouponMap {
 
   @Override
   public double getEntrySizeBytes() {
-    // TODO Auto-generated method stub
-    return 0;
+    return entrySizeBytes_;
   }
 
   @Override
   public int getTableEntries() {
-    // TODO Auto-generated method stub
-    return 0;
+    return tableEntries_;
   }
 
   @Override
   public int getCapacityEntries() {
-    // TODO Auto-generated method stub
-    return 0;
+    return capacityEntries_;
   }
 
   @Override
@@ -207,6 +216,16 @@ class CouponTraverseMap extends CouponMap {
   @Override
   void updateEstimate(final int index, final double estimate) {
     // not used in this map
+  }
+
+  @Override
+  int getActiveEntries() {
+    return numActiveKeys_;
+  }
+
+  @Override
+  int getDeletedEntries() {
+    return numDeletedKeys_;
   }
 
 }

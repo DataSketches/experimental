@@ -12,7 +12,7 @@ import static com.yahoo.sketches.hllmap.MapTestingUtil.intToBytes;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.longToBytes;
 import static com.yahoo.sketches.hllmap.MapTestingUtil.milliSecToString;
 
-import org.testng.annotations.Test;
+//import org.testng.annotations.Test;
 
 import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.hll.HllSketch;
@@ -26,30 +26,31 @@ public class HllMapRSETest {
 
   enum SketchEnum { HLL_MAP, THETA, HLL, COUPON_HASH_MAP, UNIQUE_COUNT_MAP}
 
-  @Test
+  //@Test
   public void testHllMap() {
     testRSE(SketchEnum.HLL_MAP);
     println(LS);
   }
-  @Test
+
+  //@Test
   public void testTheta() {
     testRSE(SketchEnum.THETA);
     println(LS);
   }
 
-  @Test
+  //@Test
   public void testHll() {
     testRSE(SketchEnum.HLL);
     println(LS);
   }
 
-  @Test
+  //@Test
   public void testCouponHashMap() {
     testRSE(SketchEnum.COUPON_HASH_MAP);
     println(LS);
   }
 
-  @Test
+  //@Test
   public void testUniqueCountMap() {
     testRSE(SketchEnum.UNIQUE_COUNT_MAP);
     println(LS);
@@ -79,8 +80,6 @@ public class HllMapRSETest {
     float rf = 2.0F;
     int initEntries = 1 << (startLgTrials +1);
 
-    //UniqueCountMap config
-    int initialSizeBytes = 1 << 22; //4MB
     /***************************************/
     //Other
     Map map = null;
@@ -137,7 +136,7 @@ public class HllMapRSETest {
       }
 
       else if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {
-        ucMap = new UniqueCountMap(initialSizeBytes, 4, k); //renew per trial set
+        ucMap = new UniqueCountMap(4, k); //renew per trial set
       }
       //else do nothing to the other sketches
 
@@ -265,18 +264,19 @@ public class HllMapRSETest {
     println(                "Total: H:M:S.mS  :\t"+milliSecToString(deltamS));
   }
 
-
-
-  static void printIPandValue(byte[] ip, byte[] value) {
+  @SuppressWarnings("unused")
+  private static void printIPandValue(byte[] ip, byte[] value) {
     println("IP:\t"+bytesToString(ip, false, false, ".")
       + "\tVal:\t"+bytesToString(value, false, false, "."));
   }
 
   public static void main(String[] args) {
-    HllMapRSETest test = new HllMapRSETest();
-    test.testUniqueCountMap();
-//    println(String.format("%d\t%d\t%.2f\t%.2f%%\t%.2f%%\t%,d", 1, 2, 3.5F, 4.5F, 5.5F, 1L << 60));
-//    println(String.format("%,d", 1L << 60));
+//    HllMapRSETest test = new HllMapRSETest();
+//    test.testHllMap();
+//    test.testTheta();
+//    test.testHll();
+//    test.testCouponHashMap();
+//    test.testUniqueCountMap();
   }
 
   static void println(String s) { System.out.println(s); }

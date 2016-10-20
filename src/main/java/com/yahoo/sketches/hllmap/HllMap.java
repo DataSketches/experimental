@@ -40,10 +40,10 @@ class HllMap extends Map {
     k_ = k;
     hllArrLongs_ = k/10 + 1;
     double byteFraction = Math.ceil(tableEntries / 8.0) / tableEntries;
-    entrySizeBytes_ = keySizeBytes + hllArrLongs_ * 8 + 24 + byteFraction;
+    entrySizeBytes_ = keySizeBytes + hllArrLongs_ * Long.BYTES + 3 * Double.BYTES + byteFraction;
   }
 
-  public static HllMap getInstance(int tgtEntries, int keySizeBytes, int k, float growthFactor) {
+  static HllMap getInstance(int tgtEntries, int keySizeBytes, int k, float growthFactor) {
     Util.checkK(k);
     Util.checkGrowthFactor(growthFactor);
     Util.checkTgtEntries(tgtEntries);

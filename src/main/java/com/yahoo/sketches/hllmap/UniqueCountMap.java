@@ -6,10 +6,8 @@ import static com.yahoo.sketches.hllmap.MapDistribution.HLL_RESIZE_FACTOR;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_LEVELS;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
 
-@SuppressWarnings("unused")
 public class UniqueCountMap {
-
-  private final int targetSizeBytes_;
+  public static final String LS = System.getProperty("line.separator");
   private final int keySizeBytes_;
   private final int k_;
 
@@ -30,12 +28,11 @@ public class UniqueCountMap {
   private HllMap lastLevelMap;
 
   //@param keySizeBytes must be at least 4 bytes.
-  public UniqueCountMap(final int targetSizeBytes, final int keySizeBytes, final int k) {
+  public UniqueCountMap(final int keySizeBytes, final int k) {
     Util.checkK(k);
     Util.checkKeySizeBytes(keySizeBytes);
     k_ = k;
     //TODO: figure out how to distribute that size between the levels
-    targetSizeBytes_ = targetSizeBytes;
     keySizeBytes_ = keySizeBytes;
     baseLevelMap = SingleCouponMap.getInstance(BASE_TGT_ENTRIES, keySizeBytes, BASE_GROWTH_FACTOR);
     intermediateLevelMaps = new CouponMap[NUM_LEVELS];
@@ -62,7 +59,7 @@ public class UniqueCountMap {
       // promote from the base level
       baseLevelMap.setCoupon(baseLevelIndex, (short) 1, true); //set coupon = Level 1; state = 1
       if (intermediateLevelMaps[0] == null) {
-        intermediateLevelMaps[0] = new CouponTraverseMap(keySizeBytes_, 2);
+        intermediateLevelMaps[0] = CouponTraverseMap.getInstance(keySizeBytes_, 2);
       }
       intermediateLevelMaps[0].update(key, baseLevelMapCoupon);
       intermediateLevelMaps[0].update(key, coupon);
@@ -83,7 +80,7 @@ public class UniqueCountMap {
         //System.out.println("promoting to level " + level + " with capacity of " + newLevelCapacity);
         if (intermediateLevelMaps[level - 1] == null) {
           if (level <= NUM_TRAVERSE_LEVELS) {
-            intermediateLevelMaps[level - 1] = new CouponTraverseMap(keySizeBytes_, newLevelCapacity);
+            intermediateLevelMaps[level - 1] = CouponTraverseMap.getInstance(keySizeBytes_, newLevelCapacity);
           } else {
             intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(keySizeBytes_, newLevelCapacity);
           }
@@ -91,11 +88,11 @@ public class UniqueCountMap {
         final CouponMap newMap = intermediateLevelMaps[level - 1];
         final CouponsIterator it = map.getCouponsIterator(key);
         final int newMapIndex = newMap.findOrInsertKey(key);
-        int num = 0;
+        //int num = 0;
         while (it.next()) {
           final double est = newMap.findOrInsertCoupon(newMapIndex, it.getValue());
           assert(est > 0);
-          num++;
+          //num++;
         }
         newMap.updateEstimate(newMapIndex, -estimate);
         map.deleteKey(index);
@@ -110,10 +107,10 @@ public class UniqueCountMap {
         }
         final CouponsIterator it = map.getCouponsIterator(key);
         final int lastLevelIndex = lastLevelMap.findOrInsertKey(key);
-        int num = 0;
+        //int num = 0;
         while (it.next()) {
           lastLevelMap.findOrInsertCoupon(lastLevelIndex, it.getValue());
-          num++;
+          //num++;
         }
         //System.out.println("promoted coupons: " + num + ", estimate: " + -estimate);
         lastLevelMap.updateEstimate(lastLevelIndex, -estimate);
@@ -153,4 +150,32 @@ public class UniqueCountMap {
     return total;
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("UniqueCountMap Summary:").append(LS);
+    long total = baseLevelMap.getMemoryUsageBytes();
+    sb.append("Base Level Bytes: " + baseLevelMap.getMemoryUsageBytes()).append(LS);
+    sb.append("Current Count Entries: " + baseLevelMap.getCurrentCountEntries()).append(LS);
+    sb.append(LS);
+    for (int i = 0; i < intermediateLevelMaps.length; i++) {
+      CouponMap cMap = intermediateLevelMaps[i];
+      if (cMap != null) {
+        sb.append(cMap.getClass().getSimpleName()).append(LS);
+        sb.append("Level#: " + (i+1)).append(LS);
+        sb.append("Bytes: "+ cMap.getMemoryUsageBytes()).append(LS);
+        sb.append("Active: " + cMap.getActiveEntries()).append(LS);
+        sb.append("Deleted: " + cMap.getDeletedEntries()).append(LS);
+        total += intermediateLevelMaps[i].getMemoryUsageBytes();
+        sb.append(LS);
+      }
+    }
+    if (lastLevelMap != null) {
+      total += lastLevelMap.getMemoryUsageBytes();
+      sb.append("Last Level Bytes: " + lastLevelMap.getMemoryUsageBytes()).append(LS);
+      sb.append("Current Count Entries: " + lastLevelMap.getCurrentCountEntries()).append(LS);
+    }
+    sb.append("Total Bytes: " + total).append(LS);
+    return sb.toString();
+  }
 }

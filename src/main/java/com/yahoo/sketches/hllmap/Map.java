@@ -7,7 +7,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 /**
  * Base class of all the maps. Defines the basic API for all maps
  */
-public abstract class Map {
+abstract class Map {
 
   static final long SEED = 1234567890L;
   static final int SIX_BIT_MASK = 0X3F; // 6 bits

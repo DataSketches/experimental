@@ -7,14 +7,14 @@ public class CouponTraverseMapTest {
 
   @Test
   public void getEstimateNovelKey() {
-    CouponTraverseMap map = new CouponTraverseMap(4, 1);
+    CouponTraverseMap map = CouponTraverseMap.getInstance(4, 1);
     byte[] key = new byte[] {0, 0, 0 ,0};
     Assert.assertEquals(map.getEstimate(key), 0.0);
   }
 
   @Test
   public void oneKeyOneValue() {
-    CouponTraverseMap map = new CouponTraverseMap(4, 1);
+    CouponTraverseMap map = CouponTraverseMap.getInstance(4, 1);
     byte[] key = new byte[] {0, 0, 0 ,0};
     double estimate = map.update(key, 1);
     Assert.assertEquals(estimate, 1.0);
@@ -23,7 +23,7 @@ public class CouponTraverseMapTest {
 
   @Test
   public void delete() {
-    CouponTraverseMap map = new CouponTraverseMap(4, 1);
+    CouponTraverseMap map = CouponTraverseMap.getInstance(4, 1);
     double estimate = map.update("1234".getBytes(), 1);
     Assert.assertEquals(estimate, 1.0);
     int index1 = map.findKey("1234".getBytes());
@@ -37,7 +37,7 @@ public class CouponTraverseMapTest {
 
   @Test
   public void growAndShrink() {
-    CouponTraverseMap map = new CouponTraverseMap(4, 1);
+    CouponTraverseMap map = CouponTraverseMap.getInstance(4, 1);
     long sizeBytes1 = map.getMemoryUsageBytes();
     for (int i = 0; i < 1000; i ++) {
       byte[] key = String.format("%4s", i).getBytes();

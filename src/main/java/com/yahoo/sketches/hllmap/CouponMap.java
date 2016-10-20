@@ -5,7 +5,7 @@
 
 package com.yahoo.sketches.hllmap;
 
-public abstract class CouponMap extends Map {
+abstract class CouponMap extends Map {
 
   static final int MIN_NUM_ENTRIES = 157;
   static final double SHRINK_TRIGGER_FACTOR = 0.5;
@@ -27,5 +27,8 @@ public abstract class CouponMap extends Map {
   abstract double findOrInsertCoupon(int index, short coupon);
   abstract int getCouponCount(int index);
   abstract CouponsIterator getCouponsIterator(byte[] key);
+
+  abstract int getActiveEntries();
+  abstract int getDeletedEntries();
 
 }

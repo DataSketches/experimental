@@ -20,7 +20,7 @@ abstract class Map {
 
   final int keySizeBytes_;
 
-  Map(int keySizeBytes) {
+  Map(final int keySizeBytes) {
     checkKeySizeBytes(keySizeBytes);
     keySizeBytes_ = keySizeBytes;
   }
@@ -70,7 +70,7 @@ abstract class Map {
    * @param length the length in bytes of the two sub-arrays.
    * @return <tt>true</tt> if the two sub-arrays are equal
    */
-  static final boolean arraysEqual(byte[] a, int offsetA, byte[] b, int offsetB, int length) {
+  static final boolean arraysEqual(final byte[] a, final int offsetA, final byte[] b, final int offsetB, final int length) {
     for (int i = 0; i < length; i++) {
       if (a[i + offsetA] != b[i + offsetB]) {
         return false;
@@ -85,15 +85,15 @@ abstract class Map {
    * @param identifier the given identifier
    * @return the HLL array index and value
    */
-  static final int coupon16(byte[] identifier) {
-    long[] hash = MurmurHash3.hash(identifier, SEED);
-    int hllIdx = (int) (((hash[0] >>> 1) % 1024) & TEN_BIT_MASK); //hash[0] for 10-bit address
-    int lz = Long.numberOfLeadingZeros(hash[1]);
-    int value = ((lz > 62)? 62 : lz) + 1;
+  static final int coupon16(final byte[] identifier) {
+    final long[] hash = MurmurHash3.hash(identifier, SEED);
+    final int hllIdx = (int) (((hash[0] >>> 1) % 1024) & TEN_BIT_MASK); //hash[0] for 10-bit address
+    final int lz = Long.numberOfLeadingZeros(hash[1]);
+    final int value = ((lz > 62)? 62 : lz) + 1;
     return (value << 10) | hllIdx;
   }
 
-  static final int coupon16Value(int coupon) {
+  static final int coupon16Value(final int coupon) {
     return (coupon >>> 10) & SIX_BIT_MASK;
   }
 

@@ -9,11 +9,8 @@ import static com.yahoo.sketches.hllmap.Util.fmtDouble;
 import static com.yahoo.sketches.hllmap.Util.fmtLong;
 
 abstract class CouponMap extends Map {
+
   private static final String LS = System.getProperty("line.separator");
-  static final int MIN_NUM_ENTRIES = 157;
-  static final double SHRINK_TRIGGER_FACTOR = 0.5;
-  static final double GROW_TRIGGER_FACTOR = 15.0 / 16.0;
-  static final double TARGET_FILL_FACTOR = 2.0 / 3.0;
 
   /**
    * @param keySizeBytes

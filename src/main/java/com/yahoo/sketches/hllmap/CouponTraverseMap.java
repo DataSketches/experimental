@@ -1,5 +1,10 @@
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_MIN_NUM_ENTRIES;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_SHRINK_TRIGGER_FACTOR;
+
 import java.util.Arrays;
 
 import com.yahoo.sketches.hash.MurmurHash3;
@@ -33,17 +38,17 @@ class CouponTraverseMap extends CouponMap {
   private CouponTraverseMap(final int keySizeBytes, final int maxCouponsPerKey) {
     super(keySizeBytes);
     maxCouponsPerKey_ = maxCouponsPerKey;
-    double byteFraction = Math.ceil(MIN_NUM_ENTRIES / 8.0) / MIN_NUM_ENTRIES;
+    double byteFraction = Math.ceil(COUPON_MAP_MIN_NUM_ENTRIES / 8.0) / COUPON_MAP_MIN_NUM_ENTRIES;
     entrySizeBytes_ = keySizeBytes + maxCouponsPerKey * 2 + byteFraction;
   }
 
   static CouponTraverseMap getInstance(final int keySizeBytes, final int maxCouponsPerKey) {
     CouponTraverseMap map = new CouponTraverseMap(keySizeBytes, maxCouponsPerKey);
-    map.tableEntries_ = MIN_NUM_ENTRIES;
-    map.keysArr_ = new byte[MIN_NUM_ENTRIES * keySizeBytes];
-    map.couponsArr_ = new short[MIN_NUM_ENTRIES * maxCouponsPerKey];
-    map.stateArr_ = new byte[(int) Math.ceil(MIN_NUM_ENTRIES / 8.0)];
-    map.capacityEntries_ = (int)(map.tableEntries_ * GROW_TRIGGER_FACTOR);
+    map.tableEntries_ = COUPON_MAP_MIN_NUM_ENTRIES;
+    map.keysArr_ = new byte[COUPON_MAP_MIN_NUM_ENTRIES * keySizeBytes];
+    map.couponsArr_ = new short[COUPON_MAP_MIN_NUM_ENTRIES * maxCouponsPerKey];
+    map.stateArr_ = new byte[(int) Math.ceil(COUPON_MAP_MIN_NUM_ENTRIES / 8.0)];
+    map.capacityEntries_ = (int)(map.tableEntries_ * COUPON_MAP_GROW_TRIGGER_FACTOR);
     return map;
   }
 
@@ -131,7 +136,8 @@ class CouponTraverseMap extends CouponMap {
     couponsArr_[entryIndex * maxCouponsPerKey_] = 0;
     numActiveKeys_--;
     numDeletedKeys_++;
-    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableEntries_ * SHRINK_TRIGGER_FACTOR) {
+    if (numActiveKeys_ > COUPON_MAP_MIN_NUM_ENTRIES &&
+        numActiveKeys_ < tableEntries_ * COUPON_MAP_SHRINK_TRIGGER_FACTOR) {
       resize();
     }
   }
@@ -207,11 +213,10 @@ class CouponTraverseMap extends CouponMap {
     final byte[] oldStateArr = stateArr_;
     final int oldSizeKeys = tableEntries_;
     tableEntries_ = Math.max(
-      Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
-      MIN_NUM_ENTRIES
+      Util.nextPrime((int) (numActiveKeys_ / COUPON_MAP_TARGET_FILL_FACTOR)),
+      COUPON_MAP_MIN_NUM_ENTRIES
     );
-    capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);
-    //System.out.println("resizing from " + oldSizeKeys + " to " + tableSizeKeys_);
+    capacityEntries_ = (int)(tableEntries_ * COUPON_MAP_GROW_TRIGGER_FACTOR);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponsArr_ = new short[tableEntries_ * maxCouponsPerKey_];
     stateArr_ = new byte[(int) Math.ceil(tableEntries_ / 8.0)];

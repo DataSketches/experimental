@@ -37,7 +37,7 @@ public class CmdLine {
 
   private static void processToUCMap() {
     String itemStr = "";
-    UniqueCountMap map = new UniqueCountMap(4, 1024);
+    UniqueCountMap map = new UniqueCountMap(100000000, 4, 1024);
     UpdateSketch sketch = UpdateSketch.builder().setNominalEntries(65536).build();
     long count = 0;
     long updateTimenS = 0;

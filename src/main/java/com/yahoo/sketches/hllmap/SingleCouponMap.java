@@ -162,23 +162,23 @@ class SingleCouponMap extends Map {
 
   @Override
   long getMemoryUsageBytes() {
-    long arrays = keysArr_.length
+    final long arrays = keysArr_.length
         + (long)couponsArr_.length * Short.BYTES
         + stateArr_.length;
-    long other = 4 * 4 + 8;
+    final long other = 4 * 4 + 8;
     return arrays + other;
   }
 
   @Override
   public String toString() {
-    String te = fmtLong(getTableEntries());
-    String ce = fmtLong(getCapacityEntries());
-    String cce = fmtLong(getCurrentCountEntries());
-    String esb = fmtDouble(getEntrySizeBytes());
-    String mub = fmtLong(getMemoryUsageBytes());
+    final String te = fmtLong(getTableEntries());
+    final String ce = fmtLong(getCapacityEntries());
+    final String cce = fmtLong(getCurrentCountEntries());
+    final String esb = fmtDouble(getEntrySizeBytes());
+    final String mub = fmtLong(getMemoryUsageBytes());
 
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
+    final StringBuilder sb = new StringBuilder();
+    final String thisSimpleName = this.getClass().getSimpleName();
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
     sb.append("    Max Coupons Per Entry     : ").append(1).append(LS);
     sb.append("    Capacity Coupons Per Entry: ").append(1).append(LS);

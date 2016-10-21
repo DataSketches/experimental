@@ -81,7 +81,7 @@ class CouponTraverseMap extends CouponMap {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
     int firstDeletedIndex = -1;
-    while (getBit(stateArr_, entryIndex)) {
+    while (isBitSet(stateArr_, entryIndex)) {
       if (couponsArr_[entryIndex * maxCouponsPerKey_] == 0) {
         if (firstDeletedIndex == -1) firstDeletedIndex = entryIndex;
       } else if (Map.arraysEqual(keysArr_, entryIndex * keySizeBytes_, key, 0, keySizeBytes_)) {
@@ -97,7 +97,7 @@ class CouponTraverseMap extends CouponMap {
     int entryIndex = findKey(key);
     if (entryIndex < 0) {
       entryIndex = ~entryIndex;
-      if (getBit(stateArr_, entryIndex)) { // reusing slot from a deleted key
+      if (isBitSet(stateArr_, entryIndex)) { // reusing slot from a deleted key
         clearCouponArea(entryIndex);
         numDeletedKeys_--;
       }
@@ -223,7 +223,7 @@ class CouponTraverseMap extends CouponMap {
     numActiveKeys_ = 0;
     numDeletedKeys_ = 0;
     for (int i = 0; i < oldSizeKeys; i++) {
-      if (getBit(oldStateArr, i) && oldCouponsArr[i * maxCouponsPerKey_] != 0) {
+      if (isBitSet(oldStateArr, i) && oldCouponsArr[i * maxCouponsPerKey_] != 0) {
         final byte[] key = Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
         final int index = insertKey(key);
         System.arraycopy(oldCouponsArr, i * maxCouponsPerKey_, couponsArr_, index * maxCouponsPerKey_, maxCouponsPerKey_);
@@ -235,7 +235,7 @@ class CouponTraverseMap extends CouponMap {
   private int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
-    while (getBit(stateArr_, entryIndex)) {
+    while (isBitSet(stateArr_, entryIndex)) {
       entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
     }
     System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);

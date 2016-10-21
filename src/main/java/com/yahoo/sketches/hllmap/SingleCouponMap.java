@@ -119,7 +119,7 @@ class SingleCouponMap extends Map {
   }
 
   boolean isCoupon(final int entryIndex) {
-    return !getBit(stateArr_, entryIndex);
+    return !isBitSet(stateArr_, entryIndex);
   }
 
   short getCoupon(final int entryIndex) {
@@ -202,7 +202,7 @@ class SingleCouponMap extends Map {
             Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
         int entryIndex = findKey(key); //should be one's complement
         if (entryIndex < 0) {
-          insertEntry(~entryIndex, key, oldCouponsArr[i], getBit(oldStateArr, i));
+          insertEntry(~entryIndex, key, oldCouponsArr[i], isBitSet(oldStateArr, i));
         } else {
           throw new SketchesArgumentException("Key should not have existed.");
         }

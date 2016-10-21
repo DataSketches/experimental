@@ -7,8 +7,7 @@ import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
 
 /*
- * 3) Consider flexible compon size ?
- * 5) change to 2-bit row status codes ?
+ * Consider flexible compon size ?
  */
 
 //@SuppressWarnings("unused")

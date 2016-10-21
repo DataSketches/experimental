@@ -15,7 +15,7 @@ abstract class CouponMap extends Map {
   /**
    * @param keySizeBytes
    */
-  CouponMap(int keySizeBytes) {
+  CouponMap(final int keySizeBytes) {
     super(keySizeBytes);
   }
 
@@ -35,18 +35,18 @@ abstract class CouponMap extends Map {
 
   @Override
   public String toString() {
-    String mcpe = fmtLong(getMaxCouponsPerEntry());
-    String ccpe = fmtLong(getCapacityCouponsPerEntry());
-    String te = fmtLong(getTableEntries());
-    String ce = fmtLong(getCapacityEntries());
-    String cce = fmtLong(getCurrentCountEntries());
-    String ae = fmtLong(getActiveEntries());
-    String de = fmtLong(getDeletedEntries());
-    String esb = fmtDouble(getEntrySizeBytes());
-    String mub = fmtLong(getMemoryUsageBytes());
+    final String mcpe = fmtLong(getMaxCouponsPerEntry());
+    final String ccpe = fmtLong(getCapacityCouponsPerEntry());
+    final String te = fmtLong(getTableEntries());
+    final String ce = fmtLong(getCapacityEntries());
+    final String cce = fmtLong(getCurrentCountEntries());
+    final String ae = fmtLong(getActiveEntries());
+    final String de = fmtLong(getDeletedEntries());
+    final String esb = fmtDouble(getEntrySizeBytes());
+    final String mub = fmtLong(getMemoryUsageBytes());
 
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
+    final StringBuilder sb = new StringBuilder();
+    final String thisSimpleName = this.getClass().getSimpleName();
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
     sb.append("    Max Coupons Per Entry     : ").append(mcpe).append(LS);
     sb.append("    Capacity Coupons Per Entry: ").append(ccpe).append(LS);

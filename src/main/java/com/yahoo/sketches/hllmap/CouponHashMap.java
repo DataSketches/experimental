@@ -31,6 +31,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // Probably starts after Traverse > 8.  Need to be able to adjust this.
 
 class CouponHashMap extends CouponMap {
+
   private static final double INNER_LOAD_FACTOR = 0.75;
   private static final byte DELETED_KEY_MARKER = (byte) 255;
   private static final int BYTE_MASK = 0XFF;
@@ -61,7 +62,7 @@ class CouponHashMap extends CouponMap {
 
   static CouponHashMap getInstance(final int keySizeBytes, final int maxCouponsPerKey) {
     checkMaxCouponsPerKey(maxCouponsPerKey);
-    CouponHashMap map = new CouponHashMap(keySizeBytes, maxCouponsPerKey);
+    final CouponHashMap map = new CouponHashMap(keySizeBytes, maxCouponsPerKey);
 
     final int tableEntries = COUPON_MAP_MIN_NUM_ENTRIES;
     map.tableEntries_ = tableEntries;
@@ -217,12 +218,12 @@ class CouponHashMap extends CouponMap {
 
   @Override
   long getMemoryUsageBytes() {
-    long arrays = keysArr_.length
+    final long arrays = keysArr_.length
         + (long)couponsArr_.length * Short.BYTES
         + curCountsArr_.length
         + invPow2SumArr_.length * Float.BYTES
         + hipEstAccumArr_.length * Float.BYTES;
-    long other = 4 * 5;
+    final long other = 4 * 5;
     return arrays + other;
   }
 
@@ -248,7 +249,7 @@ class CouponHashMap extends CouponMap {
 
   private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey) {
     checkIfPowerOf2(maxCouponsPerKey, "maxCouponsPerKey");
-    int cpk = maxCouponsPerKey;
+    final int cpk = maxCouponsPerKey;
     if ((cpk < 16) || (cpk > 256)) {
       throw new SketchesArgumentException(
           "Required: 16 <= maxCouponsPerKey <= 256 : "+maxCouponsPerKey);

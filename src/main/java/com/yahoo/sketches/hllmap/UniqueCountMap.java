@@ -5,6 +5,7 @@
 
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.hllmap.MapDistribution.HLL_INIT_NUM_ENTRIES;
 import static com.yahoo.sketches.hllmap.MapDistribution.HLL_RESIZE_FACTOR;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_LEVELS;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
@@ -30,7 +31,7 @@ public class UniqueCountMap {
 
   // this map has a fixed slotSize (row size). No shrinking.
   // Similar growth algorithm to SingleCouponMap, maybe different constants.
-  // needs to keep 2 double values and 1 float value for HIP estimator
+  // needs to keep 3 double values per row for HIP estimator
   private HllMap lastLevelMap;
 
   //@param keySizeBytes must be at least 4 bytes.
@@ -50,7 +51,7 @@ public class UniqueCountMap {
       throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
     }
     if (identifier == null) return getEstimate(key);
-    short coupon = (short) Map.coupon16(identifier);
+    final short coupon = (short) Map.coupon16(identifier);
 
     final int baseLevelIndex = baseLevelMap.findOrInsertKey(key);
     if (baseLevelIndex < 0) {
@@ -66,8 +67,9 @@ public class UniqueCountMap {
       if (intermediateLevelMaps[0] == null) {
         intermediateLevelMaps[0] = CouponTraverseMap.getInstance(keySizeBytes_, 2);
       }
-      intermediateLevelMaps[0].update(key, baseLevelMapCoupon);
-      intermediateLevelMaps[0].update(key, coupon);
+      final int index = intermediateLevelMaps[0].findOrInsertKey(key);
+      intermediateLevelMaps[0].findOrInsertCoupon(index, baseLevelMapCoupon);
+      intermediateLevelMaps[0].findOrInsertCoupon(index, coupon);
       return 2;
     }
 
@@ -103,7 +105,7 @@ public class UniqueCountMap {
         return newEstimate;
       } else { // promoting to the last level
         if (lastLevelMap == null) {
-          lastLevelMap = HllMap.getInstance(100, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
+          lastLevelMap = HllMap.getInstance(HLL_INIT_NUM_ENTRIES, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
         }
         final CouponsIterator it = map.getCouponsIterator(key);
         final int lastLevelIndex = lastLevelMap.findOrInsertKey(key);

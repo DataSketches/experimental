@@ -88,7 +88,7 @@ class HllMap extends Map {
     hipEstAccumArr_[entryIndex] = estimate;
   }
 
-  private final void growSize() {
+  private final void resize() {
     int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
     int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);
 
@@ -100,7 +100,7 @@ class HllMap extends Map {
     byte[] newStateArr = new byte[(int) Math.ceil(newTableEntries / 8.0)];
 
     for (int oldIndex = 0; oldIndex < tableEntries_; oldIndex++) {
-      if (Util.isBitZero(stateArr_, oldIndex)) continue;
+      if (isBitClear(stateArr_, oldIndex)) continue;
       byte[] key = new byte[keySizeBytes_];
       System.arraycopy(keysArr_, oldIndex * keySizeBytes_, key, 0, keySizeBytes_); //get old key
       int newIndex = findEmpty(key, newTableEntries, newStateArr);
@@ -112,7 +112,7 @@ class HllMap extends Map {
       newInvPow2Sum1[newIndex] = invPow2SumHiArr_[oldIndex];
       newInvPow2Sum2[newIndex] = invPow2SumLoArr_[oldIndex];
       newHipEstAccum[newIndex] = hipEstAccumArr_[oldIndex];
-      Util.setBitToOne(newStateArr, newIndex);
+      setBit(newStateArr, newIndex);
     }
     //restore into sketch
     tableEntries_ = newTableEntries;
@@ -133,13 +133,13 @@ class HllMap extends Map {
     //not found, initialize new row
       entryIndex = ~entryIndex;
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-      Util.setBitToOne(stateArr_, entryIndex);
+      setBit(stateArr_, entryIndex);
       invPow2SumHiArr_[entryIndex] = k_;
       invPow2SumLoArr_[entryIndex] = 0;
       hipEstAccumArr_[entryIndex] = 0;
       curCountEntries_++;
       if (curCountEntries_ > capacityEntries_) {
-        growSize();
+        resize();
         entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
         assert entryIndex >= 0;
       }
@@ -169,7 +169,7 @@ class HllMap extends Map {
     final int loopIndex = entryIndex;
 
     do {
-      if (Util.isBitZero(stateArr, entryIndex)) { //check if slot is empty
+      if (isBitClear(stateArr, entryIndex)) { //check if slot is empty
         return ~entryIndex;
       }
       if (arraysEqual(key, 0, keyArr, entryIndex * keyLen, keyLen)) { //check for key match
@@ -196,7 +196,7 @@ class HllMap extends Map {
     final int loopIndex = entryIndex;
 
     do {
-      if (Util.isBitZero(stateArr, entryIndex)) { //check if slot is empty
+      if (isBitClear(stateArr, entryIndex)) { //check if slot is empty
         return entryIndex;
       }
       entryIndex = (entryIndex + stride) % tableEntries;

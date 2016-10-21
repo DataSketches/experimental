@@ -100,22 +100,28 @@ abstract class Map {
     return (int) ((hash >>> 1) % (tableEntries - 2L) + 1L);
   }
 
-  static boolean getBit(final byte[] bits, final int index) {
-    final int offset = index / 8;
-    final int mask = 1 << (index % 8);
-    return (bits[offset] & mask) > 0;
+  static boolean isBitSet(final byte[] byteArr, final int bitIndex) {
+    final int byteIndex = bitIndex / 8;
+    final int mask = 1 << (bitIndex % 8);
+    return (byteArr[byteIndex] & mask) > 0;
   }
 
-  static void clearBit(final byte[] bits, final int index) {
-    final int offset = index / 8;
+  static boolean isBitClear(final byte[] byteArr, final int bitIndex) {
+    final int byteIndex = bitIndex / 8;
+    final int mask = 1 << (bitIndex % 8);
+    return (byteArr[byteIndex] & mask) == 0;
+  }
+
+  static void clearBit(final byte[] byteArr, final int index) {
+    final int byteIndex = index / 8;
     final int mask = 1 << (index % 8);
-    bits[offset] &= ~mask;
+    byteArr[byteIndex] &= ~mask;
   }
 
   static void setBit(final byte[] bits, final int index) {
-    final int offset = index / 8;
+    final int byteIndex = index / 8;
     final int mask = 1 << (index % 8);
-    bits[offset] |= mask;
+    bits[byteIndex] |= mask;
   }
 
 }

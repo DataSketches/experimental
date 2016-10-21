@@ -14,8 +14,11 @@ import com.yahoo.sketches.theta.UpdateSketch;
 public class CmdLine {
 
   /**
-   * Args not used.
-   * @param args not used
+   * Example application, which reads tab-separated pairs of IPv4 and ID from the STDIN,
+   * updates the map and prints a report at the end.
+   * The report includes number of entries and memory usage on each level
+   * as well as overall summary and nanoseconds per update.
+   * @param args optional initial number of entries in the base table
    * @throws Exception exception thrown
    */
   public static void main(String[] args) throws Exception {
@@ -32,19 +35,19 @@ public class CmdLine {
       while ((itemStr = br.readLine()) != null) {
         String[] tokens = itemStr.split("\t");
         int len = tokens.length;
-        if (len != 2) throw new IllegalArgumentException("Too many args: "+len);
+        if (len != 2) throw new IllegalArgumentException("Too many args: " + len);
         InetAddress iAddr = InetAddress.getByName(tokens[0]);
-        byte[] iAddBytes = iAddr.getAddress();
-        byte[] valBytes = tokens[1].getBytes();
-        long startnS = System.nanoTime();
+        final byte[] iAddBytes = iAddr.getAddress();
+        final byte[] valBytes = tokens[1].getBytes();
+        final long startNs = System.nanoTime();
         map.update(iAddBytes, valBytes);
-        long endnS = System.nanoTime();
-        updateTimeNs += endnS - startnS;
+        final long endNs = System.nanoTime();
+        updateTimeNs += endNs - startNs;
         sketch.update(tokens[0]);
         count++;
       }
       println(map.toString());
-      println("Lines Read: "+count);
+      println("Lines Read: " + count);
       println("Theta Sketch Estimated Unique IPs: " + (int) sketch.getEstimate());
       println("nS Per update: " + ((double) updateTimeNs / count));
     }

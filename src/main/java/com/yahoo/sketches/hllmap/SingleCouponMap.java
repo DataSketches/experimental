@@ -205,21 +205,26 @@ class SingleCouponMap extends Map {
       if (oldCouponsArr[i] != 0) {
         final byte[] key =
             Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
-        int entryIndex = findKey(key); //should be one's complement
-        if (entryIndex < 0) {
-          insertEntry(~entryIndex, key, oldCouponsArr[i], isBitSet(oldStateArr, i));
-        } else {
-          throw new SketchesArgumentException("Key should not have existed.");
-        }
+        insertEntry(key, oldCouponsArr[i], isBitSet(oldStateArr, i));
       }
     }
   }
 
-  // insert key and coupon at entryIndex. We know that the key does not exist in the table.
-  private void insertEntry(final int entryIndex, final byte[] key, final int coupon,
-      final boolean setStateOne) {
-    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-    setCoupon(entryIndex, (short)coupon, setStateOne);
+  // for internal use during resize, so no resize check here
+  private void insertEntry(final byte[] key, final int coupon, final boolean setStateOne) {
+    final long[] hash = MurmurHash3.hash(key, SEED);
+    int entryIndex = getIndex(hash[0], tableEntries_);
+    final int stride = getStride(hash[1], tableEntries_);
+    final int loopIndex = entryIndex;
+    do {
+      if (couponsArr_[entryIndex] == 0) {
+        System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+        setCoupon(entryIndex, (short)coupon, setStateOne);
+        return;
+      }
+      entryIndex = (entryIndex + stride) % tableEntries_;
+    } while (entryIndex != loopIndex);
+    throw new SketchesArgumentException("Key not found and no empty slots!");
   }
 
 }

@@ -12,6 +12,7 @@ import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_SHRINK_TRIGGE
 
 import java.util.Arrays;
 
+import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
 
 // prime size, double hash, with deletes, 1-bit state array
@@ -86,15 +87,19 @@ class CouponTraverseMap extends CouponMap {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
     int firstDeletedIndex = -1;
-    while (isBitSet(stateArr_, entryIndex)) {
+    final int loopIndex = entryIndex;
+    do {
+      if (isBitClear(stateArr_, entryIndex)) {
+        return firstDeletedIndex == -1 ? ~entryIndex : ~firstDeletedIndex; // found empty or deleted
+      }
       if (couponsArr_[entryIndex * maxCouponsPerKey_] == 0) {
         if (firstDeletedIndex == -1) firstDeletedIndex = entryIndex;
       } else if (Map.arraysEqual(keysArr_, entryIndex * keySizeBytes_, key, 0, keySizeBytes_)) {
-        return entryIndex;
+        return entryIndex; // found key
       }
       entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
-    }
-    return firstDeletedIndex == -1 ? ~entryIndex : ~firstDeletedIndex;
+    } while (entryIndex != loopIndex);
+    throw new SketchesArgumentException("Key not found and no empty slots!");
   }
 
   @Override
@@ -240,13 +245,17 @@ class CouponTraverseMap extends CouponMap {
   private int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
-    while (isBitSet(stateArr_, entryIndex)) {
+    final int loopIndex = entryIndex;
+    do {
+      if (isBitClear(stateArr_, entryIndex)) {
+        System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+        setBit(stateArr_, entryIndex);
+        numActiveKeys_++;
+        return entryIndex;
+      }
       entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
-    }
-    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-    setBit(stateArr_, entryIndex);
-    numActiveKeys_++;
-    return entryIndex;
+    } while (entryIndex != loopIndex);
+    throw new SketchesArgumentException("Key not found and no empty slots!");
   }
 
   private void clearCouponArea(final int entryIndex) {

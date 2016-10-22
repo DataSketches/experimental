@@ -110,17 +110,21 @@ class CouponHashMap extends CouponMap {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
     int firstDeletedIndex = -1;
-    while (curCountsArr_[entryIndex] != 0) {
+    final int loopIndex = entryIndex;
+    do {
+      if (curCountsArr_[entryIndex] == 0) {
+        return firstDeletedIndex == -1 ? ~entryIndex : ~firstDeletedIndex; // found empty or deleted
+      }
       if (curCountsArr_[entryIndex] == DELETED_KEY_MARKER) {
         if (firstDeletedIndex == -1) {
           firstDeletedIndex = entryIndex;
         }
       } else if (Map.arraysEqual(keysArr_, entryIndex * keySizeBytes_, key, 0, keySizeBytes_)) {
-        return entryIndex;
+        return entryIndex; // found key
       }
       entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
-    }
-    return firstDeletedIndex == -1 ? ~entryIndex : ~firstDeletedIndex;
+    } while (entryIndex != loopIndex);
+    throw new SketchesArgumentException("Key not found and no empty slots!");
   }
 
   @Override
@@ -299,12 +303,16 @@ class CouponHashMap extends CouponMap {
   private int insertKey(final byte[] key) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex = getIndex(hash[0], tableEntries_);
-    while (curCountsArr_[entryIndex] != 0) {
+    final int loopIndex = entryIndex;
+    do {
+      if (curCountsArr_[entryIndex] == 0) {
+        System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
+        numActiveKeys_++;
+        return entryIndex;
+      }
       entryIndex = (entryIndex + getStride(hash[1], tableEntries_)) % tableEntries_;
-    }
-    System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
-    numActiveKeys_++;
-    return entryIndex;
+    } while (entryIndex != loopIndex);
+    throw new SketchesArgumentException("Key not found and no empty slots!");
   }
 
 }

@@ -161,13 +161,13 @@ public class UniqueCountMap {
 
   @Override
   public String toString() {
-    String ksb = fmtLong(keySizeBytes_);
-    String hllk = fmtLong(k_);
-    String lvls  = fmtLong(getActiveLevels());
-    String mub = fmtLong(getMemoryUsageBytes());
+    final String ksb = fmtLong(keySizeBytes_);
+    final String hllk = fmtLong(k_);
+    final String lvls  = fmtLong(getActiveLevels());
+    final String mub = fmtLong(getMemoryUsageBytes());
 
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
+    final StringBuilder sb = new StringBuilder();
+    final String thisSimpleName = this.getClass().getSimpleName();
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
     sb.append("    Key Size Bytes            : ").append(ksb).append(LS);
     sb.append("    HLL k                     : ").append(hllk).append(LS);
@@ -177,7 +177,7 @@ public class UniqueCountMap {
     sb.append(baseLevelMap.toString());
     sb.append(LS);
     for (int i = 0; i < intermediateLevelMaps.length; i++) {
-      CouponMap cMap = intermediateLevelMaps[i];
+      final CouponMap cMap = intermediateLevelMaps[i];
       if (cMap != null) {
         sb.append(cMap.toString());
         sb.append(LS);

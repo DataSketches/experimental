@@ -31,6 +31,7 @@ import com.yahoo.sketches.theta.UpdateSketch;
  * <p><code>cat NumIDsTABnumKeys.txt | java -cp hllmap.jar:sketches-core-0.8.2-SNAPSHOT-with-shaded-memory.jar com.yahoo.sketches.hllmap.DistributionModel</code></p>
  */
 public class ProcessDistributionStream {
+  private static final String LS = System.getProperty("line.separator");
   private int lineCount = 0;
   private int ip = 0;
   private long val = 0;
@@ -77,17 +78,22 @@ public class ProcessDistributionStream {
       }
       updateCount = val;
       int ipCount = ip;
-      println(map.toString());
-      println("Lines Read        : " + String.format("%,d", lineCount));
-      println("IP Count          : " + String.format("%,d",ipCount));
-      println("Update Count      : " + String.format("%,d",updateCount));
-      println("nS Per update     : " + String.format("%,.3f", ((updateTime_nS * 1.0)/updateCount)));
+      StringBuilder sb = new StringBuilder();
+      String thisSimpleName = this.getClass().getSimpleName();
+      sb.append("# ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+      sb.append(map.toString());
+
+      println("  Lines Read                : " + String.format("%,d", lineCount));
+      println("  IP Count                  : " + String.format("%,d",ipCount));
+      println("  Update Count              : " + String.format("%,d",updateCount));
+      println("  nS Per update             : " + String.format("%,.3f", ((updateTime_nS * 1.0)/updateCount)));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     long total_mS = System.currentTimeMillis() - start_mS;
-      println("Total Task Time   : " + milliSecToString(total_mS));
-      println("Task nS Per Update: " + String.format("%,.3f", ((total_mS * 1E6)/updateCount)));
+    println("  Total Task Time           : " + milliSecToString(total_mS));
+    println("  Task nS Per Update        : " + String.format("%,.3f", ((total_mS * 1E6)/updateCount)));
+    println("# END PROCESS");
   }
 
   private static final byte[] intToBytes(int v, byte[] arr) {

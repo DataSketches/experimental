@@ -93,7 +93,8 @@ public class ProcessDistributionStream {
     long total_mS = System.currentTimeMillis() - start_mS;
     println("  Total Task Time           : " + milliSecToString(total_mS));
     println("  Task nS Per Update        : " + String.format("%,.3f", ((total_mS * 1E6)/updateCount)));
-    println("# END PROCESS");
+    println("# END PROCESS SUMMARY");
+    println(LS);
   }
 
   private static final byte[] intToBytes(int v, byte[] arr) {

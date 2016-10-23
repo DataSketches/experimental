@@ -5,6 +5,8 @@
 
 package com.yahoo.sketches.hllmap;
 
+import static com.yahoo.sketches.Util.zeroPad;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
@@ -48,7 +50,9 @@ public class ProcessDistributionStream {
   }
 
   private void processDistributionModel() {
+    long start_mS = System.currentTimeMillis();
     String line = "";
+    long updateCount = 0;
     UniqueCountMap map = new UniqueCountMap(4, 1024);
     UpdateSketch sketch = UpdateSketch.builder().setNominalEntries(65536).build();
     long updateTime_nS = 0;
@@ -71,17 +75,19 @@ public class ProcessDistributionStream {
         }
         sketch.update(ip);
       }
-      long updateCount = val;
+      updateCount = val;
       int ipCount = ip;
       println(map.toString());
-      println("\n");
-      println("Lines Read   : " + lineCount);
-      println("IP Count     : " + ipCount);
-      println("Update Count : " + updateCount);
-      println("nS Per update: " + ((double)updateTime_nS/updateCount));
+      println("Lines Read        : " + String.format("%,d", lineCount));
+      println("IP Count          : " + String.format("%,d",ipCount));
+      println("Update Count      : " + String.format("%,d",updateCount));
+      println("nS Per update     : " + String.format("%,.3f", ((updateTime_nS * 1.0)/updateCount)));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    long total_mS = System.currentTimeMillis() - start_mS;
+      println("Total Task Time   : " + milliSecToString(total_mS));
+      println("Task nS Per Update: " + String.format("%,.3f", ((total_mS * 1E6)/updateCount)));
   }
 
   private static final byte[] intToBytes(int v, byte[] arr) {
@@ -104,6 +110,24 @@ public class ProcessDistributionStream {
     int len = tokens.length;
     if (len != 2) throw new IllegalArgumentException("Args.length must be 2: "+len);
   }
+
+  /**
+   * Returns the given time in milliseconds formatted as Hours:Min:Sec.mSec
+   * @param mS the given nanoseconds
+   * @return the given time in milliseconds formatted as Hours:Min:Sec.mSec
+   */
+  //temporarily copied from SNAPSHOT com.yahoo.sketches.TestingUtil (test branch)
+  public static String milliSecToString(long mS) {
+    long rem_mS = (long)(mS % 1000.0);
+    long rem_sec = (long)((mS / 1000.0) % 60.0);
+    long rem_min = (long)((mS / 60000.0) % 60.0);
+    long hr  =     (long)(mS / 3600000.0);
+    String mSstr = zeroPad(Long.toString(rem_mS), 3);
+    String secStr = zeroPad(Long.toString(rem_sec), 2);
+    String minStr = zeroPad(Long.toString(rem_min), 2);
+    return String.format("%d:%2s:%2s.%3s", hr, minStr, secStr, mSstr);
+  }
+
 
   private static void println(String s) { System.out.println(s); }
 

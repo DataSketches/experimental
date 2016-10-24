@@ -46,11 +46,12 @@ public class ProcessDistributionStream {
    * @throws RuntimeException Generally an IOException.
    */
   public static void main(String[] args) throws RuntimeException {
-    ProcessDistributionStream dm = new ProcessDistributionStream();
-    dm.processDistributionModel();
+    ProcessDistributionStream pds = new ProcessDistributionStream();
+    pds.processDistributionModel();
   }
 
   private void processDistributionModel() {
+    StringBuilder sb = new StringBuilder();
     long start_mS = System.currentTimeMillis();
     String line = "";
     long updateCount = 0;
@@ -78,23 +79,24 @@ public class ProcessDistributionStream {
       }
       updateCount = val;
       int ipCount = ip;
-      StringBuilder sb = new StringBuilder();
+
       String thisSimpleName = this.getClass().getSimpleName();
       sb.append("# ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-      sb.append(map.toString());
-
-      println("  Lines Read                : " + String.format("%,d", lineCount));
-      println("  IP Count                  : " + String.format("%,d",ipCount));
-      println("  Update Count              : " + String.format("%,d",updateCount));
-      println("  nS Per update             : " + String.format("%,.3f", ((updateTime_nS * 1.0)/updateCount)));
+      sb.append(map.toString()).append(LS);
+      sb.append("  Lines Read                : ").append(String.format("%,d", lineCount)).append(LS);
+      sb.append("  IP Count                  : ").append(String.format("%,d",ipCount)).append(LS);
+      sb.append("  Update Count              : ").append(String.format("%,d",updateCount)).append(LS);
+      sb.append("  nS Per update             : ")
+          .append(String.format("%,.3f", ((updateTime_nS * 1.0)/updateCount))).append(LS);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     long total_mS = System.currentTimeMillis() - start_mS;
-    println("  Total Task Time           : " + milliSecToString(total_mS));
-    println("  Task nS Per Update        : " + String.format("%,.3f", ((total_mS * 1E6)/updateCount)));
-    println("# END PROCESS SUMMARY");
-    println(LS);
+    sb.append("  Total Task Time           : ").append(milliSecToString(total_mS)).append(LS);
+    sb.append("  Task nS Per Update        : ")
+        .append(String.format("%,.3f", ((total_mS * 1E6)/updateCount))).append(LS);
+    sb.append("# END PROCESS SUMMARY").append(LS);
+    println(sb.toString());
   }
 
   private static final byte[] intToBytes(int v, byte[] arr) {
@@ -135,7 +137,6 @@ public class ProcessDistributionStream {
     return String.format("%d:%2s:%2s.%3s", hr, minStr, secStr, mSstr);
   }
 
-
-  private static void println(String s) { System.out.println(s); }
+  static void println(String s) { System.out.println(s); }
 
 }

@@ -12,9 +12,7 @@ import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
 import static com.yahoo.sketches.hllmap.Util.fmtLong;
 
 public class UniqueCountMap {
-
-  public static final String LS = System.getProperty("line.separator");
-
+  private static final String LS = System.getProperty("line.separator");
   private final int keySizeBytes_;
   private final int k_;
 
@@ -165,14 +163,13 @@ public class UniqueCountMap {
     final String hllk = fmtLong(k_);
     final String lvls  = fmtLong(getActiveLevels());
     final String mub = fmtLong(getMemoryUsageBytes());
-
     final StringBuilder sb = new StringBuilder();
     final String thisSimpleName = this.getClass().getSimpleName();
-    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-    sb.append("    Key Size Bytes            : ").append(ksb).append(LS);
-    sb.append("    HLL k                     : ").append(hllk).append(LS);
-    sb.append("    Active Levels             : ").append(lvls).append(LS);
-    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
+    sb.append("## ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("   Key Size Bytes            : ").append(ksb).append(LS);
+    sb.append("   HLL k                     : ").append(hllk).append(LS);
+    sb.append("   Active Levels             : ").append(lvls).append(LS);
+    sb.append("   Memory Usage Bytes        : ").append(mub).append(LS);
     sb.append(LS);
     sb.append(baseLevelMap.toString());
     sb.append(LS);
@@ -185,7 +182,10 @@ public class UniqueCountMap {
     }
     if (lastLevelMap != null) {
       sb.append(lastLevelMap.toString());
+      sb.append(LS);
     }
+    sb.append("## ").append("END SKETCH SUMMARY");
+    sb.append(LS);
     return sb.toString();
   }
 

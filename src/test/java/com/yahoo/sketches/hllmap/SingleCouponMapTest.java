@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016, Yahoo! Inc. Licensed under the terms of the
+ * Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.hllmap;
 
 import org.testng.Assert;
@@ -7,7 +12,7 @@ public class SingleCouponMapTest {
 
   @Test
   public void getEstimateNoneKey() {
-    SingleCouponMap map = SingleCouponMap.getInstance(1000, 4, 1.2F);
+    SingleCouponMap map = SingleCouponMap.getInstance(1000, 4);
     byte[] key = new byte[] {0, 0, 0, 1};
     Assert.assertEquals(map.getEstimate(key), 0.0);
   }
@@ -16,8 +21,7 @@ public class SingleCouponMapTest {
   public void oneKeyOneValue() {
     int entries = 16;
     int keySizeBytes = 4;
-    float rf = 1.2F;
-    SingleCouponMap map = SingleCouponMap.getInstance(entries, keySizeBytes, rf);
+    SingleCouponMap map = SingleCouponMap.getInstance(entries, keySizeBytes);
     byte[] key = new byte[] {0, 0, 0, 0}; // zero key must work
     byte[] id =  new byte[] {1, 0, 0, 0};
     int coupon = Map.coupon16(id);
@@ -31,8 +35,7 @@ public class SingleCouponMapTest {
     int entries = 17;
     int numKeys = 1000;
     int keySizeBytes = 4;
-    float rf = 2F;
-    SingleCouponMap map = SingleCouponMap.getInstance(entries, keySizeBytes, rf);
+    SingleCouponMap map = SingleCouponMap.getInstance(entries, keySizeBytes);
 
     for (int i = 0; i < numKeys; i++) {
       byte[] key = String.format("%4s", i).getBytes();
@@ -52,7 +55,7 @@ public class SingleCouponMapTest {
 
   @Test
   public void manyKeys() {
-    SingleCouponMap map = SingleCouponMap.getInstance(2000, 4, 2);
+    SingleCouponMap map = SingleCouponMap.getInstance(2000, 4);
     for (int i = 1; i <= 1000; i++) {
       byte[] key = String.format("%4s", i).getBytes();
       double estimate = map.update(key, 1);

@@ -136,7 +136,7 @@ public class HllMapRSETest {
       }
 
       else if (skEnum == SketchEnum.UNIQUE_COUNT_MAP) {
-        ucMap = new UniqueCountMap(4, k); //renew per trial set
+        ucMap = new UniqueCountMap(10, 4, k); //renew per trial set
       }
       //else do nothing to the other sketches
 

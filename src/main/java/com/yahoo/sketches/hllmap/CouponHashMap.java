@@ -1,4 +1,14 @@
+/*
+ * Copyright 2016, Yahoo! Inc. Licensed under the terms of the
+ * Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.hllmap;
+
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_MIN_NUM_ENTRIES;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_SHRINK_TRIGGER_FACTOR;
 
 import static com.yahoo.sketches.Util.checkIfPowerOf2;
 
@@ -21,6 +31,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 // Probably starts after Traverse > 8.  Need to be able to adjust this.
 
 class CouponHashMap extends CouponMap {
+
   private static final double INNER_LOAD_FACTOR = 0.75;
   private static final byte DELETED_KEY_MARKER = (byte) 255;
   private static final int BYTE_MASK = 0XFF;
@@ -42,7 +53,7 @@ class CouponHashMap extends CouponMap {
   private float[] invPow2SumArr_;
   private float[] hipEstAccumArr_;
 
-  private CouponHashMap(final int keySizeBytes, int maxCouponsPerKey) {
+  private CouponHashMap(final int keySizeBytes, final int maxCouponsPerKey) {
     super(keySizeBytes);
     maxCouponsPerKey_ = maxCouponsPerKey;
     capacityCouponsPerKey_ = (int)(maxCouponsPerKey * INNER_LOAD_FACTOR);
@@ -51,11 +62,11 @@ class CouponHashMap extends CouponMap {
 
   static CouponHashMap getInstance(final int keySizeBytes, final int maxCouponsPerKey) {
     checkMaxCouponsPerKey(maxCouponsPerKey);
-    CouponHashMap map = new CouponHashMap(keySizeBytes, maxCouponsPerKey);
+    final CouponHashMap map = new CouponHashMap(keySizeBytes, maxCouponsPerKey);
 
-    final int tableEntries = MIN_NUM_ENTRIES;
+    final int tableEntries = COUPON_MAP_MIN_NUM_ENTRIES;
     map.tableEntries_ = tableEntries;
-    map.capacityEntries_ = (int)(tableEntries * GROW_TRIGGER_FACTOR);
+    map.capacityEntries_ = (int)(tableEntries * COUPON_MAP_GROW_TRIGGER_FACTOR);
     map.numActiveKeys_ = 0;
     map.numDeletedKeys_ = 0;
 
@@ -122,9 +133,7 @@ class CouponHashMap extends CouponMap {
         curCountsArr_[entryIndex] = 0;
         numDeletedKeys_--;
       }
-      //System.out.println(maxCouponsPerKey_ + " map before inserting: active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_);
       if (numActiveKeys_ + numDeletedKeys_ >= capacityEntries_) {
-        //System.out.println(maxCouponsPerKey_ + " map growth rule triggered: index=" + entryIndex + ", active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_ + ", table=" + tableEntries_);
         resize();
         entryIndex = ~findKey(key);
         assert(entryIndex >= 0);
@@ -169,8 +178,8 @@ class CouponHashMap extends CouponMap {
     curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
     numActiveKeys_--;
     numDeletedKeys_++;
-    if (numActiveKeys_ > MIN_NUM_ENTRIES && numActiveKeys_ < tableEntries_ * SHRINK_TRIGGER_FACTOR) {
-      //System.out.println(maxCouponsPerKey_ + " map shrink rule triggered: index=" + entryIndex + ", active=" + numActiveKeys_ + ", deleted=" + numDeletedKeys_ + ", table=" + tableEntries_);
+    if (numActiveKeys_ > COUPON_MAP_MIN_NUM_ENTRIES &&
+        numActiveKeys_ < tableEntries_ * COUPON_MAP_SHRINK_TRIGGER_FACTOR) {
       resize();
     }
   }
@@ -209,12 +218,12 @@ class CouponHashMap extends CouponMap {
 
   @Override
   long getMemoryUsageBytes() {
-    long arrays = keysArr_.length
+    final long arrays = keysArr_.length
         + (long)couponsArr_.length * Short.BYTES
         + curCountsArr_.length
         + invPow2SumArr_.length * Float.BYTES
         + hipEstAccumArr_.length * Float.BYTES;
-    long other = 4 * 5;
+    final long other = 4 * 5;
     return arrays + other;
   }
 
@@ -240,7 +249,7 @@ class CouponHashMap extends CouponMap {
 
   private static final void checkMaxCouponsPerKey(final int maxCouponsPerKey) {
     checkIfPowerOf2(maxCouponsPerKey, "maxCouponsPerKey");
-    int cpk = maxCouponsPerKey;
+    final int cpk = maxCouponsPerKey;
     if ((cpk < 16) || (cpk > 256)) {
       throw new SketchesArgumentException(
           "Required: 16 <= maxCouponsPerKey <= 256 : "+maxCouponsPerKey);
@@ -255,11 +264,10 @@ class CouponHashMap extends CouponMap {
     final float[] oldHipEstAccumArr = hipEstAccumArr_;
     final int oldNumEntries = tableEntries_;
     tableEntries_ = Math.max(
-      Util.nextPrime((int) (numActiveKeys_ / TARGET_FILL_FACTOR)),
-      MIN_NUM_ENTRIES
+      Util.nextPrime((int) (numActiveKeys_ / COUPON_MAP_TARGET_FILL_FACTOR)),
+      COUPON_MAP_MIN_NUM_ENTRIES
     );
-    capacityEntries_ = (int)(tableEntries_ * GROW_TRIGGER_FACTOR);
-    //System.out.println("resizing from " + oldNumEntries + " to " + tableEntries_);
+    capacityEntries_ = (int)(tableEntries_ * COUPON_MAP_GROW_TRIGGER_FACTOR);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponsArr_ = new short[tableEntries_ * maxCouponsPerKey_];
     curCountsArr_ = new byte[tableEntries_];

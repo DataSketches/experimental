@@ -40,7 +40,7 @@ public class ProcessIpStream {
 
   private static void processIpStream() {
     String line = "";
-    UniqueCountMap map = new UniqueCountMap(4, 1024);
+    UniqueCountMap map = new UniqueCountMap(1000, 4, 1024);
     long count = 0;
     long updateTime_nS = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){

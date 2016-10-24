@@ -1,16 +1,22 @@
+/*
+ * Copyright 2016, Yahoo! Inc. Licensed under the terms of the
+ * Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.hllmap;
 
 import static com.yahoo.sketches.hllmap.Util.fmtDouble;
 import static com.yahoo.sketches.hllmap.Util.fmtLong;
 
+import java.util.Arrays;
+
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
 
 /*
- * Consider flexible compon size ?
+ * Consider flexible coupon size ?
  */
 
-//@SuppressWarnings("unused")
 class HllMap extends Map {
   public static final String LS = System.getProperty("line.separator");
   private static final double LOAD_FACTOR = 15.0/16.0;
@@ -20,8 +26,8 @@ class HllMap extends Map {
   private final double entrySizeBytes_;
 
   private int tableEntries_; //Full size of the table
-  private int capacityEntries_;  //max capacity entries defined by Load factor
-  private int curCountEntries_;  //current count of valid entries
+  private int capacityEntries_; //max capacity entries defined by Load factor
+  private int curCountEntries_; //current count of valid entries
   private float growthFactor_;  //e.g., 1.2 to 2.0
 
   //Arrays
@@ -37,21 +43,21 @@ class HllMap extends Map {
    * @param keySizeBytes size of key in bytes
    * @param k size of HLL sketch
    */
-  private HllMap(final int keySizeBytes, int k, int tableEntries) {
+  private HllMap(final int keySizeBytes, int k, final int tableEntries) {
     super(keySizeBytes);
     k_ = k;
     hllArrLongs_ = k/10 + 1;
-    double byteFraction = Math.ceil(tableEntries / 8.0) / tableEntries;
+    final double byteFraction = Math.ceil(tableEntries / 8.0) / tableEntries;
     entrySizeBytes_ = keySizeBytes + hllArrLongs_ * Long.BYTES + 3 * Double.BYTES + byteFraction;
   }
 
-  static HllMap getInstance(int tgtEntries, int keySizeBytes, int k, float growthFactor) {
+  static HllMap getInstance(final int tgtEntries, final int keySizeBytes, final int k, final float growthFactor) {
     Util.checkK(k);
     Util.checkGrowthFactor(growthFactor);
     Util.checkTgtEntries(tgtEntries);
-    int tableEntries = Util.nextPrime(tgtEntries);
+    final int tableEntries = Util.nextPrime(tgtEntries);
 
-    HllMap map = new HllMap(keySizeBytes, k, tableEntries);
+    final HllMap map = new HllMap(keySizeBytes, k, tableEntries);
 
     map.tableEntries_ = tableEntries;
     map.capacityEntries_ = (int)(tableEntries * LOAD_FACTOR);
@@ -68,62 +74,23 @@ class HllMap extends Map {
   }
 
   @Override
-  double update(byte[] key, int coupon) {
-    int entryIndex = findOrInsertKey(key);
+  double update(final byte[] key, final int coupon) {
+    final int entryIndex = findOrInsertKey(key);
     return findOrInsertCoupon(entryIndex, coupon);
   }
 
   @Override
-  double getEstimate(byte[] key) {
+  double getEstimate(final byte[] key) {
     if (key == null) return Double.NaN;
-    int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
+    final int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
     if (entryIndex < 0) {
       return 0;
     }
     return hipEstAccumArr_[entryIndex];
   }
 
-  void updateEstimate(int entryIndex, double estimate) {
+  void updateEstimate(final int entryIndex, final double estimate) {
     hipEstAccumArr_[entryIndex] = estimate;
-  }
-
-  private final void resize() {
-    int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
-    int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);
-
-    byte[] newKeysArr = new byte[newTableEntries * keySizeBytes_];
-    long[] newArrOfHllArr = new long[newTableEntries * hllArrLongs_];
-    double[] newInvPow2Sum1 = new double[newTableEntries];
-    double[] newInvPow2Sum2 = new double[newTableEntries];
-    double[] newHipEstAccum = new double[newTableEntries];
-    byte[] newStateArr = new byte[(int) Math.ceil(newTableEntries / 8.0)];
-
-    for (int oldIndex = 0; oldIndex < tableEntries_; oldIndex++) {
-      if (isBitClear(stateArr_, oldIndex)) continue;
-      byte[] key = new byte[keySizeBytes_];
-      System.arraycopy(keysArr_, oldIndex * keySizeBytes_, key, 0, keySizeBytes_); //get old key
-      int newIndex = findEmpty(key, newTableEntries, newStateArr);
-
-      System.arraycopy(key, 0, newKeysArr, newIndex * keySizeBytes_, keySizeBytes_); //put key
-      //put the rest of the row
-      System.arraycopy(
-          arrOfHllArr_, oldIndex * hllArrLongs_, newArrOfHllArr, newIndex * hllArrLongs_, hllArrLongs_);
-      newInvPow2Sum1[newIndex] = invPow2SumHiArr_[oldIndex];
-      newInvPow2Sum2[newIndex] = invPow2SumLoArr_[oldIndex];
-      newHipEstAccum[newIndex] = hipEstAccumArr_[oldIndex];
-      setBit(newStateArr, newIndex);
-    }
-    //restore into sketch
-    tableEntries_ = newTableEntries;
-    capacityEntries_ = newCapacityEntries;
-    //curCountEntries_, growthFactor_  unchanged
-
-    keysArr_ = newKeysArr;
-    arrOfHllArr_ = newArrOfHllArr;
-    invPow2SumHiArr_ = newInvPow2Sum1; //init to k
-    invPow2SumLoArr_ = newInvPow2Sum2; //init to 0
-    hipEstAccumArr_ = newHipEstAccum;  //init to 0
-    stateArr_ = newStateArr;
   }
 
   int findOrInsertKey(final byte[] key) {
@@ -151,6 +118,60 @@ class HllMap extends Map {
     return hipEstAccumArr_[entryIndex];
   }
 
+  @Override
+  double getEntrySizeBytes() {
+    return entrySizeBytes_;
+  }
+
+  @Override
+  int getTableEntries() {
+    return tableEntries_;
+  }
+
+  @Override
+  int getCapacityEntries() {
+    return capacityEntries_;
+  }
+
+  @Override
+  int getCurrentCountEntries() {
+    return curCountEntries_;
+  }
+
+  @Override
+  long getMemoryUsageBytes() {
+    final long arrays = keysArr_.length
+        + (long)arrOfHllArr_.length * Long.BYTES
+        + invPow2SumLoArr_.length * Double.BYTES
+        + invPow2SumHiArr_.length * Double.BYTES
+        + hipEstAccumArr_.length * Double.BYTES
+        + stateArr_.length;
+    final long other = 5 * Integer.BYTES + Float.BYTES + Double.BYTES;
+    return arrays + other;
+  }
+
+  @Override
+  public String toString() {
+    final String kStr = fmtLong(k_);
+    final String te = fmtLong(getTableEntries());
+    final String ce = fmtLong(getCapacityEntries());
+    final String cce = fmtLong(getCurrentCountEntries());
+    final String esb = fmtDouble(getEntrySizeBytes());
+    final String mub = fmtLong(getMemoryUsageBytes());
+
+    final StringBuilder sb = new StringBuilder();
+    final String thisSimpleName = this.getClass().getSimpleName();
+    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
+    sb.append("    HLL k                     : ").append(kStr).append(LS);
+    sb.append("    Table Entries             : ").append(te).append(LS);
+    sb.append("    Capacity Entries          : ").append(ce).append(LS);
+    sb.append("    Current Count Entries     : ").append(cce).append(LS);
+    sb.append("    Entry Size Bytes          : ").append(esb).append(LS);
+    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
+    sb.append("### END SKETCH SUMMARY").append(LS);
+    return sb.toString();
+  }
+
   /**
    * Returns the entry index for the given key given the array of keys, if found.
    * Otherwise, returns the one's complement of first empty entry found;
@@ -160,8 +181,8 @@ class HllMap extends Map {
    * @param stateArr the bit vector that holds valid/empty state of each entry
    * @return the entry index of the given key, or the one's complement of the index if not found.
    */
-  private static final int findKey(byte[] keyArr, byte[] key, int tableEntries, byte[] stateArr) {
-    int keyLen = key.length;
+  private static final int findKey(final byte[] keyArr, final byte[] key, final int tableEntries, final byte[] stateArr) {
+    final int keyLen = key.length;
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex  = getIndex(hash[0], tableEntries);
     final int stride = getStride(hash[1], tableEntries);
@@ -188,7 +209,7 @@ class HllMap extends Map {
    * @param stateArr the valid bit array
    * @return the first empty slot for the given key
    */
-  private static final int findEmpty(byte[] key, int tableEntries, byte[] stateArr) {
+  private static final int findEmpty(final byte[] key, final int tableEntries, final byte[] stateArr) {
     final long[] hash = MurmurHash3.hash(key, SEED);
     int entryIndex  = getIndex(hash[0], tableEntries);
     final int stride = getStride(hash[1], tableEntries);
@@ -203,41 +224,8 @@ class HllMap extends Map {
     throw new SketchesArgumentException("No empty slots.");
   }
 
-  @Override
-  double getEntrySizeBytes() {
-    return entrySizeBytes_;
-  }
-
-  @Override
-  int getTableEntries() {
-    return tableEntries_;
-  }
-
-  @Override
-  int getCapacityEntries() {
-    return capacityEntries_;
-  }
-
-  @Override
-  int getCurrentCountEntries() {
-    return curCountEntries_;
-  }
-
-  @Override
-  long getMemoryUsageBytes() {
-    long arrays = keysArr_.length
-        + (long)arrOfHllArr_.length * Long.BYTES
-        + invPow2SumLoArr_.length * Double.BYTES
-        + invPow2SumHiArr_.length * Double.BYTES
-        + hipEstAccumArr_.length * Double.BYTES
-        + stateArr_.length;
-    long other = 5 * Integer.BYTES + Float.BYTES + Double.BYTES;
-    return arrays + other;
-  }
-
   //This method is specifically tied to the HLL array layout
-
-  private final boolean updateHll(int entryIndex, int coupon) {
+  private final boolean updateHll(final int entryIndex, final int coupon) {
     final int newValue = coupon16Value(coupon);
 
     final int hllIdx = coupon & (k_ - 1); //lower lgK bits
@@ -267,26 +255,42 @@ class HllMap extends Map {
     return true;
   }
 
-  @Override
-  public String toString() {
-    String kStr = fmtLong(k_);
-    String te = fmtLong(getTableEntries());
-    String ce = fmtLong(getCapacityEntries());
-    String cce = fmtLong(getCurrentCountEntries());
-    String esb = fmtDouble(getEntrySizeBytes());
-    String mub = fmtLong(getMemoryUsageBytes());
+  private final void resize() {
+    final int newTableEntries = Util.nextPrime((int)(tableEntries_ * growthFactor_));
+    final int newCapacityEntries = (int)(newTableEntries * LOAD_FACTOR);
 
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
-    sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
-    sb.append("    HLL k                     : ").append(kStr).append(LS);
-    sb.append("    Table Entries             : ").append(te).append(LS);
-    sb.append("    Capacity Entries          : ").append(ce).append(LS);
-    sb.append("    Current Count Entries     : ").append(cce).append(LS);
-    sb.append("    Entry Size Bytes          : ").append(esb).append(LS);
-    sb.append("    Memory Usage Bytes        : ").append(mub).append(LS);
-    sb.append("### END SKETCH SUMMARY").append(LS);
-    return sb.toString();
+    final byte[] newKeysArr = new byte[newTableEntries * keySizeBytes_];
+    final long[] newArrOfHllArr = new long[newTableEntries * hllArrLongs_];
+    final double[] newInvPow2Sum1 = new double[newTableEntries];
+    final double[] newInvPow2Sum2 = new double[newTableEntries];
+    final double[] newHipEstAccum = new double[newTableEntries];
+    final byte[] newStateArr = new byte[(int) Math.ceil(newTableEntries / 8.0)];
+
+    for (int oldIndex = 0; oldIndex < tableEntries_; oldIndex++) {
+      if (isBitClear(stateArr_, oldIndex)) continue;
+      // extract an old key
+      final byte[] key = Arrays.copyOfRange(keysArr_, oldIndex * keySizeBytes_, (oldIndex + 1) * keySizeBytes_);
+      final int newIndex = findEmpty(key, newTableEntries, newStateArr);
+      System.arraycopy(key, 0, newKeysArr, newIndex * keySizeBytes_, keySizeBytes_); //put key
+      //put the rest of the row
+      System.arraycopy(
+          arrOfHllArr_, oldIndex * hllArrLongs_, newArrOfHllArr, newIndex * hllArrLongs_, hllArrLongs_);
+      newInvPow2Sum1[newIndex] = invPow2SumHiArr_[oldIndex];
+      newInvPow2Sum2[newIndex] = invPow2SumLoArr_[oldIndex];
+      newHipEstAccum[newIndex] = hipEstAccumArr_[oldIndex];
+      setBit(newStateArr, newIndex);
+    }
+    //restore into sketch
+    tableEntries_ = newTableEntries;
+    capacityEntries_ = newCapacityEntries;
+    //curCountEntries_, growthFactor_  unchanged
+
+    keysArr_ = newKeysArr;
+    arrOfHllArr_ = newArrOfHllArr;
+    invPow2SumHiArr_ = newInvPow2Sum1; //init to k
+    invPow2SumLoArr_ = newInvPow2Sum2; //init to 0
+    hipEstAccumArr_ = newHipEstAccum;  //init to 0
+    stateArr_ = newStateArr;
   }
 
 }

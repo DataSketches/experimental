@@ -1,4 +1,12 @@
+/*
+ * Copyright 2016, Yahoo! Inc. Licensed under the terms of the
+ * Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.hllmap;
+
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
 
 import static com.yahoo.sketches.hllmap.Util.fmtDouble;
 import static com.yahoo.sketches.hllmap.Util.fmtLong;
@@ -9,22 +17,20 @@ import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hash.MurmurHash3;
 
 
-//Always holds all keys.
+// Always holds all keys.
 // prime size, double hash, no deletes, 1-bit state array
 // same growth algorithm as for the next levels, except no shrink. Constants may be specific.
 
 class SingleCouponMap extends Map {
   public static final String LS = System.getProperty("line.separator");
-  private static final double LOAD_FACTOR = 15.0/16.0;
 
   private final double entrySizeBytes_;
 
   private int tableEntries_;
   private int capacityEntries_;
   private int curCountEntries_;
-  private float growthFactor_;
 
-  //Arrays
+  // Arrays
   private byte[] keysArr_;
   private short[] couponsArr_;
 
@@ -32,23 +38,21 @@ class SingleCouponMap extends Map {
   // state: 1: original coupon has been promoted, current coupon contains a table # instead.
   private byte[] stateArr_;
 
-  private SingleCouponMap(final int keySizeBytes, int tableEntries) {
+  private SingleCouponMap(final int keySizeBytes, final int tableEntries) {
     super(keySizeBytes);
-    double byteFraction = Math.ceil(tableEntries / 8.0) / tableEntries;
+    final double byteFraction = Math.ceil(tableEntries / 8.0) / tableEntries;
     entrySizeBytes_ = keySizeBytes + Short.BYTES + byteFraction;
   }
 
-  static SingleCouponMap getInstance(int tgtEntries, int keySizeBytes, float growthFactor) {
-    Util.checkGrowthFactor(growthFactor); //optional
+  static SingleCouponMap getInstance(final int tgtEntries, final int keySizeBytes) {
     Util.checkTgtEntries(tgtEntries); //optional
-    int tableEntries = Util.nextPrime(tgtEntries);
+    final int tableEntries = Util.nextPrime(tgtEntries);
 
-    SingleCouponMap map = new SingleCouponMap(keySizeBytes, tableEntries);
+    final SingleCouponMap map = new SingleCouponMap(keySizeBytes, tableEntries);
 
     map.tableEntries_ = tableEntries;
-    map.capacityEntries_ = (int)(tableEntries * LOAD_FACTOR);
+    map.capacityEntries_ = (int)(tableEntries * COUPON_MAP_GROW_TRIGGER_FACTOR);
     map.curCountEntries_ = 0;
-    map.growthFactor_ = growthFactor;
 
     map.keysArr_ = new byte[tableEntries * map.keySizeBytes_];
     map.couponsArr_ = new short[tableEntries];
@@ -57,7 +61,7 @@ class SingleCouponMap extends Map {
   }
 
   @Override
-  double update(byte[] key, int coupon) {
+  double update(final byte[] key, final int coupon) {
     final int entryIndex = findOrInsertKey(key);
     if (entryIndex < 0) { // insert
       setCoupon(~entryIndex, (short) coupon, false);
@@ -72,7 +76,7 @@ class SingleCouponMap extends Map {
   }
 
   @Override
-  double getEstimate(byte[] key) {
+  double getEstimate(final byte[] key) {
     final int entryIndex = findKey(key);
     if (entryIndex < 0) return 0;
     if (isCoupon(entryIndex)) return 1;
@@ -127,7 +131,6 @@ class SingleCouponMap extends Map {
     return couponsArr_[entryIndex];
   }
 
-  // assumes that the state bit is never cleared
   void setCoupon(final int entryIndex, final short coupon, final boolean isLevel) {
     couponsArr_[entryIndex] = coupon;
     if (isLevel) {
@@ -159,23 +162,23 @@ class SingleCouponMap extends Map {
 
   @Override
   long getMemoryUsageBytes() {
-    long arrays = keysArr_.length
+    final long arrays = keysArr_.length
         + (long)couponsArr_.length * Short.BYTES
         + stateArr_.length;
-    long other = 4 * 4 + 8;
+    final long other = 4 * 4 + 8;
     return arrays + other;
   }
 
   @Override
   public String toString() {
-    String te = fmtLong(getTableEntries());
-    String ce = fmtLong(getCapacityEntries());
-    String cce = fmtLong(getCurrentCountEntries());
-    String esb = fmtDouble(getEntrySizeBytes());
-    String mub = fmtLong(getMemoryUsageBytes());
+    final String te = fmtLong(getTableEntries());
+    final String ce = fmtLong(getCapacityEntries());
+    final String cce = fmtLong(getCurrentCountEntries());
+    final String esb = fmtDouble(getEntrySizeBytes());
+    final String mub = fmtLong(getMemoryUsageBytes());
 
-    StringBuilder sb = new StringBuilder();
-    String thisSimpleName = this.getClass().getSimpleName();
+    final StringBuilder sb = new StringBuilder();
+    final String thisSimpleName = this.getClass().getSimpleName();
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
     sb.append("    Max Coupons Per Entry     : ").append(1).append(LS);
     sb.append("    Capacity Coupons Per Entry: ").append(1).append(LS);
@@ -193,9 +196,8 @@ class SingleCouponMap extends Map {
     final short[] oldCouponsArr = couponsArr_;
     final byte[] oldStateArr = stateArr_;
     final int oldTableEntries = tableEntries_;
-    tableEntries_ = Util.nextPrime((int) (oldTableEntries * growthFactor_));
-    capacityEntries_ = (int)(tableEntries_ * LOAD_FACTOR);
-    //System.out.println("resizing from " + oldTableEntries + " to " + tableEntries_);
+    tableEntries_ = Util.nextPrime((int) (curCountEntries_ / COUPON_MAP_TARGET_FILL_FACTOR));
+    capacityEntries_ = (int)(tableEntries_ * COUPON_MAP_GROW_TRIGGER_FACTOR);
     keysArr_ = new byte[tableEntries_ * keySizeBytes_];
     couponsArr_ = new short[tableEntries_];
     stateArr_ = new byte[(int) Math.ceil(tableEntries_ / 8.0)];
@@ -203,7 +205,6 @@ class SingleCouponMap extends Map {
       if (oldCouponsArr[i] != 0) {
         final byte[] key =
             Arrays.copyOfRange(oldKeysArr, i * keySizeBytes_, i * keySizeBytes_ + keySizeBytes_);
-
         int entryIndex = findKey(key); //should be one's complement
         if (entryIndex < 0) {
           insertEntry(~entryIndex, key, oldCouponsArr[i], isBitSet(oldStateArr, i));
@@ -220,4 +221,5 @@ class SingleCouponMap extends Map {
     System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
     setCoupon(entryIndex, (short)coupon, setStateOne);
   }
+
 }

@@ -55,7 +55,7 @@ public class ProcessDistributionStream {
     long start_mS = System.currentTimeMillis();
     String line = "";
     long updateCount = 0;
-    UniqueCountMap map = new UniqueCountMap(4, 1024);
+    UniqueCountMap map = new UniqueCountMap(1000, 4, 1024);
     UpdateSketch sketch = UpdateSketch.builder().setNominalEntries(65536).build();
     long updateTime_nS = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){

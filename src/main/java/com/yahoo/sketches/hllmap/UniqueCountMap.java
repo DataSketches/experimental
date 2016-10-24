@@ -1,7 +1,11 @@
+/*
+ * Copyright 2016, Yahoo! Inc. Licensed under the terms of the
+ * Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.hllmap;
 
-import static com.yahoo.sketches.hllmap.MapDistribution.BASE_GROWTH_FACTOR;
-import static com.yahoo.sketches.hllmap.MapDistribution.BASE_TGT_ENTRIES;
+import static com.yahoo.sketches.hllmap.MapDistribution.HLL_INIT_NUM_ENTRIES;
 import static com.yahoo.sketches.hllmap.MapDistribution.HLL_RESIZE_FACTOR;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_LEVELS;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
@@ -25,16 +29,16 @@ public class UniqueCountMap {
 
   // this map has a fixed slotSize (row size). No shrinking.
   // Similar growth algorithm to SingleCouponMap, maybe different constants.
-  // needs to keep 2 double values and 1 float value for HIP estimator
+  // needs to keep 3 double values per row for HIP estimator
   private HllMap lastLevelMap;
 
   //@param keySizeBytes must be at least 4 bytes.
-  public UniqueCountMap(final int keySizeBytes, final int k) {
+  public UniqueCountMap(final int targetNumEntries, final int keySizeBytes, final int k) {
     Util.checkK(k);
     Util.checkKeySizeBytes(keySizeBytes);
     k_ = k;
     keySizeBytes_ = keySizeBytes;
-    baseLevelMap = SingleCouponMap.getInstance(BASE_TGT_ENTRIES, keySizeBytes, BASE_GROWTH_FACTOR);
+    baseLevelMap = SingleCouponMap.getInstance(targetNumEntries, keySizeBytes);
     intermediateLevelMaps = new CouponMap[NUM_LEVELS];
   }
 
@@ -45,11 +49,11 @@ public class UniqueCountMap {
       throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
     }
     if (identifier == null) return getEstimate(key);
-    short coupon = (short) Map.coupon16(identifier);
+    final short coupon = (short) Map.coupon16(identifier);
 
     final int baseLevelIndex = baseLevelMap.findOrInsertKey(key);
     if (baseLevelIndex < 0) {
-      //this is a new key for the baseLevelMap. Set the coupon, keep the state bit clear.
+      // this is a new key for the baseLevelMap. Set the coupon, keep the state bit clear.
       baseLevelMap.setCoupon(~baseLevelIndex, coupon, false);
       return 1;
     }
@@ -61,8 +65,9 @@ public class UniqueCountMap {
       if (intermediateLevelMaps[0] == null) {
         intermediateLevelMaps[0] = CouponTraverseMap.getInstance(keySizeBytes_, 2);
       }
-      intermediateLevelMaps[0].update(key, baseLevelMapCoupon);
-      intermediateLevelMaps[0].update(key, coupon);
+      final int index = intermediateLevelMaps[0].findOrInsertKey(key);
+      intermediateLevelMaps[0].findOrInsertCoupon(index, baseLevelMapCoupon);
+      intermediateLevelMaps[0].findOrInsertCoupon(index, coupon);
       return 2;
     }
 
@@ -74,10 +79,9 @@ public class UniqueCountMap {
       if (estimate > 0) return estimate;
       // promote to the next level
       level++;
-      baseLevelMap.setCoupon(baseLevelIndex, (short) level, true); //very dangerous; state = 1
+      baseLevelMap.setCoupon(baseLevelIndex, (short) level, true); //set coupon = level number; state = 1
       final int newLevelCapacity = 1 << level;
       if (level <= NUM_LEVELS) {
-        //System.out.println("promoting to level " + level + " with capacity of " + newLevelCapacity);
         if (intermediateLevelMaps[level - 1] == null) {
           if (level <= NUM_TRAVERSE_LEVELS) {
             intermediateLevelMaps[level - 1] = CouponTraverseMap.getInstance(keySizeBytes_, newLevelCapacity);
@@ -88,35 +92,28 @@ public class UniqueCountMap {
         final CouponMap newMap = intermediateLevelMaps[level - 1];
         final CouponsIterator it = map.getCouponsIterator(key);
         final int newMapIndex = newMap.findOrInsertKey(key);
-        //int num = 0;
         while (it.next()) {
           final double est = newMap.findOrInsertCoupon(newMapIndex, it.getValue());
           assert(est > 0);
-          //num++;
         }
         newMap.updateEstimate(newMapIndex, -estimate);
         map.deleteKey(index);
-        //System.out.println("promoted coupons: " + num + ", estimate: " + -estimate);
         final double newEstimate = newMap.findOrInsertCoupon(newMapIndex, coupon);
-        assert(newEstimate > 0);  // this must be positive since we have just promoted
+        assert(newEstimate > 0); // this must be positive since we have just promoted
         return newEstimate;
       } else { // promoting to the last level
-        //System.out.println("promoting to the last level");
         if (lastLevelMap == null) {
-          lastLevelMap = HllMap.getInstance(100, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
+          lastLevelMap = HllMap.getInstance(HLL_INIT_NUM_ENTRIES, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
         }
         final CouponsIterator it = map.getCouponsIterator(key);
         final int lastLevelIndex = lastLevelMap.findOrInsertKey(key);
-        //int num = 0;
         while (it.next()) {
           lastLevelMap.findOrInsertCoupon(lastLevelIndex, it.getValue());
-          //num++;
         }
-        //System.out.println("promoted coupons: " + num + ", estimate: " + -estimate);
         lastLevelMap.updateEstimate(lastLevelIndex, -estimate);
         map.deleteKey(index);
         final double newEstimate = lastLevelMap.findOrInsertCoupon(lastLevelIndex, coupon);
-        assert(newEstimate > 0);  // this must be positive since we have just promoted
+        assert(newEstimate > 0); // this must be positive since we have just promoted
         return newEstimate;
       }
     }
@@ -192,4 +189,5 @@ public class UniqueCountMap {
     sb.append(LS);
     return sb.toString();
   }
+
 }

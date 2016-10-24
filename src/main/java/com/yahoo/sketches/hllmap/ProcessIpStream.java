@@ -31,16 +31,20 @@ public class ProcessIpStream {
 
   /**
    * Main entry point.
-   * @param args Not used
+   * @param args optional initial number of entries in the base table
    * @throws RuntimeException Generally an IOException.
    */
   public static void main(String[] args) throws RuntimeException {
-    processIpStream();
+    int initialNumEntries = 1000;
+    if (args.length > 0) {
+      initialNumEntries = Integer.parseInt(args[0]);
+    }
+    processIpStream(initialNumEntries);
   }
 
-  private static void processIpStream() {
+  private static void processIpStream(final int initialNumEntries) {
     String line = "";
-    UniqueCountMap map = new UniqueCountMap(1000, 4, 1024);
+    UniqueCountMap map = new UniqueCountMap(initialNumEntries, 4, 1024);
     long count = 0;
     long updateTime_nS = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){

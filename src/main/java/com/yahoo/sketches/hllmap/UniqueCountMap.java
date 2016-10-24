@@ -40,7 +40,9 @@ import static com.yahoo.sketches.hllmap.Util.fmtLong;
  * Several levels above the base level are so-called traverse levels where the coupons are
  * stored as unsorted arrays. This is cheaper compared to more complicated containers
  * up to a point. The number of unique coupons is used as the estimate of unique count up
- * to this point.
+ * to this point. Coupon collisions are treated as duplicate coupons, so the number of coupons
+ * slightly underestimates the unique count, which is another reason to switch to a more
+ * complicated scheme on the next levels.
  * 
  * Next levels use hash tables to store coupons for each key. These inner hash maps have
  * power of two sizes, and use linear probing for collision resolution. Historical Inverse

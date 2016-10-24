@@ -10,8 +10,6 @@ import static com.yahoo.sketches.Util.zeroPad;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-import com.yahoo.sketches.theta.UpdateSketch;
-
 /**
  * Processes an input stream of pairs of integers from Standard-In into the UniqueCountMap.
  * The input stream defines a distribution whereby each pair defines the number of keys with the
@@ -56,7 +54,6 @@ public class ProcessDistributionStream {
     String line = "";
     long updateCount = 0;
     UniqueCountMap map = new UniqueCountMap(1000, 4, 1024);
-    UpdateSketch sketch = UpdateSketch.builder().setNominalEntries(65536).build();
     long updateTime_nS = 0;
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       while ((line = br.readLine()) != null) {
@@ -75,7 +72,6 @@ public class ProcessDistributionStream {
             updateTime_nS += end_nS - start_nS;
           }
         }
-        sketch.update(ip);
       }
       updateCount = val;
       int ipCount = ip;

@@ -15,7 +15,7 @@ import static com.yahoo.sketches.hllmap.Util.fmtLong;
  * This map is to keep approximate unique counts of some ID associated with some other ID,
  * which serves as a key in the map.
  * Example: estimate the number of unique users per IP address.
- * The goal it to keep this data structure in memory in a space-efficient way, and return
+ * The goal is to keep this data structure in memory in a space-efficient way, and return
  * estimate of unique count for a particular key upon each update.
  * 
  * This map is implemented as several levels of hash tables with progressively more expensive
@@ -27,8 +27,8 @@ import static com.yahoo.sketches.hllmap.Util.fmtLong;
  * value similar to an HLL sketch value with 10 bits of address and a 6-bit number, which
  * represents the number of leading zeroes in a 64-bit hash plus one to make it non-zero. 
  * 
- * All hash tables here have prime size to reduce wasted space. Open addressing with the
- * second hash is used to resolve collisions.
+ * All hash tables here have prime size to reduce wasted space compared to powers of two.
+ * Open addressing with the second hash is used to resolve collisions.
  * 
  * The base table holds all the keys, so it doesn't need to support deletes. As a value, it
  * holds either one coupon or, once promoted, a level number to speed up the lookup.
@@ -44,7 +44,7 @@ import static com.yahoo.sketches.hllmap.Util.fmtLong;
  * slightly underestimates the unique count, which is another reason to switch to a more
  * complicated scheme on the next levels.
  * 
- * Next levels use hash tables to store coupons for each key. These inner hash maps have
+ * Next levels use hash tables to store coupons for each key. These inner hash tables have
  * power of two sizes, and use linear probing for collision resolution. Historical Inverse
  * Probability (HIP) estimator is used from this point on.
  * 

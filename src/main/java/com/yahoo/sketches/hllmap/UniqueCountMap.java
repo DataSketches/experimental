@@ -11,6 +11,49 @@ import static com.yahoo.sketches.hllmap.MapDistribution.NUM_LEVELS;
 import static com.yahoo.sketches.hllmap.MapDistribution.NUM_TRAVERSE_LEVELS;
 import static com.yahoo.sketches.hllmap.Util.fmtLong;
 
+/**
+ * This map is to keep approximate unique counts of some ID associated with some other ID,
+ * which serves as a key in the map.
+ * Example: estimate the number of unique users per IP address.
+ * The goal it to keep this data structure in memory in a space-efficient way, and return
+ * estimate of unique count for a particular key upon each update.
+ * 
+ * This map is implemented as several levels of hash tables with progressively more expensive
+ * entries in them as keys with more unique values get promoted up. The assumption is that
+ * the distribution is highly skewed so that most of the keys have just one entry or just a few.
+ * 
+ * The unique values in all the levels, except the last one, are stored in a special form
+ * based on a hash of the original value. We call this form a coupon. This is a 16-bit
+ * value similar to an HLL sketch value with 10 bits of address and a 6-bit number, which
+ * represents the number of leading zeroes in a 64-bit hash plus one to make it non-zero. 
+ * 
+ * All hash tables here have prime size to reduce wasted space. Open addressing with the
+ * second hash is used to resolve collisions.
+ * 
+ * The base table holds all the keys, so it doesn't need to support deletes. As a value, it
+ * holds either one coupon or, once promoted, a level number to speed up the lookup.
+ * 
+ * Each next level can hold twice the number of coupons until a point when it becomes cheaper
+ * to have an HLL sketch instead of the list of coupons. At this point the key is promoted to
+ * the last level with HLL sketches.
+ * 
+ * Several levels above the base level are so-called traverse levels where the coupons are
+ * stored as unsorted arrays. This is cheaper compared to more complicated containers
+ * up to a point. The number of unique coupons is used as the estimate of unique count up
+ * to this point.
+ * 
+ * Next levels use hash tables to store coupons for each key. These inner hash maps have
+ * power of two sizes, and use linear probing for collision resolution. Historical Inverse
+ * Probability (HIP) estimator is used from this point on.
+ * 
+ * All the intermediate level hash tables support deletes, can reuse slots from previously
+ * deleted keys, and can shrink.
+ * 
+ * The last level is a hash table of HLL sketches. No deletes are needed at this point.
+ * 
+ * This approach provides unbiased unique count estimates with Relative Standard Error (RSE)
+ * of about 2.5% (68% confidence) using HLL sketch on the last level with k=1024.
+ */
 public class UniqueCountMap {
   private static final String LS = System.getProperty("line.separator");
   private final int keySizeBytes_;
@@ -32,7 +75,13 @@ public class UniqueCountMap {
   // needs to keep 3 double values per row for HIP estimator
   private HllMap lastLevelMap;
 
-  //@param keySizeBytes must be at least 4 bytes.
+  /**
+   * Constructs a UniqueCountMap. The initial number of entries provides a tradeoff between
+   * wasted space, if too high, and wasted time resizing the table, if too low.
+   * @param targetNumEntries initial size of the base table  
+   * @param keySizeBytes must be at least 4 bytes to have enough entropy
+   * @param k parameter for last level HLL sketch (1024 is recommended)
+   */
   public UniqueCountMap(final int targetNumEntries, final int keySizeBytes, final int k) {
     Util.checkK(k);
     Util.checkKeySizeBytes(keySizeBytes);
@@ -42,7 +91,12 @@ public class UniqueCountMap {
     intermediateLevelMaps = new CouponMap[NUM_LEVELS];
   }
 
-  // This class will decide the transition points of when to promote between types of maps.
+  /**
+   * Updates the map with a given key and value.
+   * @param key given key
+   * @param identifier given identifier for unique counting associated with the key
+   * @return estimate of unique count so far including the current identifier
+   */
   public double update(final byte[] key, final byte[] identifier) {
     if (key == null) return Double.NaN;
     if (key.length != keySizeBytes_) {
@@ -61,6 +115,7 @@ public class UniqueCountMap {
     if (baseLevelMap.isCoupon(baseLevelIndex)) {
       if (baseLevelMapCoupon == coupon) return 1; //duplicate
       // promote from the base level
+      // here we assume at least one traverse level
       baseLevelMap.setCoupon(baseLevelIndex, (short) 1, true); //set coupon = Level 1; state = 1
       if (intermediateLevelMaps[0] == null) {
         intermediateLevelMaps[0] = CouponTraverseMap.getInstance(keySizeBytes_, 2);
@@ -120,6 +175,11 @@ public class UniqueCountMap {
     return lastLevelMap.update(key, coupon);
   }
 
+  /**
+   * Retreives the current estimate of unique count for a given key.
+   * @param key given key
+   * @return estimate of unique count so far
+   */
   public double getEstimate(final byte[] key) {
     if (key == null) return Double.NaN;
     if (key.length != keySizeBytes_) throw new IllegalArgumentException("Key must be " + keySizeBytes_ + " bytes long");
@@ -147,6 +207,13 @@ public class UniqueCountMap {
     return total;
   }
 
+  /**
+   * Returns the number of active levels so far.
+   * Only the base level table is initialized in the constructor, so this method would return 1.
+   * As more keys are promoted up to the next levels, the return value would grow until the
+   * last level HLL table is allocated.
+   * @return the number of active levels so far
+   */
   public int getActiveLevels() {
     int levels = 1;
     int iMapsLen = intermediateLevelMaps.length;
@@ -157,6 +224,10 @@ public class UniqueCountMap {
     return levels;
   }
 
+  /**
+   * Returns a string with a human-readable summary of the UniqueCountMap and all the internal levels
+   * @return human-readable summary
+   */
   @Override
   public String toString() {
     final String ksb = fmtLong(keySizeBytes_);

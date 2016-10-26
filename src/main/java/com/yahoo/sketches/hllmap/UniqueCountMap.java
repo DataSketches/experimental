@@ -117,47 +117,34 @@ public class UniqueCountMap {
     if (baseLevelMap.isCoupon(baseLevelIndex)) {
       if (baseLevelMapCoupon == coupon) return 1; //duplicate
       // promote from the base level
-      // here we assume at least one traverse level
       baseLevelMap.setCoupon(baseLevelIndex, (short) 1, true); //set coupon = Level 1; state = 1
-      if (intermediateLevelMaps[0] == null) {
-        intermediateLevelMaps[0] = CouponTraverseMap.getInstance(keySizeBytes_, 2);
-      }
-      final int index = intermediateLevelMaps[0].findOrInsertKey(key);
-      intermediateLevelMaps[0].findOrInsertCoupon(index, baseLevelMapCoupon);
-      intermediateLevelMaps[0].findOrInsertCoupon(index, coupon);
-      return 2;
+      CouponMap newMap = getIntermediateMapForLevel(1);
+      final int index = newMap.findOrInsertKey(key);
+      newMap.findOrInsertCoupon(index, baseLevelMapCoupon);
+      final double estimate = newMap.findOrInsertCoupon(index, coupon);
+      assert(estimate > 0); // this must be positive since we have just promoted
+      return estimate;
     }
 
     int level = baseLevelMapCoupon;
     if (level <= NUM_LEVELS) {
       final CouponMap map = intermediateLevelMaps[level - 1];
       final int index = map.findOrInsertKey(key);
-      final double estimate = map.findOrInsertCoupon(index, coupon);
+      double estimate = map.findOrInsertCoupon(index, coupon);
       if (estimate > 0) return estimate;
       // promote to the next level
       level++;
       baseLevelMap.setCoupon(baseLevelIndex, (short) level, true); //set coupon = level number; state = 1
-      final int newLevelCapacity = 1 << level;
       if (level <= NUM_LEVELS) {
-        if (intermediateLevelMaps[level - 1] == null) {
-          if (level <= NUM_TRAVERSE_LEVELS) {
-            intermediateLevelMaps[level - 1] = CouponTraverseMap.getInstance(keySizeBytes_, newLevelCapacity);
-          } else {
-            intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(keySizeBytes_, newLevelCapacity);
-          }
-        }
-        final CouponMap newMap = intermediateLevelMaps[level - 1];
-        final CouponsIterator it = map.getCouponsIterator(key);
+        final CouponMap newMap = getIntermediateMapForLevel(level);
         final int newMapIndex = newMap.findOrInsertKey(key);
+        final CouponsIterator it = map.getCouponsIterator(key);
         while (it.next()) {
           final double est = newMap.findOrInsertCoupon(newMapIndex, it.getValue());
           assert(est > 0);
         }
         newMap.updateEstimate(newMapIndex, -estimate);
-        map.deleteKey(index);
-        final double newEstimate = newMap.findOrInsertCoupon(newMapIndex, coupon);
-        assert(newEstimate > 0); // this must be positive since we have just promoted
-        return newEstimate;
+        estimate = newMap.findOrInsertCoupon(newMapIndex, coupon);
       } else { // promoting to the last level
         if (lastLevelMap == null) {
           lastLevelMap = HllMap.getInstance(HLL_INIT_NUM_ENTRIES, keySizeBytes_, k_, HLL_RESIZE_FACTOR);
@@ -168,13 +155,25 @@ public class UniqueCountMap {
           lastLevelMap.findOrInsertCoupon(lastLevelIndex, it.getValue());
         }
         lastLevelMap.updateEstimate(lastLevelIndex, -estimate);
-        map.deleteKey(index);
-        final double newEstimate = lastLevelMap.findOrInsertCoupon(lastLevelIndex, coupon);
-        assert(newEstimate > 0); // this must be positive since we have just promoted
-        return newEstimate;
+        estimate = lastLevelMap.findOrInsertCoupon(lastLevelIndex, coupon);
       }
+      map.deleteKey(index);
+      assert(estimate > 0); // this must be positive since we have just promoted
+      return estimate;
     }
     return lastLevelMap.update(key, coupon);
+  }
+
+  private CouponMap getIntermediateMapForLevel(final int level) {
+    if (intermediateLevelMaps[level - 1] == null) {
+      final int newLevelCapacity = 1 << level;
+      if (level <= NUM_TRAVERSE_LEVELS) {
+        intermediateLevelMaps[level - 1] = CouponTraverseMap.getInstance(keySizeBytes_, newLevelCapacity);
+      } else {
+        intermediateLevelMaps[level - 1] = CouponHashMap.getInstance(keySizeBytes_, newLevelCapacity);
+      }
+    }
+    return intermediateLevelMaps[level - 1];
   }
 
   /**

@@ -5,8 +5,8 @@
 
 package com.yahoo.sketches.hllmap;
 
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
 import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
 
 import static com.yahoo.sketches.hllmap.Util.fmtDouble;
 import static com.yahoo.sketches.hllmap.Util.fmtLong;
@@ -114,7 +114,7 @@ class SingleCouponMap extends Map {
       if (curCountEntries_ + 1 > capacityEntries_) {
         resize();
         entryIndex = findKey(key);
-        assert(entryIndex < 0);
+        assert entryIndex < 0;
       }
       //will return negative: was not found, inserted
       System.arraycopy(key, 0, keysArr_, ~entryIndex * keySizeBytes_, keySizeBytes_);

@@ -19,7 +19,7 @@ import com.yahoo.sketches.hash.MurmurHash3;
 
 class HllMap extends Map {
   public static final String LS = System.getProperty("line.separator");
-  private static final double LOAD_FACTOR = 15.0/16.0;
+  private static final double LOAD_FACTOR = 15.0 / 16.0;
 
   private final int k_;
   private final int hllArrLongs_;
@@ -46,7 +46,7 @@ class HllMap extends Map {
   private HllMap(final int keySizeBytes, int k, final int tableEntries) {
     super(keySizeBytes);
     k_ = k;
-    hllArrLongs_ = k/10 + 1;
+    hllArrLongs_ = k / 10 + 1;
     final double byteFraction = Math.ceil(tableEntries / 8.0) / tableEntries;
     entrySizeBytes_ = keySizeBytes + hllArrLongs_ * Long.BYTES + 3 * Double.BYTES + byteFraction;
   }
@@ -95,8 +95,7 @@ class HllMap extends Map {
 
   int findOrInsertKey(final byte[] key) {
     int entryIndex = findKey(keysArr_, key, tableEntries_, stateArr_);
-    if (entryIndex < 0) { //key not found
-    //not found, initialize new row
+    if (entryIndex < 0) { //key not found, initialize new row
       entryIndex = ~entryIndex;
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
       setBit(stateArr_, entryIndex);

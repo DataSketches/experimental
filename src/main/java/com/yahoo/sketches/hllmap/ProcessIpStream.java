@@ -23,7 +23,8 @@ import java.net.InetAddress;
  *
  * <p>A typical command line might be as follows:</p>
  *
- * <p><code>cat IPTabIdPairs.txt | java -cp hllmap.jar:sketches-core-0.8.2-SNAPSHOT-with-shaded-memory.jar com.yahoo.sketches.hllmap.ProcessIpStream</code></p>
+ * <p><code>cat IPTabIdPairs.txt | 
+ * java -cp hllmap.jar:sketches-core-0.8.2-SNAPSHOT-with-shaded-memory.jar com.yahoo.sketches.hllmap.ProcessIpStream</code></p>
  */
 public class ProcessIpStream {
 
@@ -47,7 +48,7 @@ public class ProcessIpStream {
     UniqueCountMap map = new UniqueCountMap(initialNumEntries, 4, 1024);
     long count = 0;
     long updateTime_nS = 0;
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
       while ((line = br.readLine()) != null) {
         String[] tokens = line.split("\t");
         checkLen(tokens);
@@ -60,15 +61,15 @@ public class ProcessIpStream {
         count++;
       }
       println(map.toString());
-      println("Lines Read: "+count);
-      println("nS Per update: " + ((double)updateTime_nS/count));
+      println("Lines Read: " + count);
+      println("nS Per update: " + ((double)updateTime_nS / count));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
   static final byte[] intToBytes(int v, byte[] arr) {
-    for (int i=0; i<4; i++) {
+    for (int i = 0; i < 4; i++) {
       arr[i] = (byte) (v & 0XFF);
       v >>>= 8;
     }
@@ -76,7 +77,7 @@ public class ProcessIpStream {
   }
 
   static final byte[] longToBytes(long v, byte[] arr) {
-    for (int i=0; i<8; i++) {
+    for (int i = 0; i < 8; i++) {
       arr[i] = (byte) (v & 0XFFL);
       v >>>= 8;
     }
@@ -85,7 +86,7 @@ public class ProcessIpStream {
 
   private static final void checkLen(String[] tokens) {
     int len = tokens.length;
-    if (len != 2) throw new IllegalArgumentException("Args.length must be 2: "+len);
+    if (len != 2) throw new IllegalArgumentException("Args.length must be 2: " + len);
   }
 
   private static void println(String s) { System.out.println(s); }

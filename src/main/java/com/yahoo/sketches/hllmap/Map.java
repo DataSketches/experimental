@@ -89,7 +89,7 @@ abstract class Map {
     final long[] hash = MurmurHash3.hash(identifier, SEED);
     final int hllIdx = (int) (((hash[0] >>> 1) % 1024) & TEN_BIT_MASK); //hash[0] for 10-bit address
     final int lz = Long.numberOfLeadingZeros(hash[1]);
-    final int value = ((lz > 62)? 62 : lz) + 1;
+    final int value = (lz > 62 ? 62 : lz) + 1;
     return (value << 10) | hllIdx;
   }
 

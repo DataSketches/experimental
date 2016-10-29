@@ -5,10 +5,10 @@
 
 package com.yahoo.sketches.hllmap;
 
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_MIN_NUM_ENTRIES;
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
 import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_MIN_NUM_ENTRIES;
 import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_SHRINK_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
 
 import java.util.Arrays;
 
@@ -114,7 +114,7 @@ class CouponTraverseMap extends CouponMap {
       if (numActiveKeys_ + numDeletedKeys_ + 1 > capacityEntries_) {
         resize();
         entryIndex = ~findKey(key);
-        assert(entryIndex >= 0);
+        assert entryIndex >= 0;
       }
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
       setBit(stateArr_, entryIndex);
@@ -146,8 +146,8 @@ class CouponTraverseMap extends CouponMap {
     couponsArr_[entryIndex * maxCouponsPerKey_] = 0;
     numActiveKeys_--;
     numDeletedKeys_++;
-    if (numActiveKeys_ > COUPON_MAP_MIN_NUM_ENTRIES &&
-        numActiveKeys_ < tableEntries_ * COUPON_MAP_SHRINK_TRIGGER_FACTOR) {
+    if (numActiveKeys_ > COUPON_MAP_MIN_NUM_ENTRIES
+        && numActiveKeys_ < tableEntries_ * COUPON_MAP_SHRINK_TRIGGER_FACTOR) {
       resize();
     }
   }

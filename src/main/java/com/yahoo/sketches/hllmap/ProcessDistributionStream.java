@@ -26,7 +26,8 @@ import java.io.InputStreamReader;
  *
  * <p>A typical command line might be as follows:</p>
  *
- * <p><code>cat NumIDsTABnumKeys.txt | java -cp hllmap.jar:sketches-core-0.8.2-SNAPSHOT-with-shaded-memory.jar com.yahoo.sketches.hllmap.DistributionModel</code></p>
+ * <p><code>cat NumIDsTABnumKeys.txt |
+ * java -cp hllmap.jar:sketches-core-0.8.2-SNAPSHOT-with-shaded-memory.jar com.yahoo.sketches.hllmap.DistributionModel</code></p>
  */
 public class ProcessDistributionStream {
   private static final String LS = System.getProperty("line.separator");
@@ -55,7 +56,7 @@ public class ProcessDistributionStream {
     long updateCount = 0;
     UniqueCountMap map = new UniqueCountMap(1000, 4, 1024);
     long updateTime_nS = 0;
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
       while ((line = br.readLine()) != null) {
         String[] tokens = line.split("\t");
         checkLen(tokens);
@@ -83,20 +84,20 @@ public class ProcessDistributionStream {
       sb.append("  IP Count                  : ").append(String.format("%,d",ipCount)).append(LS);
       sb.append("  Update Count              : ").append(String.format("%,d",updateCount)).append(LS);
       sb.append("  nS Per update             : ")
-          .append(String.format("%,.3f", ((updateTime_nS * 1.0)/updateCount))).append(LS);
+          .append(String.format("%,.3f", ((updateTime_nS * 1.0) / updateCount))).append(LS);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     long total_mS = System.currentTimeMillis() - start_mS;
     sb.append("  Total Task Time           : ").append(milliSecToString(total_mS)).append(LS);
     sb.append("  Task nS Per Update        : ")
-        .append(String.format("%,.3f", ((total_mS * 1E6)/updateCount))).append(LS);
+        .append(String.format("%,.3f", ((total_mS * 1E6) / updateCount))).append(LS);
     sb.append("# END PROCESS SUMMARY").append(LS);
     println(sb.toString());
   }
 
   private static final byte[] intToBytes(int v, byte[] arr) {
-    for (int i=0; i<4; i++) {
+    for (int i = 0; i < 4; i++) {
       arr[i] = (byte) (v & 0XFF);
       v >>>= 8;
     }
@@ -104,7 +105,7 @@ public class ProcessDistributionStream {
   }
 
   private static final byte[] longToBytes(long v, byte[] arr) {
-    for (int i=0; i<8; i++) {
+    for (int i = 0; i < 8; i++) {
       arr[i] = (byte) (v & 0XFFL);
       v >>>= 8;
     }
@@ -113,7 +114,7 @@ public class ProcessDistributionStream {
 
   private static final void checkLen(String[] tokens) {
     int len = tokens.length;
-    if (len != 2) throw new IllegalArgumentException("Args.length must be 2: "+len);
+    if (len != 2) throw new IllegalArgumentException("Args.length must be 2: " + len);
   }
 
   /**

@@ -13,24 +13,32 @@ abstract class CouponMap extends Map {
   private static final String LS = System.getProperty("line.separator");
 
   /**
-   * @param keySizeBytes
+   * @param keySizeBytes size of keys in bytes
    */
   CouponMap(final int keySizeBytes) {
     super(keySizeBytes);
   }
 
   abstract int findKey(byte[] key);
+
   abstract int findOrInsertKey(byte[] key);
+
   abstract void deleteKey(int index);
+
   abstract void updateEstimate(int index, double estimate);
 
   abstract double findOrInsertCoupon(int index, short coupon);
-  abstract int getCouponCount(int index);
-  abstract CouponsIterator getCouponsIterator(byte[] key);
 
+  abstract int getCouponCount(int index);
+
+  abstract CouponsIterator getCouponsIterator(byte[] key);
+  
   abstract int getMaxCouponsPerEntry();
+
   abstract int getCapacityCouponsPerEntry();
+
   abstract int getActiveEntries();
+
   abstract int getDeletedEntries();
 
   @Override

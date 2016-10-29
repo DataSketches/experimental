@@ -5,12 +5,12 @@
 
 package com.yahoo.sketches.hllmap;
 
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_MIN_NUM_ENTRIES;
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
-import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_SHRINK_TRIGGER_FACTOR;
-
 import static com.yahoo.sketches.Util.checkIfPowerOf2;
+
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_GROW_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_MIN_NUM_ENTRIES;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_SHRINK_TRIGGER_FACTOR;
+import static com.yahoo.sketches.hllmap.MapDistribution.COUPON_MAP_TARGET_FILL_FACTOR;
 
 import java.util.Arrays;
 
@@ -140,7 +140,7 @@ class CouponHashMap extends CouponMap {
       if (numActiveKeys_ + numDeletedKeys_ >= capacityEntries_) {
         resize();
         entryIndex = ~findKey(key);
-        assert(entryIndex >= 0);
+        assert entryIndex >= 0;
       }
       //insert new key
       System.arraycopy(key, 0, keysArr_, entryIndex * keySizeBytes_, keySizeBytes_);
@@ -172,7 +172,7 @@ class CouponHashMap extends CouponMap {
     couponsArr_[couponMapArrEntryIndex + innerCouponIndex] = coupon; //insert
     curCountsArr_[entryIndex]++;
     //hip +=  k/qt; qt -= 1/2^(val);
-    hipEstAccumArr_[entryIndex] += COUPON_K/invPow2SumArr_[entryIndex];
+    hipEstAccumArr_[entryIndex] += COUPON_K / invPow2SumArr_[entryIndex];
     invPow2SumArr_[entryIndex] -= Util.invPow2(coupon16Value(coupon));
     return hipEstAccumArr_[entryIndex]; //returns the estimate
   }
@@ -182,8 +182,8 @@ class CouponHashMap extends CouponMap {
     curCountsArr_[entryIndex] = DELETED_KEY_MARKER;
     numActiveKeys_--;
     numDeletedKeys_++;
-    if (numActiveKeys_ > COUPON_MAP_MIN_NUM_ENTRIES &&
-        numActiveKeys_ < tableEntries_ * COUPON_MAP_SHRINK_TRIGGER_FACTOR) {
+    if (numActiveKeys_ > COUPON_MAP_MIN_NUM_ENTRIES
+        && numActiveKeys_ < tableEntries_ * COUPON_MAP_SHRINK_TRIGGER_FACTOR) {
       resize();
     }
   }
@@ -256,7 +256,7 @@ class CouponHashMap extends CouponMap {
     final int cpk = maxCouponsPerKey;
     if ((cpk < 16) || (cpk > 256)) {
       throw new SketchesArgumentException(
-          "Required: 16 <= maxCouponsPerKey <= 256 : "+maxCouponsPerKey);
+          "Required: 16 <= maxCouponsPerKey <= 256 : " + maxCouponsPerKey);
     }
   }
 

@@ -5,20 +5,21 @@
 
 package com.yahoo.sketches.frequencies;
 
-//import org.testng.annotations.Test;
-import org.testng.Assert;
-import java.lang.Math;
 import java.util.Collection;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 /**
  * Tests CountMinFastFE class
- * 
+ *
  * @author Justin8712
- * 
+ *
  */
 public class CountMinFastFETest {
 
-  //@Test(expectedExceptions = IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
     double eps = 1.0 / size;
@@ -26,7 +27,7 @@ public class CountMinFastFETest {
     CountMinFastFE countmin = new CountMinFastFE(eps, delta);
     Assert.assertNotNull(countmin);
     // Should throw exception
-    countmin = new CountMinFastFE(-134, delta);
+    new CountMinFastFE(-134, delta);
   }
 
   //@Test

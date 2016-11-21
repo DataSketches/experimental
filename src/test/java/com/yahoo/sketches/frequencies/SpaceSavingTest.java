@@ -5,27 +5,28 @@
 
 package com.yahoo.sketches.frequencies;
 
-//import org.testng.annotations.Test;
-import org.testng.Assert;
-import java.lang.Math;
 import java.util.Collection;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 /**
  * Tests SpaceSaving class
- * 
+ *
  * @author Justin8712
- * 
+ *
  */
 public class SpaceSavingTest {
 
-  //@Test(expectedExceptions = IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
     double error_tolerance = 1.0 / size;
     SpaceSaving spacesaving = new SpaceSaving(error_tolerance);
     Assert.assertNotNull(spacesaving);
     // Should throw exception
-    spacesaving = new SpaceSaving(-134);
+    new SpaceSaving(-134);
   }
 
   //@Test

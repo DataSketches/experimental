@@ -50,6 +50,6 @@ public class Pair implements Comparable<Pair> {
   @Override
   public boolean equals(Object o) {
     Pair a2 = (Pair) o;
-    return this.name == a2.name;
+    return ((a2 != null) && (this.name == a2.name));
   }
 }

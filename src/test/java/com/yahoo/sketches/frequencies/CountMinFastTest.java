@@ -5,19 +5,19 @@
 
 package com.yahoo.sketches.frequencies;
 
-//import org.testng.annotations.Test;
 import org.testng.Assert;
-import java.lang.Math;
+import org.testng.annotations.Test;
 
 /**
  * Tests CountMinFast class
- * 
+ *
  * @author Justin8712
- * 
+ *
  */
 public class CountMinFastTest {
 
-  //@Test(expectedExceptions = IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
     double eps = 1.0 / size;
@@ -25,7 +25,7 @@ public class CountMinFastTest {
     CountMinFast countmin = new CountMinFast(eps, delta);
     Assert.assertNotNull(countmin);
     // Should throw exception
-    countmin = new CountMinFast(-134, delta);
+    new CountMinFast(-134, delta);
   }
 
   //@Test

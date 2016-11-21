@@ -5,25 +5,25 @@
 
 package com.yahoo.sketches.frequencies;
 
-//import org.testng.annotations.Test;
 import org.testng.Assert;
-import java.lang.Math;
+import org.testng.annotations.Test;
 
 /**
  * Tests FrequentItems class
- * 
+ *
  * @author Edo Liberty, Justin Thaler
- * 
+ *
  */
 public class FrequentItemsTest {
 
-  //@Test(expectedExceptions = IllegalArgumentException.class)
+  @SuppressWarnings("unused")
+  @Test(expectedExceptions = IllegalArgumentException.class)
   public void construct() {
     int size = 100;
     FrequentItems frequentItems = new FrequentItems(size);
     Assert.assertNotNull(frequentItems);
     // Should throw exception
-    frequentItems = new FrequentItems(-134);
+    new FrequentItems(-134);
   }
 
   //@Test
@@ -148,20 +148,20 @@ public class FrequentItemsTest {
 
 
   //@Test //run only from command line
-  public void stressTestUpdateTime() { 
-    int n = 1000; 
-    int maxSize = 1000; 
-    FrequentItems frequentItems = new FrequentItems(maxSize); 
-    double prob = 1.0/n; 
-    final long startTime = System.currentTimeMillis(); 
-    for (int i=0; i<n; i++) { 
+  public void stressTestUpdateTime() {
+    int n = 1000;
+    int maxSize = 1000;
+    FrequentItems frequentItems = new FrequentItems(maxSize);
+    double prob = 1.0/n;
+    final long startTime = System.currentTimeMillis();
+    for (int i=0; i<n; i++) {
       long key = randomGeometricDist(prob);
-      frequentItems.update(key); 
-      } 
-    final long endTime = System.currentTimeMillis(); 
-    double timePerUpdate = (double)(endTime-startTime)/(double)n; 
-    System.out.println("Amortized time per update: " + timePerUpdate); 
-    Assert.assertTrue(timePerUpdate < 10E-3); 
+      frequentItems.update(key);
+      }
+    final long endTime = System.currentTimeMillis();
+    double timePerUpdate = (double)(endTime-startTime)/(double)n;
+    System.out.println("Amortized time per update: " + timePerUpdate);
+    Assert.assertTrue(timePerUpdate < 10E-3);
   }
 
 

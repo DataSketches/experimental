@@ -5,32 +5,42 @@
 
 package com.yahoo.sketches.experiments;
 
-import com.yahoo.sketches.hashmaps.*;
+import com.yahoo.sketches.hashmaps.HashMap;
+import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
+import com.yahoo.sketches.hashmaps.HashMapLinearProbingWithRebuilds;
+import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
+import com.yahoo.sketches.hashmaps.HashMapReverseEfficientOneArray;
+import com.yahoo.sketches.hashmaps.HashMapRobinHood;
+import com.yahoo.sketches.hashmaps.HashMapTrove;
+import com.yahoo.sketches.hashmaps.HashMapTroveRebuilds;
+import com.yahoo.sketches.hashmaps.HashMapWithEfficientDeletes;
+import com.yahoo.sketches.hashmaps.HashMapWithImplicitDeletes;
 
 public class StressTestHashMap {
   final static int NUM_HASHMAP_CLASSES = 9;
   final static int NUM_STREAM_TYPES = 5;
-  
-  public static void main(String[] args) {
+
+  public static void main(final String[] args) {
       stress();
   }
-  
+
   private static void stress() {
     for (int capacity = 2 << 5; capacity < 2 << 24; capacity *= 2) {
       for (int s = 0; s < NUM_STREAM_TYPES; s++) {
         for (int h = 0; h < NUM_HASHMAP_CLASSES; h++) {
-          HashMap hashmap = hashMapFactory(capacity, h);
-          long[] stream = streamFactory(s);
-          long timePerAdjust = timeOneHashMap(hashmap, stream);
-          System.out.format("%s\t%s\t%d\t%d\n", hashmap.getClass().getSimpleName(), streamNames()[s], capacity, timePerAdjust);
-	}
+          final HashMap hashmap = hashMapFactory(capacity, h);
+          final long[] stream = streamFactory(s);
+          final long timePerAdjust = timeOneHashMap(hashmap, stream);
+          System.out.format("%s\t%s\t%d\t%d\n",
+              hashmap.getClass().getSimpleName(), streamNames()[s], capacity, timePerAdjust);
+        }
       }
     }
   }
 
-  private static long timeOneHashMap(HashMap hashmap, long[] keys) {
+  private static long timeOneHashMap(final HashMap hashmap, final long[] keys) {
     final long startTime = System.nanoTime();
-    int hashmapCapacity = hashmap.getCapacity();
+    final int hashmapCapacity = hashmap.getCapacity();
     for (long key: keys) {
       hashmap.adjust(key, 1);
       if (hashmap.getSize() >= hashmapCapacity) {
@@ -42,7 +52,7 @@ public class StressTestHashMap {
     return (endTime - startTime) / keys.length;
   }
 
-  static private HashMap hashMapFactory(int capacity, int i) {
+  static private HashMap hashMapFactory(final int capacity, final int i) {
     switch (i) {
       case 0:
         return new HashMapTrove(capacity);
@@ -65,15 +75,15 @@ public class StressTestHashMap {
     }
     return null;
   }
-  
-  static private String[] streamNames(){
+
+  static private String[] streamNames() {
       return new String[]{"uniform","emails","exponential","planted","zipfian"};
   }
-  
-  static private long[] streamFactory(int s) {
-    try{
+
+  static private long[] streamFactory(final int s) {
+    try {
       return StreamHandler.readLongsFromFile("data/" + streamNames()[s] + ".csv");
-    } catch (Exception e){
+    } catch (final Exception e) {
       e.printStackTrace();
     }
     return null;

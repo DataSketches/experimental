@@ -56,7 +56,7 @@ package com.yahoo.sketches.quantiles;
  * in memory (assuming that each bucket is allowed to retain 15 buffers).</p>
  *
  * <p> [TODO: we might want to modify sp_replace so that it simply discards 
- *  any buffer of length > 2048 (or some other value). That way there would 
+ *  any buffer of length greater than 2048 (or some other value). That way there would
  *  be an absolute limit on the memory consumption of the pool. On the
  *  other hand, forcing the Garbage Collector to deal with those buffers 
  *  would induce a different kind of memory cost that might be even worse.]</p>

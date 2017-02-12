@@ -7,11 +7,11 @@ package com.yahoo.memory2;
 
 import com.yahoo.memory.MemoryRequest;
 
-class DirectR extends Memory {
+public class DirectW extends MemoryW {
   final long nativeBaseOffset_;
   MemoryRequest memReq_;
 
-  DirectR(final long nativeBaseOffset, final long arrayOffset, final long capacity,
+  DirectW(final long nativeBaseOffset, final long arrayOffset, final long capacity,
       final MemoryRequest memReq) {
     super(nativeBaseOffset + arrayOffset, arrayOffset, capacity);
     nativeBaseOffset_ = nativeBaseOffset;
@@ -22,4 +22,5 @@ class DirectR extends Memory {
   public void freeMemory() {
     memReq_ = null;
   }
+
 }

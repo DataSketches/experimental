@@ -28,9 +28,8 @@ public class Memory extends BaseMemory {
     return MemoryDR.allocate(capacityBytes, memReq);
   }
 
-  public static Memory allocateDirectWritable(final long capacityBytes) {
-    //-> MemoryDW
-    return null;
+  public static Memory allocateDirectWritable(final long capacityBytes, final MemoryRequest memReq) {
+    return MemoryDW.allocate(capacityBytes, memReq);
   }
 
   public static Memory allocateHeapReadOnly(final long capacityBytes) {
@@ -94,6 +93,16 @@ public class Memory extends BaseMemory {
   public long getLong(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity_);
     return unsafe.getLong(null, cumBaseOffset_ + offsetBytes);
+  }
+
+  //all the write methods throw exceptions here
+  public void putLong(final long offsetBytes, final long value) {
+    throw new UnsupportedOperationException("Write unsupported");
+  }
+
+  @Override
+  public void freeMemory() {
+    super.freeMemory();
   }
 
 }

@@ -15,4 +15,6 @@ class BaseMemory {
     arrayOffset_ = arrayOffset;
     capacity_ = capacity;
   }
+
+  void freeMemory() {}
 }

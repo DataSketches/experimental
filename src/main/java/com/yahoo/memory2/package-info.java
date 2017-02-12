@@ -2,7 +2,7 @@
 BaseMemory // Thought abstraction
 
   public Memory //has "absolute" Read-Only methods and launches the rest using factory methods
-      DirectR // Thought abstraction.
+      DirectR // Thought abstraction. has free
           MemoryDR   //Requires AutoClosable and Cleaner
           MemoryBBDR
           MapDR      //Requires AutoClosable and Cleaner
@@ -11,7 +11,7 @@ BaseMemory // Thought abstraction
           MemoryBBHR
 
       MemoryW //has the "absolute" W methods
-          DirectW // Thought abstraction.
+          DirectW // Thought abstraction. has free
               MemoryDW   //Requires AutoClosable and Cleaner
               MemoryBBDW
               MapDW      //Requires AutoClosable and Cleaner

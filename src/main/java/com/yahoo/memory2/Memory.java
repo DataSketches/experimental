@@ -5,9 +5,16 @@
 
 package com.yahoo.memory2;
 
+import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_INDEX_SCALE;
+import static com.yahoo.memory.UnsafeUtil.assertBounds;
+import static com.yahoo.memory.UnsafeUtil.unsafe;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 
+import com.yahoo.memory.MemoryRequest;
+
+//has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
 public abstract class Memory extends BaseMemory {
 
@@ -17,9 +24,8 @@ public abstract class Memory extends BaseMemory {
 
   //Allocations using native memory and heap
 
-  public static Memory allocateDirectReadOnly(final long capacityBytes) {
-    //-> MemoryDR
-    return null;
+  public static Memory allocateDirectReadOnly(final long capacityBytes, MemoryRequest memReq) {
+    return MemoryDR.allocate(capacityBytes, memReq);
   }
 
   public static Memory allocateDirectWritable(final long capacityBytes) {
@@ -56,8 +62,8 @@ public abstract class Memory extends BaseMemory {
    * @return blah
    */
   public static Memory wrapWritable(final ByteBuffer bb) { //could end up RO or W
-    //if BB is RO Direct -> MemoryBBDR
-    //if BB is RO Heap -> MemoryBBHR
+    //if BB is RO Direct -> MemoryBBDR //throws exception at runtime
+    //if BB is RO Heap -> MemoryBBHR  //throws exception at runtime
     //if BB is W Direct -> MemoryBBDW
     //if BB is W Heap -> MemoryBBHW
     return null;
@@ -85,6 +91,9 @@ public abstract class Memory extends BaseMemory {
   }
 
   //all the read methods
-  public abstract long getLong(final long offsetBytes);
+  public long getLong(final long offsetBytes) {
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity_);
+    return unsafe.getLong(null, cumBaseOffset_ + offsetBytes);
+  }
 
 }

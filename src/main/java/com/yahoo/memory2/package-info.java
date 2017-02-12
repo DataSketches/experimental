@@ -27,7 +27,7 @@ BaseMemory // Thought abstraction
           MapPDR.       //Requires AutoClosable and Cleaner
       HeapPPR // Thought abstraction
           MemoryPHR
-          ByteBufPHR
+          MemoryBBPHR
 
       MemoryPW //positional W methods
           DirectPW // Thought abstraction.

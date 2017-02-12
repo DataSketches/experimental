@@ -11,7 +11,7 @@ import com.yahoo.memory.MemoryRequest;
 
 import sun.misc.Cleaner;
 
-public final class MemoryDR extends DirectR implements AutoCloseable {
+final class MemoryDR extends DirectR implements AutoCloseable {
   private final Cleaner cleaner_;
 
   /**

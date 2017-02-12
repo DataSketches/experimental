@@ -16,7 +16,7 @@ import com.yahoo.memory.MemoryRequest;
 
 //has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
-public abstract class Memory extends BaseMemory {
+public class Memory extends BaseMemory {
 
   Memory(final long cumBaseOffset, final long arrayOffset, final long capacity) {
     super(cumBaseOffset, arrayOffset, capacity);
@@ -24,7 +24,7 @@ public abstract class Memory extends BaseMemory {
 
   //Allocations using native memory and heap
 
-  public static Memory allocateDirectReadOnly(final long capacityBytes, MemoryRequest memReq) {
+  public static Memory allocateDirectReadOnly(final long capacityBytes, final MemoryRequest memReq) {
     return MemoryDR.allocate(capacityBytes, memReq);
   }
 

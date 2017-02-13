@@ -7,20 +7,19 @@ package com.yahoo.memory2;
 
 import com.yahoo.memory.MemoryRequest;
 
-public class DirectW extends MemoryWritable {
-  final long nativeBaseOffset_;
-  MemoryRequest memReq_;
+class DirectW extends MemoryWritable {
+  long nativeBaseOffset;
+
 
   DirectW(final long nativeBaseOffset, final long arrayOffset, final long capacity,
       final MemoryRequest memReq) {
-    super(nativeBaseOffset + arrayOffset, arrayOffset, capacity);
-    nativeBaseOffset_ = nativeBaseOffset;
-    memReq_ = memReq;
+    super(nativeBaseOffset + arrayOffset, arrayOffset, capacity, memReq);
+    this.nativeBaseOffset = nativeBaseOffset;
   }
 
   @Override
   public void freeMemory() {
-    memReq_ = null;
+    nativeBaseOffset = 0L;
   }
 
 }

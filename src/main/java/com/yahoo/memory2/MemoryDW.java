@@ -26,7 +26,7 @@ final class MemoryDW extends DirectW implements AutoCloseable {
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
-  static MemoryWritable allocate(final long capacity, final MemoryRequest memReq) {
+  static MemoryWritable allocDirect(final long capacity, final MemoryRequest memReq) {
     final long nativeBaseOffset = unsafe.allocateMemory(capacity);
     return new MemoryDW(nativeBaseOffset, 0L, capacity, memReq);
   }

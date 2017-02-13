@@ -5,21 +5,16 @@
 
 package com.yahoo.memory2;
 
-import com.yahoo.memory.MemoryRequest;
-
 class DirectR extends Memory {
-  final long nativeBaseOffset_;
-  MemoryRequest memReq_;
+  long nativeBaseOffset_;
 
-  DirectR(final long nativeBaseOffset, final long arrayOffset, final long capacity,
-      final MemoryRequest memReq) {
+  DirectR(final long nativeBaseOffset, final long arrayOffset, final long capacity) {
     super(nativeBaseOffset + arrayOffset, arrayOffset, capacity);
     nativeBaseOffset_ = nativeBaseOffset;
-    memReq_ = memReq;
   }
 
   @Override
   public void freeMemory() {
-    memReq_ = null;
+    nativeBaseOffset_ = 0L;
   }
 }

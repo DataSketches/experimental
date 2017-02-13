@@ -7,8 +7,6 @@ package com.yahoo.memory2;
 
 import static com.yahoo.memory.UnsafeUtil.unsafe;
 
-import com.yahoo.memory.MemoryRequest;
-
 import sun.misc.Cleaner;
 
 final class MemoryDR extends DirectR implements AutoCloseable {
@@ -20,15 +18,14 @@ final class MemoryDR extends DirectR implements AutoCloseable {
    * @param capacity blah
    * @param memReq blah
    */
-  private MemoryDR(final long nativeBaseOffset, final long arrayOffset, final long capacity,
-      final MemoryRequest memReq) {
-    super(nativeBaseOffset, arrayOffset, capacity, memReq);
+  private MemoryDR(final long nativeBaseOffset, final long arrayOffset, final long capacity) {
+    super(nativeBaseOffset, arrayOffset, capacity);
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
-  static Memory allocate(final long capacity, final MemoryRequest memReq) {
+  static Memory allocDirect(final long capacity) {
     final long nativeBaseOffset = unsafe.allocateMemory(capacity);
-    return new MemoryDR(nativeBaseOffset, 0L, capacity, memReq);
+    return new MemoryDR(nativeBaseOffset, 0L, capacity);
   }
 
   @Override

@@ -6,15 +6,26 @@
 package com.yahoo.memory2;
 
 class BaseMemory {
-  final long cumBaseOffset_;
-  final long arrayOffset_;
-  final long capacity_;
+  private final long cumBaseOffset;
+  private long arrayOffset;
+  private final long capacity;
 
   BaseMemory(final long cumBaseOffset, final long arrayOffset, final long capacity) {
-    cumBaseOffset_ = cumBaseOffset;
-    arrayOffset_ = arrayOffset;
-    capacity_ = capacity;
+    this.cumBaseOffset = cumBaseOffset;
+    this.arrayOffset = arrayOffset;
+    this.capacity = capacity;
   }
 
-  void freeMemory() {}
+  long cumBaseOffset() {
+    return cumBaseOffset;
+  }
+
+  //used for ByteBuffer slices and Memory Regions
+  long arrayOffset() {
+    return arrayOffset;
+  }
+
+  long capacity() {
+    return capacity;
+  }
 }

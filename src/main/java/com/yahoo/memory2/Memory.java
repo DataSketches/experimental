@@ -12,8 +12,6 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-import com.yahoo.memory.MemoryRequest;
-
 //has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
 public class Memory extends BaseMemory {
@@ -24,8 +22,8 @@ public class Memory extends BaseMemory {
 
   //Allocations using native memory and heap
 
-  public static Memory allocateDirect(final long capacityBytes, final MemoryRequest memReq) {
-    return MemoryDR.allocate(capacityBytes, memReq);
+  public static Memory allocateDirect(final long capacityBytes) {
+    return MemoryDR.allocDirect(capacityBytes);
   }
 
   public static Memory allocate(final long capacityBytes) {
@@ -39,8 +37,6 @@ public class Memory extends BaseMemory {
     //-> MemoryHR.  Wraps the given primitive array
     return null;
   }
-
-
 
   //ByteBuffer
 
@@ -63,16 +59,18 @@ public class Memory extends BaseMemory {
   //Primitive Read methods 8 of them
 
   public long getLong(final long offsetBytes) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity_);
-    return unsafe.getLong(null, cumBaseOffset_ + offsetBytes);
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity());
+    return unsafe.getLong(null, cumBaseOffset() + offsetBytes);
   }
 
   //Plus some convenience read methods not listed
   //isDirect, etc.
 
-  @Override
+  /**
+   * Optional freeMemory blah, blah
+   */
   public void freeMemory() {
-    super.freeMemory();
+    //nothing to free here but must be public and visible.
   }
 
 }

@@ -16,23 +16,26 @@ import com.yahoo.memory.MemoryRequest;
 
 @SuppressWarnings("unused")
 public class MemoryWritable extends BaseMemory {
+  private MemoryRequest memReq = null;
 
   /**
    * @param cumBaseOffset blah
    * @param arrayOffset blah
    * @param capacity blah
    */
-  MemoryWritable(final long cumBaseOffset, final long arrayOffset, final long capacity) {
+  MemoryWritable(final long cumBaseOffset, final long arrayOffset, final long capacity,
+      final MemoryRequest memReq) {
     super(cumBaseOffset, arrayOffset, capacity);
+    this.memReq = memReq;
   }
 
   //Allocations using native memory and heap
 
   public static MemoryWritable allocateDirect(final long capacityBytes, final MemoryRequest memReq) {
-    return MemoryDW.allocate(capacityBytes, memReq);
+    return MemoryDW.allocDirect(capacityBytes, memReq);
   }
 
-  public static MemoryWritable allocate(final long capacityBytes) {
+  public static MemoryWritable allocate(final long capacityBytes, final MemoryRequest memReq) {
     //-> MemoryHW.  Allocates a heap byte[] for you.
     return null;
   }
@@ -69,21 +72,27 @@ public class MemoryWritable extends BaseMemory {
   //Primitive R/W methods 8 of each
 
   public long getLong(final long offsetBytes) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity_);
-    return unsafe.getLong(null, cumBaseOffset_ + offsetBytes);
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity());
+    return unsafe.getLong(null, cumBaseOffset() + offsetBytes);
   }
 
   public void putLong(final long offsetBytes, final long value) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity_);
-    unsafe.putLong(null, cumBaseOffset_ + offsetBytes, value);
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity());
+    unsafe.putLong(null, cumBaseOffset() + offsetBytes, value);
   }
 
   //Plus a number of convenience write methods not listed
-  // e.g., clean, fill, etc.
+  // e.g., clean, fill, MemoryRequest, etc.
 
-  @Override
+  public MemoryRequest getMemoryRequest() {
+    return memReq;
+  }
+
+  /**
+   * Optional freeMemory blah, blah
+   */
   public void freeMemory() {
-    super.freeMemory();
+    memReq = null;
   }
 
 }

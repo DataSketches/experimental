@@ -13,7 +13,7 @@ public class MemoryDirectTest {
   @Test
   public void checkDirectRoundTrip() {
     int n = 1024; //longs
-    MemoryWritable mem = MemoryWritable.allocateDirect(n * 8, null);
+    WritableMemory mem = WritableMemory.allocateDirect(n * 8, null);
     for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);

@@ -12,10 +12,8 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-import com.yahoo.memory.MemoryRequest;
-
 @SuppressWarnings("unused")
-public class MemoryWritable extends BaseMemory {
+public class WritableMemory extends BaseMemory {
   private MemoryRequest memReq = null;
 
   /**
@@ -23,7 +21,7 @@ public class MemoryWritable extends BaseMemory {
    * @param arrayOffset blah
    * @param capacity blah
    */
-  MemoryWritable(final long cumBaseOffset, final long arrayOffset, final long capacity,
+  WritableMemory(final long cumBaseOffset, final long arrayOffset, final long capacity,
       final MemoryRequest memReq) {
     super(cumBaseOffset, arrayOffset, capacity);
     this.memReq = memReq;
@@ -31,18 +29,21 @@ public class MemoryWritable extends BaseMemory {
 
   //Allocations using native memory and heap
 
-  public static MemoryWritable allocateDirect(final long capacityBytes, final MemoryRequest memReq) {
+  //ALLOCATE DIRECT
+  public static WritableMemory allocateDirect(final long capacityBytes, final MemoryRequest memReq) {
     return MemoryDW.allocDirect(capacityBytes, memReq);
   }
 
-  public static MemoryWritable allocate(final long capacityBytes, final MemoryRequest memReq) {
+  //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
+  public static WritableMemory allocate(final long capacityBytes, final MemoryRequest memReq) {
     //-> MemoryHW.  Allocates a heap byte[] for you.
     return null;
   }
 
+  //ALLOCATE HEAP VIA PRIMITIVE ARRAYS (8 of these)
   //Wraps a given primitive array (8 of these each)
 
-  public static MemoryWritable wrap(final byte[] arr) {
+  public static WritableMemory wrap(final byte[] arr) {
     //-> MemoryHW  Wraps the given primitive array
     return null;
   }
@@ -53,7 +54,7 @@ public class MemoryWritable extends BaseMemory {
    * @param bb blah
    * @return blah
    */
-  public static MemoryWritable wrap(final ByteBuffer bb) { //could end up RO or W
+  public static WritableMemory wrap(final ByteBuffer bb) { //could end up RO or W
     //if BB is RO Direct -> MemoryBBDR //throws exception at runtime
     //if BB is RO Heap -> MemoryBBHR  //throws exception at runtime
     //if BB is W Direct -> MemoryBBDW
@@ -63,7 +64,7 @@ public class MemoryWritable extends BaseMemory {
 
   //Map
 
-  public static MemoryWritable mapWritable(final File file, final long offsetBytes,
+  public static WritableMemory mapWritable(final File file, final long offsetBytes,
       final long capacityBytes) {
     //-> MapDW
     return null;

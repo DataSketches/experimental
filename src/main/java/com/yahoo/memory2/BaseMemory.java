@@ -16,16 +16,16 @@ class BaseMemory {
     this.capacity = capacity;
   }
 
-  long cumBaseOffset() {
+  final long cumBaseOffset() {
     return cumBaseOffset;
   }
 
   //used for ByteBuffer slices and Memory Regions
-  long arrayOffset() {
+  final long arrayOffset() {
     return arrayOffset;
   }
 
-  long capacity() {
+  final long capacity() {
     return capacity;
   }
 }

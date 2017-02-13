@@ -5,12 +5,13 @@
 
 package com.yahoo.memory2;
 
-class Heap extends BaseMemory {
+class HeapW extends WritableMemory {
   final Object memObj_;
   final long objectOffset_;
 
-  Heap(final Object memObj, final long objectOffset, final long arrayOffset, final long capacity) {
-    super(objectOffset + arrayOffset, arrayOffset, capacity);
+  HeapW(final Object memObj, final long objectOffset, final long arrayOffset, final long capacity,
+      final MemoryRequest memReq) {
+    super(objectOffset + arrayOffset, arrayOffset, capacity, memReq);
     memObj_ = memObj;
     objectOffset_ = objectOffset;
   }

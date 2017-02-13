@@ -7,8 +7,6 @@ package com.yahoo.memory2;
 
 import static com.yahoo.memory.UnsafeUtil.unsafe;
 
-import com.yahoo.memory.MemoryRequest;
-
 import sun.misc.Cleaner;
 
 final class MemoryDW extends DirectW implements AutoCloseable {
@@ -26,7 +24,7 @@ final class MemoryDW extends DirectW implements AutoCloseable {
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
-  static MemoryWritable allocDirect(final long capacity, final MemoryRequest memReq) {
+  static WritableMemory allocDirect(final long capacity, final MemoryRequest memReq) {
     final long nativeBaseOffset = unsafe.allocateMemory(capacity);
     return new MemoryDW(nativeBaseOffset, 0L, capacity, memReq);
   }

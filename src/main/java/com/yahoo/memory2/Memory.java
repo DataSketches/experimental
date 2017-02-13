@@ -24,35 +24,23 @@ public class Memory extends BaseMemory {
 
   //Allocations using native memory and heap
 
-  public static Memory allocateDirectReadOnly(final long capacityBytes, final MemoryRequest memReq) {
+  public static Memory allocateDirect(final long capacityBytes, final MemoryRequest memReq) {
     return MemoryDR.allocate(capacityBytes, memReq);
   }
 
-  public static Memory allocateDirectWritable(final long capacityBytes, final MemoryRequest memReq) {
-    return MemoryDW.allocate(capacityBytes, memReq);
-  }
-
-  public static Memory allocateHeapReadOnly(final long capacityBytes) {
+  public static Memory allocate(final long capacityBytes) {
     //-> MemoryHR.  Allocates a heap byte[] for you.
     return null;
   }
 
-  public static Memory allocateHeapWritable(final long capacityBytes) {
-    //-> MemoryHW.  Allocates a heap byte[] for you.
-    return null;
-  }
+  //Wraps a given primitive array (8 of these)
 
-  //Wraps a given primitive array (8 of these each)
-
-  public static Memory wrapReadOnly(final byte[] arr) {
+  public static Memory wrap(final byte[] arr) {
     //-> MemoryHR.  Wraps the given primitive array
     return null;
   }
 
-  public static Memory wrapWritable(final byte[] arr) {
-    //-> MemoryHW  Wraps the given primitive array
-    return null;
-  }
+
 
   //ByteBuffer
 
@@ -60,45 +48,27 @@ public class Memory extends BaseMemory {
    * @param bb blah
    * @return blah
    */
-  public static Memory wrapWritable(final ByteBuffer bb) { //could end up RO or W
-    //if BB is RO Direct -> MemoryBBDR //throws exception at runtime
-    //if BB is RO Heap -> MemoryBBHR  //throws exception at runtime
-    //if BB is W Direct -> MemoryBBDW
-    //if BB is W Heap -> MemoryBBHW
-    return null;
-  }
-
-  /**
-   * @param bb blah
-   * @return blah
-   */
-  public static Memory wrapReadOnly(final ByteBuffer bb) { //only results in RO
+  public static Memory wrap(final ByteBuffer bb) {
     //if BB is W or RO Direct -> MemoryBBDR
     //if BB is W or RO Heap -> MemoryBBHR
     return null;
   }
 
-  public static Memory mapReadOnly(final File file, final long offsetBytes,
+  public static Memory map(final File file, final long offsetBytes,
       final long capacityBytes) {
     //-> MapDR
     return null;
   }
 
-  public static Memory mapWritable(final File file, final long offsetBytes, final long capacityBytes) {
-    //-> MapDW
-    return null;
-  }
+  //Primitive Read methods 8 of them
 
-  //all the read methods
   public long getLong(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity_);
     return unsafe.getLong(null, cumBaseOffset_ + offsetBytes);
   }
 
-  //all the write methods throw exceptions here
-  public void putLong(final long offsetBytes, final long value) {
-    throw new UnsupportedOperationException("Write unsupported");
-  }
+  //Plus some convenience read methods not listed
+  //isDirect, etc.
 
   @Override
   public void freeMemory() {

@@ -7,7 +7,7 @@ package com.yahoo.memory2;
 
 import com.yahoo.memory.MemoryRequest;
 
-public class DirectW extends MemoryW {
+public class DirectW extends MemoryWritable {
   final long nativeBaseOffset_;
   MemoryRequest memReq_;
 

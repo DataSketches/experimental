@@ -1,41 +1,40 @@
 /*
-BaseMemory // Thought abstraction
+BaseMemory
 
-  public Memory //has "absolute" Read-Only methods and launches the rest using factory methods
-      DirectR // Thought abstraction. has free
+  public Memory //has "absolute" Read-Only methods
+      DirectR // has free
           MemoryDR   //Requires AutoClosable and Cleaner
           MemoryBBDR
           MapDR      //Requires AutoClosable and Cleaner
-      HeapR // Thought abstraction
+      HeapR
           MemoryHR
           MemoryBBHR
 
-      MemoryW //has the "absolute" W methods
-          DirectW // Thought abstraction. has free
-              MemoryDW   //Requires AutoClosable and Cleaner
-              MemoryBBDW
-              MapDW      //Requires AutoClosable and Cleaner
-          HeapW // Thought abstraction
-              MemoryHW
-              MemoryBBHW
+  public MemoryWritable //has the "absolute" W methods
+      DirectW // has free
+          MemoryDW   //Requires AutoClosable and Cleaner
+          MemoryBBDW
+          MapDW      //Requires AutoClosable and Cleaner
+      HeapW
+          MemoryHW
+          MemoryBBHW
 
   public PositionalMemory //has positional "Buffer" logic & variables, positional RO methods,
-        //and launches the rest
-      DirectPR // Thought abstraction.
+      DirectPR
           MemoryPDR.    //Requires AutoClosable and Cleaner
           MemoryBBPDR
           MapPDR.       //Requires AutoClosable and Cleaner
-      HeapPPR // Thought abstraction
+      HeapPPR
           MemoryPHR
           MemoryBBPHR
 
-      MemoryPW //positional W methods
-          DirectPW // Thought abstraction.
-              MemoryPDW.   //Requires AutoClosable and Cleaner
-              MemroyBBPDW
-              MapPDW.      //Requires AutoClosable and Cleaner
-          HeapPW // Thought abstraction
-              MemoryPHW
-              MemoryBBPHW
+  public PositionalMemoryWritable //positional W methods
+      DirectPW
+          MemoryPDW.   //Requires AutoClosable and Cleaner
+          MemroyBBPDW
+          MapPDW.      //Requires AutoClosable and Cleaner
+      HeapPW
+          MemoryPHW
+          MemoryBBPHW
 */
 package com.yahoo.memory2;

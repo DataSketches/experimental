@@ -14,7 +14,7 @@ public abstract class Memory {
 
   //ALLOCATE DIRECT
   public static Memory allocateDirect(final long capacity) {
-    return MemoryDR.allocDirect(capacity);
+    return ReadOnlyDirect.allocDirect(capacity);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY

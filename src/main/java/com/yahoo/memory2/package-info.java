@@ -2,18 +2,17 @@
 
   public Memory //has "absolute" Read-Only methods
     MemoryImpl
-          MemoryDR   //Requires AutoClosable and Cleaner
-          MemoryBBDR
-          MapDR      //Requires AutoClosable and Cleaner
-          MemoryHR
-          MemoryBBHR
+          ReadOnlyDirect    //Requires AutoClosable and Cleaner
+          ReadOnlyMapDirect //Requires AutoClosable and special Cleaner
+          ReadOnlyBBDirect  //no cleaner
+          ReadOnlyBBHeap    //no cleaner
 
   public WritableMemory //has the "absolute" W methods
     WritableMemoryImpl
-          MemoryDW   //Requires AutoClosable and Cleaner
+          WritableDirect   //Requires AutoClosable and Cleaner
+          WritableMapDirect //Requires AutoClosable and special Cleaner
+          WritableHeap
           MemoryBBDW
-          MapDW      //Requires AutoClosable and Cleaner
-          MemoryHW
           MemoryBBHW
 
   public PositionalMemory //has positional "Buffer" logic & variables, positional RO methods,

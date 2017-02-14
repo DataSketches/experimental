@@ -34,10 +34,13 @@ class MemoryImpl extends Memory {
     this.capacity = capacity;
   }
 
+
+
+
   //Allocations using native memory and heap
 
   public static MemoryImpl allocateDirect(final long capacityBytes) {
-    return MemoryDR.allocDirect(capacityBytes);
+    return ReadOnlyDirect.allocDirect(capacityBytes);
   }
 
   public static MemoryImpl allocate(final long capacityBytes) {
@@ -70,7 +73,7 @@ class MemoryImpl extends Memory {
     return null;
   }
 
-  //Primitive Read methods 8 of them
+  //Primitive Read methods Many of them
 
   @Override
   public long getLong(final long offsetBytes) {

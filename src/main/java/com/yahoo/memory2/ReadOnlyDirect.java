@@ -9,7 +9,7 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 
 import sun.misc.Cleaner;
 
-final class MemoryDR extends MemoryImpl implements AutoCloseable {
+final class ReadOnlyDirect extends MemoryImpl implements AutoCloseable {
   private final Cleaner cleaner_;
 
   /**
@@ -18,14 +18,14 @@ final class MemoryDR extends MemoryImpl implements AutoCloseable {
    * @param capacity blah
    * @param memReq blah
    */
-  private MemoryDR(final long nativeBaseOffset, final long arrayOffset, final long capacity) {
+  private ReadOnlyDirect(final long nativeBaseOffset, final long arrayOffset, final long capacity) {
     super(nativeBaseOffset, null, 0L, arrayOffset, capacity);
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
   static MemoryImpl allocDirect(final long capacity) {
     final long nativeBaseOffset = unsafe.allocateMemory(capacity);
-    return new MemoryDR(nativeBaseOffset, 0L, capacity);
+    return new ReadOnlyDirect(nativeBaseOffset, 0L, capacity);
   }
 
   @Override

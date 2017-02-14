@@ -5,6 +5,7 @@
 
 package com.yahoo.memory2;
 
+import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.assertBounds;
 import static com.yahoo.memory.UnsafeUtil.unsafe;
@@ -37,6 +38,13 @@ class WritableMemoryImpl extends WritableMemory {
     this.memReq = memReq;
   }
 
+  static WritableMemoryImpl allocateArray(
+      final int capacity, final MemoryRequest memReq) {
+    final byte[] memObj = new byte[capacity];
+    return new WritableMemoryImpl(0L, memObj, ARRAY_BYTE_BASE_OFFSET, 0L,
+        capacity, memReq);
+  }
+
 
   //Primitive R/W methods 8 of each
 
@@ -63,6 +71,7 @@ class WritableMemoryImpl extends WritableMemory {
   /**
    * Optional freeMemory blah, blah
    */
+  @Override
   public void freeMemory() {
     memReq = null;
   }

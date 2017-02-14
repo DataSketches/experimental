@@ -15,12 +15,12 @@ public abstract class WritableMemory {
 
   //ALLOCATE DIRECT
   public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
-    return MemoryDW.allocDirect(capacity, memReq);
+    return WritableDirect.allocDirect(capacity, memReq);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
   public static WritableMemory allocate(final int capacity, final MemoryRequest memReq) {
-    return MemoryHW.allocateArray(capacity, memReq);
+    return WritableMemoryImpl.allocateArray(capacity, memReq);
   }
 
   //ALLOCATE HEAP VIA PRIMITIVE ARRAYS (8 of these)

@@ -7,7 +7,6 @@ package com.yahoo.memory2;
 
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_INDEX_SCALE;
-import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_CHAR_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_DOUBLE_INDEX_SCALE;
@@ -21,39 +20,47 @@ import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.assertBounds;
 import static com.yahoo.memory.UnsafeUtil.unsafe;
 
+import java.io.File;
+import java.nio.ByteBuffer;
+
+//has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
-class WritableMemoryImpl extends WritableMemory {
+class MemoryROImpl extends Memory {
   private long nativeBaseOffset;
   private final Object memObj;
   private final long objectOffset;
   private final long cumBaseOffset;
   private long arrayOffset;
   private final long capacity;
-  private MemoryRequest memReq = null;
 
-  /**
-   * @param cumBaseOffset blah
-   * @param arrayOffset blah
-   * @param capacity blah
-   */
-  WritableMemoryImpl(final long nativeBaseOffset, final Object memObj, final long objectOffset,
-      final long arrayOffset, final long capacity, final MemoryRequest memReq) {
+  MemoryROImpl(final long nativeBaseOffset, final Object memObj, final long objectOffset,
+      final long arrayOffset, final long capacity) {
     this.nativeBaseOffset = nativeBaseOffset;
-    this.memObj = memObj;
-    this.objectOffset = objectOffset;
+    this.memObj = null;
+    this.objectOffset = 0;
     this.cumBaseOffset = (memObj == null)
         ? nativeBaseOffset + arrayOffset
         : objectOffset + arrayOffset;
     this.arrayOffset = arrayOffset;
     this.capacity = capacity;
-    this.memReq = memReq;
   }
 
-  static WritableMemoryImpl allocateArray(
-      final int capacity, final MemoryRequest memReq) {
-    final byte[] memObj = new byte[capacity];
-    return new WritableMemoryImpl(0L, memObj, ARRAY_BYTE_BASE_OFFSET, 0L,
-        capacity, memReq);
+  //ByteBuffer
+
+  /**
+   * @param bb blah
+   * @return blah
+   */
+  public static MemoryROImpl wrap(final ByteBuffer bb) {
+    //if BB is W or RO Direct -> MemoryBBDR
+    //if BB is W or RO Heap -> MemoryBBHR
+    return null;
+  }
+
+  public static MemoryROImpl map(final File file, final long offsetBytes,
+      final long capacityBytes) {
+    //-> MapDR
+    return null;
   }
 
   //Primitive Gets
@@ -136,70 +143,16 @@ class WritableMemoryImpl extends WritableMemory {
       copyBytes);
   }
 
-
-
-  //Primitive Puts
-
-  @Override
-  public void putBoolean(final long offsetBytes, final boolean value) {
-    assertBounds(offsetBytes, ARRAY_BOOLEAN_INDEX_SCALE, capacity);
-    unsafe.putBoolean(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  @Override
-  public void putByte(final long offsetBytes, final byte value) {
-    assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
-    unsafe.putByte(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  @Override
-  public void putChar(final long offsetBytes, final char value) {
-    assertBounds(offsetBytes, ARRAY_CHAR_INDEX_SCALE, capacity);
-    unsafe.putChar(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  @Override
-  public void putInt(final long offsetBytes, final int value) {
-    assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
-    unsafe.putInt(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  @Override
-  public void putLong(final long offsetBytes, final long value) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    unsafe.putLong(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  @Override
-  public void putFloat(final long offsetBytes, final float value) {
-    assertBounds(offsetBytes, ARRAY_FLOAT_INDEX_SCALE, capacity);
-    unsafe.putFloat(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  @Override
-  public void putDouble(final long offsetBytes, final double value) {
-    assertBounds(offsetBytes, ARRAY_DOUBLE_INDEX_SCALE, capacity);
-    unsafe.putDouble(memObj, cumBaseOffset + offsetBytes, value);
-  }
-
-  //Primitive Put Arrays
-
-
-
-  //Plus a number of convenience write methods not listed
-  // e.g., clean, fill, MemoryRequest, etc.
-
-  @Override
-  public MemoryRequest getMemoryRequest() {
-    return memReq;
-  }
+  //Plus some convenience read methods not listed
+  //isDirect, etc.
 
   /**
    * Optional freeMemory blah, blah
    */
-  @Override
   public void freeMemory() {
-    memReq = null;
+    //nothing to free here but must be public and visible.
   }
+
+
 
 }

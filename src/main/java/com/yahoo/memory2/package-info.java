@@ -7,7 +7,7 @@
           ReadOnlyBBDirect  //no cleaner
           ReadOnlyBBHeap    //no cleaner
 
-  public WritableMemory //has the "absolute" W methods
+  public WritableMemory //has the "absolute" Writable methods
     WritableMemoryImpl
           WritableDirect   //Requires AutoClosable and Cleaner
           WritableMapDirect //Requires AutoClosable and special Cleaner
@@ -15,19 +15,19 @@
           MemoryBBDW
           MemoryBBHW
 
-  public PositionalMemory //has positional "Buffer" logic & variables, positional RO methods,
+  public PositionalMemory //has positional "Buffer" logic & variables, Read-Only methods,
     PositionalMemoryImpl
           MemoryPDR.    //Requires AutoClosable and Cleaner
           MemoryBBPDR
-          MapPDR.       //Requires AutoClosable and Cleaner
+          MapPDR.       //Requires AutoClosable and special Cleaner
           MemoryPHR
           MemoryBBPHR
 
-  public PositionalMemoryWritable //positional W methods
+  public PositionalMemoryWritable //positional Writable methods
     PositionalWritableMemoryImpl
           MemoryPDW.   //Requires AutoClosable and Cleaner
           MemroyBBPDW
-          MapPDW.      //Requires AutoClosable and Cleaner
+          MapPDW.      //Requires AutoClosable and special Cleaner
           MemoryPHW
           MemoryBBPHW
 */

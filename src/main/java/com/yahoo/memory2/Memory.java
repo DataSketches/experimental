@@ -5,36 +5,28 @@
 
 package com.yahoo.memory2;
 
-import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_INDEX_SCALE;
-import static com.yahoo.memory.UnsafeUtil.assertBounds;
-import static com.yahoo.memory.UnsafeUtil.unsafe;
-
 import java.io.File;
 import java.nio.ByteBuffer;
 
-//has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
-public class Memory extends BaseMemory {
-
-  Memory(final long cumBaseOffset, final long arrayOffset, final long capacity) {
-    super(cumBaseOffset, arrayOffset, capacity);
-  }
-
+public abstract class Memory {
   //Allocations using native memory and heap
 
-  public static Memory allocateDirect(final long capacityBytes) {
-    return MemoryDR.allocDirect(capacityBytes);
+  //ALLOCATE DIRECT
+  public static Memory allocateDirect(final long capacity) {
+    return MemoryDR.allocDirect(capacity);
   }
 
-  public static Memory allocate(final long capacityBytes) {
-    //-> MemoryHR.  Allocates a heap byte[] for you.
-    return null;
-  }
+  //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
+  //  public static Memory allocate(final int capacity) {
+  //    return MemoryHR.allocateArray(capacity, memReq);
+  //  }
 
-  //Wraps a given primitive array (8 of these)
+  //ALLOCATE HEAP VIA PRIMITIVE ARRAYS (8 of these)
+  //Wraps a given primitive array (8 of these each)
 
   public static Memory wrap(final byte[] arr) {
-    //-> MemoryHR.  Wraps the given primitive array
+    //-> MemoryHR  Wraps the given primitive array
     return null;
   }
 
@@ -44,33 +36,26 @@ public class Memory extends BaseMemory {
    * @param bb blah
    * @return blah
    */
-  public static Memory wrap(final ByteBuffer bb) {
-    //if BB is W or RO Direct -> MemoryBBDR
-    //if BB is W or RO Heap -> MemoryBBHR
+  public static Memory wrap(final ByteBuffer bb) { //could end up RO or W
+    //if BB is RO Direct -> MemoryBBDR
+    //if BB is RO Heap -> MemoryBBHR
+    //if BB is W Direct -> MemoryBBDW //OK, methods won't be there to write
+    //if BB is W Heap -> MemoryBBHW //OK, methods won't be there to write
     return null;
   }
 
-  public static Memory map(final File file, final long offsetBytes,
-      final long capacityBytes) {
-    //-> MapDR
+  //Map
+
+  public static Memory mapWritable(final File file, final long offset,
+      final long capacity) {
+    //-> MapDW
     return null;
   }
 
-  //Primitive Read methods 8 of them
+  //Primitive Read methods 8 of each
 
-  public long getLong(final long offsetBytes) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity());
-    return unsafe.getLong(null, cumBaseOffset() + offsetBytes);
-  }
+  public abstract long getLong(final long offsetBytes);
 
-  //Plus some convenience read methods not listed
-  //isDirect, etc.
-
-  /**
-   * Optional freeMemory blah, blah
-   */
-  public void freeMemory() {
-    //nothing to free here but must be public and visible.
-  }
+  //Plus a number of convenience read methods not listed
 
 }

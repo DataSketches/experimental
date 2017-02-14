@@ -23,4 +23,15 @@ public class MemoryDirectTest {
     mem.freeMemory();
   }
 
+  @Test
+  public void checkAutoHeapRoundTrip() {
+    int n = 1024; //longs
+    WritableMemory mem = WritableMemory.allocate(n * 8, null);
+    for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
+    for (int i = 0; i < n; i++) {
+      long v = mem.getLong(i * 8);
+      Assert.assertEquals(v, i);
+    }
+  }
+
 }

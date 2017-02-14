@@ -9,7 +9,7 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 
 import sun.misc.Cleaner;
 
-final class MemoryDW extends DirectW implements AutoCloseable {
+final class MemoryDW extends WritableMemoryImpl implements AutoCloseable {
   private final Cleaner cleaner_;
 
   /**
@@ -20,11 +20,11 @@ final class MemoryDW extends DirectW implements AutoCloseable {
    */
   private MemoryDW(final long nativeBaseOffset, final long arrayOffset, final long capacity,
       final MemoryRequest memReq) {
-    super(nativeBaseOffset, arrayOffset, capacity, memReq);
+    super(nativeBaseOffset, null, 0L, arrayOffset, capacity, memReq);
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
-  static WritableMemory allocDirect(final long capacity, final MemoryRequest memReq) {
+  static WritableMemoryImpl allocDirect(final long capacity, final MemoryRequest memReq) {
     final long nativeBaseOffset = unsafe.allocateMemory(capacity);
     return new MemoryDW(nativeBaseOffset, 0L, capacity, memReq);
   }

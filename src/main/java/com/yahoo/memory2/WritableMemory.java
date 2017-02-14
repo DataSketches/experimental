@@ -5,39 +5,22 @@
 
 package com.yahoo.memory2;
 
-import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_INDEX_SCALE;
-import static com.yahoo.memory.UnsafeUtil.assertBounds;
-import static com.yahoo.memory.UnsafeUtil.unsafe;
-
 import java.io.File;
 import java.nio.ByteBuffer;
 
 @SuppressWarnings("unused")
-public class WritableMemory extends BaseMemory {
-  private MemoryRequest memReq = null;
-
-  /**
-   * @param cumBaseOffset blah
-   * @param arrayOffset blah
-   * @param capacity blah
-   */
-  WritableMemory(final long cumBaseOffset, final long arrayOffset, final long capacity,
-      final MemoryRequest memReq) {
-    super(cumBaseOffset, arrayOffset, capacity);
-    this.memReq = memReq;
-  }
+public abstract class WritableMemory {
 
   //Allocations using native memory and heap
 
   //ALLOCATE DIRECT
-  public static WritableMemory allocateDirect(final long capacityBytes, final MemoryRequest memReq) {
-    return MemoryDW.allocDirect(capacityBytes, memReq);
+  public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
+    return MemoryDW.allocDirect(capacity, memReq);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
-  public static WritableMemory allocate(final long capacityBytes, final MemoryRequest memReq) {
-    //-> MemoryHW.  Allocates a heap byte[] for you.
-    return null;
+  public static WritableMemory allocate(final int capacity, final MemoryRequest memReq) {
+    return MemoryHW.allocateArray(capacity, memReq);
   }
 
   //ALLOCATE HEAP VIA PRIMITIVE ARRAYS (8 of these)
@@ -64,36 +47,25 @@ public class WritableMemory extends BaseMemory {
 
   //Map
 
-  public static WritableMemory mapWritable(final File file, final long offsetBytes,
-      final long capacityBytes) {
+  public static WritableMemory mapWritable(final File file, final long offset,
+      final long capacity) {
     //-> MapDW
     return null;
   }
 
   //Primitive R/W methods 8 of each
 
-  public long getLong(final long offsetBytes) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity());
-    return unsafe.getLong(null, cumBaseOffset() + offsetBytes);
-  }
+  public abstract long getLong(final long offsetBytes);
 
-  public void putLong(final long offsetBytes, final long value) {
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity());
-    unsafe.putLong(null, cumBaseOffset() + offsetBytes, value);
-  }
+  public abstract void putLong(final long offsetBytes, final long value);
 
   //Plus a number of convenience write methods not listed
   // e.g., clean, fill, MemoryRequest, etc.
 
-  public MemoryRequest getMemoryRequest() {
-    return memReq;
-  }
+  public abstract MemoryRequest getMemoryRequest();
 
-  /**
-   * Optional freeMemory blah, blah
-   */
   public void freeMemory() {
-    memReq = null;
+
   }
 
 }

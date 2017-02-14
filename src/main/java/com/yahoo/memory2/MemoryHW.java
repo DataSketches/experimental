@@ -5,11 +5,18 @@
 
 package com.yahoo.memory2;
 
-final class MemoryHW extends HeapW {
+import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_BASE_OFFSET;
+
+final class MemoryHW extends WritableMemoryImpl {
 
   private MemoryHW(final Object memObj, final long objectOffset, final long arrayOffset,
       final long capacity, final MemoryRequest memReq) {
-    super(memObj, objectOffset, arrayOffset, capacity, memReq);
+    super(0L, memObj, objectOffset, arrayOffset, capacity, memReq);
+  }
+
+  static WritableMemoryImpl allocateArray(final int capacity, final MemoryRequest memReq) {
+    final byte[] memObj = new byte[capacity];
+    return new MemoryHW(memObj, ARRAY_BYTE_BASE_OFFSET, 0L, capacity, memReq);
   }
 
 }

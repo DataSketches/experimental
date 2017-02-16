@@ -26,40 +26,50 @@ import java.io.File;
 import java.nio.ByteBuffer;
 
 @SuppressWarnings("unused")
-public abstract class WritableMemory {
+public abstract class WritableMemory extends Memory {
 
-  //ACCESS PRIMITIVE ARRAYS
+  public abstract Memory asReadOnly();
 
-  public static Memory wrap(final boolean[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_BOOLEAN_BASE_OFFSET, 0L, arr.length << BOOLEAN_SHIFT);
+  //ACCESS PRIMITIVE ARRAYS for write
+
+  public static WritableMemory writableWrap(final boolean[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_BOOLEAN_BASE_OFFSET, null, 0L,
+        arr.length << BOOLEAN_SHIFT, null);
   }
 
-  public static Memory wrap(final byte[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_BYTE_BASE_OFFSET, 0L, arr.length << BYTE_SHIFT);
+  public static WritableMemory writableWrap(final byte[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_BYTE_BASE_OFFSET, null, 0L,
+        arr.length << BYTE_SHIFT, null);
   }
 
-  public static Memory wrap(final char[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_CHAR_BASE_OFFSET, 0L, arr.length << CHAR_SHIFT);
+  public static WritableMemory writableWrap(final char[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_CHAR_BASE_OFFSET, null, 0L,
+        arr.length << CHAR_SHIFT, null);
   }
 
-  public static Memory wrap(final short[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_SHORT_BASE_OFFSET, 0L, arr.length << SHORT_SHIFT);
+  public static WritableMemory writableWrap(final short[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_SHORT_BASE_OFFSET, null, 0L,
+        arr.length << SHORT_SHIFT, null);
   }
 
-  public static Memory wrap(final int[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_INT_BASE_OFFSET, 0L, arr.length << INT_SHIFT);
+  public static WritableMemory writableWrap(final int[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_INT_BASE_OFFSET, null, 0L,
+        arr.length << INT_SHIFT, null);
   }
 
-  public static Memory wrap(final long[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_LONG_BASE_OFFSET, 0L, arr.length << LONG_SHIFT);
+  public static WritableMemory writableWrap(final long[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_LONG_BASE_OFFSET, null, 0L,
+        arr.length << LONG_SHIFT, null);
   }
 
-  public static Memory wrap(final float[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_FLOAT_BASE_OFFSET, 0L, arr.length << FLOAT_SHIFT);
+  public static WritableMemory writableWrap(final float[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_FLOAT_BASE_OFFSET, null, 0L,
+        arr.length << FLOAT_SHIFT, null);
   }
 
-  public static Memory wrap(final double[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_DOUBLE_BASE_OFFSET, 0L, arr.length << DOUBLE_SHIFT);
+  public static WritableMemory writableWrap(final double[] arr) {
+    return new WritableMemoryImpl(0L, arr, ARRAY_DOUBLE_BASE_OFFSET, null, 0L,
+        arr.length << DOUBLE_SHIFT, null);
   }
 
 
@@ -67,7 +77,7 @@ public abstract class WritableMemory {
 
   //ALLOCATE DIRECT
   public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
-    return WritableDirect.allocDirect(capacity, memReq);
+    return AllocateDirect.allocDirect(capacity, memReq);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
@@ -78,102 +88,20 @@ public abstract class WritableMemory {
   //ByteBuffer
 
   /**
-   * @param bb blah
+   * @param byteBuf blah
    * @return blah
    */
-  public static WritableMemory wrap(final ByteBuffer bb) { //could end up RO or W
-    //if BB is RO Direct -> MemoryBBDR //throws exception at runtime
-    //if BB is RO Heap -> MemoryBBHR  //throws exception at runtime
-    //if BB is W Direct -> MemoryBBDW
-    //if BB is W Heap -> MemoryBBHW
-    return null;
+  public static WritableMemory writableWrap(final ByteBuffer byteBuf) {
+    return WritableMemoryImpl.writableWrap(byteBuf);
   }
 
   //Map
 
-  public static WritableMemory mapWritable(final File file, final long offset,
+  public static WritableMemory WritableMap(final File file, final long offset,
       final long capacity) {
     //-> MapDW
     return null;
   }
-
-  //Primitive Gets
-
-  /**
-   * Gets the boolean value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the boolean at the given offset
-   */
-  public abstract boolean getBoolean(final long offsetBytes);
-
-  /**
-   * Gets the byte value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the byte at the given offset
-   */
-  public abstract byte getByte(final long offsetBytes);
-
-  /**
-   * Gets the char value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the char at the given offset
-   */
-  public abstract char getChar(final long offsetBytes);
-
-  /**
-   * Gets the short value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the short at the given offset
-   */
-  public abstract short getShort(final long offsetBytes);
-
-  /**
-   * Gets the int value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the int at the given offset
-   */
-  public abstract int getInt(final long offsetBytes);
-
-  /**
-   * Gets the long value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the long at the given offset
-   */
-  public abstract long getLong(final long offsetBytes);
-
-  /**
-   * Gets the float value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the float at the given offset
-   */
-  public abstract float getFloat(final long offsetBytes);
-
-  /**
-   * Gets the double value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @return the double at the given offset
-   */
-  public abstract double getDouble(final long offsetBytes);
-
-  //Primitive Get Arrays
-
-  /**
-   * Gets the boolean array at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param dstArray The preallocated destination array.
-   * @param dstOffset offset in array units
-   * @param length number of array units to transfer
-   */
-  public abstract void getBooleanArray(long offsetBytes, boolean[] dstArray, int dstOffset, int length);
-
-  /**
-   * Gets the long array at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param dstArray The preallocated destination array.
-   * @param dstOffset offset in array units
-   * @param length number of array units to transfer
-   */
-  public abstract void getLongArray(long offsetBytes, long[] dstArray, int dstOffset, int length);
 
   //Primitive Puts
 
@@ -226,6 +154,9 @@ public abstract class WritableMemory {
    */
   public abstract void putDouble(final long offsetBytes, final double value);
 
+  //Primitive Put Arrays
+
+
   //Plus a number of convenience write methods not listed
   // e.g., clean, fill, MemoryRequest, etc.
 
@@ -234,5 +165,4 @@ public abstract class WritableMemory {
   public void freeMemory() {
 
   }
-
 }

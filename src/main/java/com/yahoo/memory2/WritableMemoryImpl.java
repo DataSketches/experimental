@@ -21,40 +21,102 @@ import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.assertBounds;
 import static com.yahoo.memory.UnsafeUtil.unsafe;
 
+import java.nio.ByteBuffer;
+
 @SuppressWarnings("unused")
 class WritableMemoryImpl extends WritableMemory {
-  private long nativeBaseOffset;
-  private final Object memObj;
-  private final long objectOffset;
-  private final long cumBaseOffset;
-  private long arrayOffset;
-  private final long capacity;
-  private MemoryRequest memReq = null;
+  long nativeBaseOffset;
+  final Object memObj;
+  final ByteBuffer byteBuf;
+  final long memObjHeader;
+  final long cumBaseOffset;
+  long regionOffset;
+  final long capacity;
+  MemoryRequest memReq = null;
 
   /**
-   * @param cumBaseOffset blah
-   * @param arrayOffset blah
+   * @param regionOffset blah
    * @param capacity blah
+   * @param cumBaseOffset blah
    */
-  WritableMemoryImpl(final long nativeBaseOffset, final Object memObj, final long objectOffset,
-      final long arrayOffset, final long capacity, final MemoryRequest memReq) {
+  WritableMemoryImpl(final long nativeBaseOffset, final Object memObj, final long memObjHeader,
+      final ByteBuffer byteBuf, final long regionOffset, final long capacity,
+      final MemoryRequest memReq) {
     this.nativeBaseOffset = nativeBaseOffset;
     this.memObj = memObj;
-    this.objectOffset = objectOffset;
+    this.memObjHeader = memObjHeader;
+    this.byteBuf = byteBuf;
+    this.regionOffset = regionOffset;
     this.cumBaseOffset = (memObj == null)
-        ? nativeBaseOffset + arrayOffset
-        : objectOffset + arrayOffset;
-    this.arrayOffset = arrayOffset;
+        ? nativeBaseOffset + regionOffset
+        : memObjHeader + regionOffset;
     this.capacity = capacity;
     this.memReq = memReq;
   }
 
-  static WritableMemoryImpl allocateArray(
-      final int capacity, final MemoryRequest memReq) {
+  static WritableMemoryImpl allocateArray(final int capacity, final MemoryRequest memReq) {
     final byte[] memObj = new byte[capacity];
-    return new WritableMemoryImpl(0L, memObj, ARRAY_BYTE_BASE_OFFSET, 0L,
+    return new WritableMemoryImpl(0L, memObj, ARRAY_BYTE_BASE_OFFSET, null, 0L,
         capacity, memReq);
   }
+
+  @Override
+  public Memory asReadOnly() {
+    return new MemoryROImpl(nativeBaseOffset, memObj, memObjHeader, byteBuf, regionOffset, capacity);
+  }
+
+  //ByteBuffer
+  /**
+   * Provides access to the backing store of the given ByteBuffer.
+   * If the given <i>ByteBuffer</i> is read-only, the returned <i>Memory</i> will also be a
+   * read-only instance.
+   * @param byteBuffer the given <i>ByteBuffer</i>
+   * @return a <i>Memory</i> object
+   */
+  public static WritableMemory writableWrap(final ByteBuffer byteBuffer) {
+    final long nativeBaseAddress;  //includes the slice() offset for direct.
+    final Object memObj;
+    final long memObjHeader;
+    final ByteBuffer byteBuf = byteBuffer;
+    final long regionOffset; //the slice() offset for heap.
+    final long capacity = byteBuffer.capacity();
+
+    final boolean readOnly = byteBuffer.isReadOnly();
+    final boolean direct = byteBuffer.isDirect();
+
+    if (readOnly) {
+      throw new IllegalArgumentException("Provided ByteBuffer is Read-only.");
+    }
+
+    //WRITABLE
+    else {
+
+      //WRITABLE-DIRECT - converted to read only
+      if (direct) {
+        //address() is already adjusted for direct slices, so regionOffset = 0
+        nativeBaseAddress = ((sun.nio.ch.DirectBuffer) byteBuf).address();
+        memObj = null;
+        memObjHeader = 0L;
+        regionOffset = 0L;
+
+        final WritableMemoryImpl nmr = new WritableMemoryImpl(
+            nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity, null);
+        return nmr;
+      }
+
+      //WRITABLE-HEAP
+      nativeBaseAddress = 0L;
+      regionOffset = byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE;
+      memObjHeader = ARRAY_BYTE_BASE_OFFSET;
+      memObj = byteBuf.array();
+
+      final WritableMemoryImpl nmr = new WritableMemoryImpl(
+          nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity, null);
+      return nmr;
+    }
+  }
+
+  //Map
 
   //Primitive Gets
 
@@ -91,7 +153,7 @@ class WritableMemoryImpl extends WritableMemory {
   @Override
   public long getLong(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    return unsafe.getLong(null, cumBaseOffset + offsetBytes);
+    return unsafe.getLong(memObj, cumBaseOffset + offsetBytes);
   }
 
   @Override

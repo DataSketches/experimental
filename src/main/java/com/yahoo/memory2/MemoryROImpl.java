@@ -7,6 +7,7 @@ package com.yahoo.memory2;
 
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_INDEX_SCALE;
+import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_CHAR_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_DOUBLE_INDEX_SCALE;
@@ -21,41 +22,120 @@ import static com.yahoo.memory.UnsafeUtil.assertBounds;
 import static com.yahoo.memory.UnsafeUtil.unsafe;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+
+
 
 //has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
 class MemoryROImpl extends Memory {
-  private long nativeBaseOffset;
-  private final Object memObj;
-  private final long objectOffset;
-  private final long cumBaseOffset;
-  private long arrayOffset;
-  private final long capacity;
+  long nativeBaseOffset;
+  final Object memObj;
+  final long memObjHeader;
+  final ByteBuffer byteBuf;
+  long regionOffset;
+  final long cumBaseOffset;
+  final long capacity;
 
-  MemoryROImpl(final long nativeBaseOffset, final Object memObj, final long objectOffset,
-      final long arrayOffset, final long capacity) {
+  MemoryROImpl(final long nativeBaseOffset, final Object memObj, final long memObjHeader,
+      final ByteBuffer byteBuf, final long regionOffset, final long capacity) {
     this.nativeBaseOffset = nativeBaseOffset;
-    this.memObj = null;
-    this.objectOffset = 0;
+    this.memObj = memObj;
+    this.memObjHeader = memObjHeader;
+    this.byteBuf = byteBuf;
+    this.regionOffset = regionOffset;
     this.cumBaseOffset = (memObj == null)
-        ? nativeBaseOffset + arrayOffset
-        : objectOffset + arrayOffset;
-    this.arrayOffset = arrayOffset;
+        ? nativeBaseOffset + regionOffset
+        : memObjHeader + regionOffset;
     this.capacity = capacity;
   }
 
   //ByteBuffer
-
   /**
-   * @param bb blah
-   * @return blah
+   * Provides access to the backing store of the given ByteBuffer.
+   * If the given <i>ByteBuffer</i> is read-only, the returned <i>Memory</i> will also be a
+   * read-only instance.
+   * @param byteBuffer the given <i>ByteBuffer</i>
+   * @return a <i>Memory</i> object
    */
-  public static MemoryROImpl wrap(final ByteBuffer bb) {
-    //if BB is W or RO Direct -> MemoryBBDR
-    //if BB is W or RO Heap -> MemoryBBHR
-    return null;
+  public static Memory wrap(final ByteBuffer byteBuffer) {
+    final long nativeBaseAddress;  //includes the slice() offset for direct.
+    final Object memObj;
+    final long memObjHeader;
+    final ByteBuffer byteBuf = byteBuffer;
+    final long regionOffset; //includes the slice() offset for heap.
+    final long capacity = byteBuffer.capacity();
+
+    final boolean readOnly = byteBuffer.isReadOnly();
+    final boolean direct = byteBuffer.isDirect();
+
+    if (readOnly) {
+
+      //READ-ONLY DIRECT
+      if (direct) {
+        //address() is already adjusted for direct slices, so regionOffset = 0
+        nativeBaseAddress = ((sun.nio.ch.DirectBuffer) byteBuf).address();
+        memObj = null;
+        memObjHeader = 0L;
+        regionOffset = 0;
+
+        final MemoryROImpl nmr = new MemoryROImpl(
+            nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
+        return nmr;
+      }
+
+      //READ-ONLY HEAP
+      nativeBaseAddress = 0L;
+      memObjHeader = ARRAY_BYTE_BASE_OFFSET;
+      //The messy acquisition of arrayOffset() and array() created from a RO slice()
+      try {
+        Field field = ByteBuffer.class.getDeclaredField("offset");
+        field.setAccessible(true);
+        regionOffset = ((long) field.get(byteBuffer)) * ARRAY_BYTE_INDEX_SCALE;
+
+        field = ByteBuffer.class.getDeclaredField("hb"); //the backing byte[]
+        field.setAccessible(true);
+        memObj = field.get(byteBuffer);
+      }
+      catch (final IllegalAccessException | NoSuchFieldException e) {
+        throw new RuntimeException(
+            "Could not get offset/byteArray from OnHeap ByteBuffer instance: " + e.getClass());
+      }
+
+      final MemoryROImpl nmr = new MemoryROImpl(
+          nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
+      return nmr;
+    }
+
+    //WRITABLE - converted to read only
+    else {
+
+      //WRITABLE-DIRECT
+      if (direct) {
+        //address() is already adjusted for direct slices, so regionOffset = 0
+        nativeBaseAddress = ((sun.nio.ch.DirectBuffer) byteBuf).address();
+        memObj = null;
+        memObjHeader = 0L;
+        regionOffset = 0L;
+
+        final MemoryROImpl nmr = new MemoryROImpl(
+            nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
+        return nmr;
+      }
+
+      //WRITABLE-HEAP
+      nativeBaseAddress = 0L;
+      regionOffset = byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE;
+      memObjHeader = ARRAY_BYTE_BASE_OFFSET;
+      memObj = byteBuf.array();
+
+      final MemoryROImpl nmr = new MemoryROImpl(
+          nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
+      return nmr;
+    }
   }
+
 
   public static MemoryROImpl map(final File file, final long offsetBytes,
       final long capacityBytes) {
@@ -98,7 +178,7 @@ class MemoryROImpl extends Memory {
   @Override
   public long getLong(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    return unsafe.getLong(null, cumBaseOffset + offsetBytes);
+    return unsafe.getLong(memObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
@@ -129,6 +209,7 @@ class MemoryROImpl extends Memory {
       copyBytes);
   }
 
+  //plus 6 more
   @Override
   public void getLongArray(final long offsetBytes, final long[] dstArray, final int dstOffset,
       final int length) {

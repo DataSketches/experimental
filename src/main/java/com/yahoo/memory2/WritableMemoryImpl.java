@@ -62,7 +62,7 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public Memory asReadOnly() {
-    return new MemoryROImpl(nativeBaseOffset, memObj, memObjHeader, byteBuf, regionOffset, capacity);
+    return new MemoryImpl(nativeBaseOffset, memObj, memObjHeader, byteBuf, regionOffset, capacity);
   }
 
   //ByteBuffer

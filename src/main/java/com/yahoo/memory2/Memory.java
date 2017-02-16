@@ -31,35 +31,35 @@ public abstract class Memory {
   //ACCESS PRIMITIVE ARRAYS
 
   public static Memory wrap(final boolean[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_BOOLEAN_BASE_OFFSET, null, 0L, arr.length << BOOLEAN_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_BOOLEAN_BASE_OFFSET, null, 0L, arr.length << BOOLEAN_SHIFT);
   }
 
   public static Memory wrap(final byte[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_BYTE_BASE_OFFSET, null, 0L, arr.length << BYTE_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_BYTE_BASE_OFFSET, null, 0L, arr.length << BYTE_SHIFT);
   }
 
   public static Memory wrap(final char[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_CHAR_BASE_OFFSET, null, 0L, arr.length << CHAR_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_CHAR_BASE_OFFSET, null, 0L, arr.length << CHAR_SHIFT);
   }
 
   public static Memory wrap(final short[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_SHORT_BASE_OFFSET, null, 0L, arr.length << SHORT_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_SHORT_BASE_OFFSET, null, 0L, arr.length << SHORT_SHIFT);
   }
 
   public static Memory wrap(final int[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_INT_BASE_OFFSET, null, 0L, arr.length << INT_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_INT_BASE_OFFSET, null, 0L, arr.length << INT_SHIFT);
   }
 
   public static Memory wrap(final long[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_LONG_BASE_OFFSET, null, 0L, arr.length << LONG_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_LONG_BASE_OFFSET, null, 0L, arr.length << LONG_SHIFT);
   }
 
   public static Memory wrap(final float[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_FLOAT_BASE_OFFSET, null, 0L, arr.length << FLOAT_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_FLOAT_BASE_OFFSET, null, 0L, arr.length << FLOAT_SHIFT);
   }
 
   public static Memory wrap(final double[] arr) {
-    return new MemoryROImpl(0L, arr, ARRAY_DOUBLE_BASE_OFFSET, null, 0L, arr.length << DOUBLE_SHIFT);
+    return new MemoryImpl(0L, arr, ARRAY_DOUBLE_BASE_OFFSET, null, 0L, arr.length << DOUBLE_SHIFT);
   }
 
   //ByteBuffer
@@ -69,7 +69,7 @@ public abstract class Memory {
    * @return blah
    */
   public static Memory wrap(final ByteBuffer byteBuf) {
-    return MemoryROImpl.wrap(byteBuf);
+    return MemoryImpl.wrap(byteBuf);
   }
 
   //Map

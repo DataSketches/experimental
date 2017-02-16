@@ -29,7 +29,7 @@ import java.nio.ByteBuffer;
 
 //has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
-class MemoryROImpl extends Memory {
+class MemoryImpl extends Memory {
   long nativeBaseOffset;
   final Object memObj;
   final long memObjHeader;
@@ -38,7 +38,7 @@ class MemoryROImpl extends Memory {
   final long cumBaseOffset;
   final long capacity;
 
-  MemoryROImpl(final long nativeBaseOffset, final Object memObj, final long memObjHeader,
+  MemoryImpl(final long nativeBaseOffset, final Object memObj, final long memObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity) {
     this.nativeBaseOffset = nativeBaseOffset;
     this.memObj = memObj;
@@ -80,7 +80,7 @@ class MemoryROImpl extends Memory {
         memObjHeader = 0L;
         regionOffset = 0;
 
-        final MemoryROImpl nmr = new MemoryROImpl(
+        final MemoryImpl nmr = new MemoryImpl(
             nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
         return nmr;
       }
@@ -103,7 +103,7 @@ class MemoryROImpl extends Memory {
             "Could not get offset/byteArray from OnHeap ByteBuffer instance: " + e.getClass());
       }
 
-      final MemoryROImpl nmr = new MemoryROImpl(
+      final MemoryImpl nmr = new MemoryImpl(
           nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
       return nmr;
     }
@@ -119,7 +119,7 @@ class MemoryROImpl extends Memory {
         memObjHeader = 0L;
         regionOffset = 0L;
 
-        final MemoryROImpl nmr = new MemoryROImpl(
+        final MemoryImpl nmr = new MemoryImpl(
             nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
         return nmr;
       }
@@ -130,14 +130,14 @@ class MemoryROImpl extends Memory {
       memObjHeader = ARRAY_BYTE_BASE_OFFSET;
       memObj = byteBuf.array();
 
-      final MemoryROImpl nmr = new MemoryROImpl(
+      final MemoryImpl nmr = new MemoryImpl(
           nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity);
       return nmr;
     }
   }
 
 
-  public static MemoryROImpl map(final File file, final long offsetBytes,
+  public static MemoryImpl map(final File file, final long offsetBytes,
       final long capacityBytes) {
     //-> MapDR
     return null;

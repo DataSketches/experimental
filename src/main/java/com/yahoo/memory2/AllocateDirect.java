@@ -39,19 +39,19 @@ final class AllocateDirect extends WritableMemoryImpl implements AutoCloseable {
   }
 
   private static final class Deallocator implements Runnable {
-    private long natBaseAdd;
+    private long myNativeBaseOffset;
 
-    private Deallocator(final long nativeBaseAddress) {
-      assert (nativeBaseAddress != 0);
-      this.natBaseAdd = nativeBaseAddress;
+    private Deallocator(final long nativeBaseOffset) {
+      assert (nativeBaseOffset != 0);
+      this.myNativeBaseOffset = nativeBaseOffset;
     }
 
     @Override
     public void run() {
-      if (natBaseAdd == 0) { // Paranoia
+      if (myNativeBaseOffset == 0) { // Paranoia
         return;
       }
-      unsafe.freeMemory(natBaseAdd);
+      unsafe.freeMemory(myNativeBaseOffset);
     }
   }
 

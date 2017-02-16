@@ -25,18 +25,15 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 
-
-
-//has "absolute" Read-Only methods and launches the rest using factory methods
 @SuppressWarnings("unused")
 class MemoryImpl extends Memory {
   long nativeBaseOffset;
-  final Object memObj;
-  final long memObjHeader;
-  final ByteBuffer byteBuf;
+  Object memObj;
+  long memObjHeader;
+  ByteBuffer byteBuf;
   long regionOffset;
-  final long cumBaseOffset;
-  final long capacity;
+  long cumBaseOffset;
+  long capacity;
 
   MemoryImpl(final long nativeBaseOffset, final Object memObj, final long memObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity) {
@@ -226,14 +223,6 @@ class MemoryImpl extends Memory {
 
   //Plus some convenience read methods not listed
   //isDirect, etc.
-
-  /**
-   * Optional freeMemory blah, blah
-   */
-  public void freeMemory() {
-    //nothing to free here but must be public and visible.
-  }
-
 
 
 }

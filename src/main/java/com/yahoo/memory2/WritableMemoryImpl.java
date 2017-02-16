@@ -23,15 +23,15 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 
 import java.nio.ByteBuffer;
 
-@SuppressWarnings("unused")
+//@SuppressWarnings("unused")
 class WritableMemoryImpl extends WritableMemory {
   long nativeBaseOffset;
-  final Object memObj;
-  final ByteBuffer byteBuf;
-  final long memObjHeader;
-  final long cumBaseOffset;
+  Object memObj;
+  long memObjHeader;
+  ByteBuffer byteBuf;
+  long cumBaseOffset;
   long regionOffset;
-  final long capacity;
+  long capacity;
   MemoryRequest memReq = null;
 
   /**
@@ -261,6 +261,13 @@ class WritableMemoryImpl extends WritableMemory {
    */
   @Override
   public void freeMemory() {
+    nativeBaseOffset = 0L;
+    memObj = null;
+    memObjHeader = 0L;
+    byteBuf = null;
+    cumBaseOffset = 0L;
+    regionOffset = 0L;
+    capacity = 0L;
     memReq = null;
   }
 

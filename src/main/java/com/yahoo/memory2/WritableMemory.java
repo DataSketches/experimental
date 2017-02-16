@@ -162,7 +162,5 @@ public abstract class WritableMemory extends Memory {
 
   public abstract MemoryRequest getMemoryRequest();
 
-  public void freeMemory() {
-
-  }
+  public void freeMemory() {}
 }

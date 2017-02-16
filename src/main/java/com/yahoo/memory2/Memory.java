@@ -24,7 +24,7 @@ import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 
 import java.nio.ByteBuffer;
 
-@SuppressWarnings("unused")
+//@SuppressWarnings("unused")
 public abstract class Memory {
 
 

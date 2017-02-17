@@ -76,56 +76,56 @@ public abstract class Memory {
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the boolean at the given offset
    */
-  public abstract boolean getBoolean(final long offsetBytes);
+  public abstract boolean getBoolean(long offsetBytes);
 
   /**
    * Gets the byte value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the byte at the given offset
    */
-  public abstract byte getByte(final long offsetBytes);
+  public abstract byte getByte(long offsetBytes);
 
   /**
    * Gets the char value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the char at the given offset
    */
-  public abstract char getChar(final long offsetBytes);
+  public abstract char getChar(long offsetBytes);
 
   /**
    * Gets the short value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the short at the given offset
    */
-  public abstract short getShort(final long offsetBytes);
+  public abstract short getShort(long offsetBytes);
 
   /**
    * Gets the int value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the int at the given offset
    */
-  public abstract int getInt(final long offsetBytes);
+  public abstract int getInt(long offsetBytes);
 
   /**
    * Gets the long value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the long at the given offset
    */
-  public abstract long getLong(final long offsetBytes);
+  public abstract long getLong(long offsetBytes);
 
   /**
    * Gets the float value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the float at the given offset
    */
-  public abstract float getFloat(final long offsetBytes);
+  public abstract float getFloat(long offsetBytes);
 
   /**
    * Gets the double value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @return the double at the given offset
    */
-  public abstract double getDouble(final long offsetBytes);
+  public abstract double getDouble(long offsetBytes);
 
   //Primitive Get Arrays
 
@@ -136,7 +136,8 @@ public abstract class Memory {
    * @param dstOffset offset in array units
    * @param length number of array units to transfer
    */
-  public abstract void getBooleanArray(long offsetBytes, boolean[] dstArray, int dstOffset, int length);
+  public abstract void getBooleanArray(long offsetBytes, boolean[] dstArray, int dstOffset,
+      int length);
 
   //plus 6 more
   /**
@@ -149,5 +150,9 @@ public abstract class Memory {
   public abstract void getLongArray(long offsetBytes, long[] dstArray, int dstOffset, int length);
 
   //Plus a number of convenience read methods not listed
+
+  //Region
+
+  public abstract Memory region(long offsetBytes, long capacityBytes);
 
 }

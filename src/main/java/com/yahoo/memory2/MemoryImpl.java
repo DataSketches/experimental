@@ -58,6 +58,7 @@ class MemoryImpl extends Memory {
       final long regionOffset, final long capacity) {
     assert unsafeObj != null;
     assert unsafeObjHeader > 0;
+    assert regionOffset < capacity;
     this.unsafeObj = unsafeObj;
     this.unsafeObjHeader = unsafeObjHeader;
     this.byteBuf = byteBuf;
@@ -66,7 +67,7 @@ class MemoryImpl extends Memory {
     this.cumBaseOffset = regionOffset + unsafeObjHeader;
   }
 
-  //Everything - not sure this is needed
+  //For Regions
   MemoryImpl(
       final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity) {
@@ -234,5 +235,16 @@ class MemoryImpl extends Memory {
   //Plus some convenience read methods not listed
   //isDirect, etc.
 
+  //Regions
+
+  @Override
+  public Memory region(final long offsetBytes, final long capacityBytes) {
+    assert offsetBytes + capacityBytes <= capacity
+      : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + capacity;
+    final long newRegionOffset = this.regionOffset + offsetBytes;
+    final long newCapacity = capacityBytes;
+    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
+        newRegionOffset, newCapacity);
+  }
 
 }

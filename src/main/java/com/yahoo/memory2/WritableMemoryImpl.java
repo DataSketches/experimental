@@ -73,7 +73,7 @@ class WritableMemoryImpl extends WritableMemory {
     this.cumBaseOffset = nativeBaseOffset;
   }
 
-  //Everything - not sure this is needed
+  //For Regions
   WritableMemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
       final MemoryRequest memReq) {
@@ -299,9 +299,28 @@ class WritableMemoryImpl extends WritableMemory {
       );
   }
 
-
   //Plus a number of convenience write methods not listed
   // e.g., clean, fill, MemoryRequest, etc.
+
+  //Regions
+
+  @Override
+  public Memory region(final long offsetBytes, final long capacityBytes) {
+    final long newRegionOffset = this.regionOffset + offsetBytes;
+    final long newCapacity = capacityBytes;
+    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
+        newRegionOffset, newCapacity);
+  }
+
+  @Override
+  public WritableMemory writableRegion(final long offsetBytes, final long capacityBytes) {
+    assert offsetBytes + capacityBytes <= capacity
+        : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + capacity;
+    final long newRegionOffset = this.regionOffset + offsetBytes;
+    final long newCapacity = capacityBytes;
+    return new WritableMemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
+        newRegionOffset, newCapacity, memReq);
+  }
 
   @Override
   public MemoryRequest getMemoryRequest() {

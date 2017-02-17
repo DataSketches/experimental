@@ -97,49 +97,49 @@ public abstract class WritableMemory extends Memory {
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putBoolean(final long offsetBytes, final boolean value);
+  public abstract void putBoolean(long offsetBytes, boolean value);
 
   /**
    * Puts the byte value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putByte(final long offsetBytes, final byte value);
+  public abstract void putByte(long offsetBytes, byte value);
 
   /**
    * Puts the char value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putChar(final long offsetBytes, final char value);
+  public abstract void putChar(long offsetBytes, char value);
 
   /**
    * Puts the int value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putInt(final long offsetBytes, final int value);
+  public abstract void putInt(long offsetBytes, int value);
 
   /**
    * Puts the long value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putLong(final long offsetBytes, final long value);
+  public abstract void putLong(long offsetBytes, long value);
 
   /**
    * Puts the float value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putFloat(final long offsetBytes, final float value);
+  public abstract void putFloat(long offsetBytes, float value);
 
   /**
    * Puts the double value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
    * @param value the value to put
    */
-  public abstract void putDouble(final long offsetBytes, final double value);
+  public abstract void putDouble(long offsetBytes, double value);
 
   //Primitive Put Arrays
 
@@ -150,8 +150,8 @@ public abstract class WritableMemory extends Memory {
    * @param srcOffset offset in array units
    * @param length number of array units to transfer
    */
-  public abstract void putBooleanArray(final long offsetBytes, final boolean[] srcArray,
-      final int srcOffset, final int length);
+  public abstract void putBooleanArray(long offsetBytes, boolean[] srcArray, int srcOffset,
+      int length);
 
   /**
    * Puts the long array at the given offset
@@ -160,11 +160,14 @@ public abstract class WritableMemory extends Memory {
    * @param srcOffset offset in array units
    * @param length number of array units to transfer
    */
-  public abstract void putLongArray(final long offsetBytes, final long[] srcArray,
+  public abstract void putLongArray(long offsetBytes, long[] srcArray,
       final int srcOffset, final int length);
 
   //Plus a number of convenience write methods not listed
   // e.g., clean, fill, MemoryRequest, etc.
+
+  //Regions
+  public abstract WritableMemory writableRegion(long offsetBytes, long capacityBytes);
 
   public abstract MemoryRequest getMemoryRequest();
 

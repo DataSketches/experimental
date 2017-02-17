@@ -129,4 +129,43 @@ public class MemoryDirectTest {
     }
   }
 
+  @Test
+  public void checkRORegions() {
+    int n = 64;
+    int n2 = n / 2;
+    long[] arr = new long[n];
+    for (int i = 0; i < n; i++) { arr[i] = i; }
+    Memory mem = Memory.wrap(arr);
+    Memory reg = mem.region(n2 * 8, n2 * 8);
+    long[] arr2 = new long[n2];
+    reg.getLongArray(0, arr2, 0, arr2.length);
+    for (int i = 0; i < n2; i++) { println("" + arr2[i]); }
+  }
+
+  @Test
+  public void checkWRegions() {
+    int n = 64;
+    int n2 = n / 2;
+    long[] arr = new long[n];
+    for (int i = 0; i < n; i++) { arr[i] = i; }
+    Memory mem = Memory.wrap(arr);
+    Memory reg = mem.region(n2 * 8, n2 * 8);
+    long[] arr2 = new long[n2];
+    reg.getLongArray(0, arr2, 0, arr2.length);
+    for (int i = 0; i < n2; i++) { println("" + arr2[i]); }
+  }
+
+  @Test
+  public void printlnTest() {
+    println("PRINTING: "+this.getClass().getName());
+  }
+
+  /**
+   * @param s value to print
+   */
+  static void println(String s) {
+    System.out.println(s); //disable here
+  }
+
+
 }

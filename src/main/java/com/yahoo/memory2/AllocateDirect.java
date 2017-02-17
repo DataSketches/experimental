@@ -12,15 +12,13 @@ import sun.misc.Cleaner;
 final class AllocateDirect extends WritableMemoryImpl implements AutoCloseable {
   private final Cleaner cleaner_;
 
-  private AllocateDirect(final long nativeBaseOffset, final long regionOffset, final long capacity,
-      final MemoryRequest memReq) {
-    super(nativeBaseOffset, null, 0L, null, regionOffset, capacity, memReq);
+  private AllocateDirect(final long nativeBaseOffset, final long capacity, final MemoryRequest memReq) {
+    super(nativeBaseOffset, capacity, memReq);
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
   static WritableMemoryImpl allocDirect(final long capacity, final MemoryRequest memReq) {
-    final long nativeBaseOffset = unsafe.allocateMemory(capacity);
-    return new AllocateDirect(nativeBaseOffset, 0L, capacity, memReq);
+    return new AllocateDirect(unsafe.allocateMemory(capacity), capacity, memReq);
   }
 
   @Override

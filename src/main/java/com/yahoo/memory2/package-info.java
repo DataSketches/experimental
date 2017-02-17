@@ -1,34 +1,23 @@
 /*
 
-  public Memory //has "absolute" Read-Only methods
-    MemoryImpl
-          ReadOnlyDirect    //Requires AutoClosable and Cleaner
-          ReadOnlyMapDirect //Requires AutoClosable and special Cleaner
-          ReadOnlyBBDirect  //no cleaner
-          ReadOnlyBBHeap    //no cleaner
+  public Memory
+       - static RO methods: wrapping arrays, ByteBuffer, Map
+       - abstract RO methods: get<primitive>, get<primitive>Array
 
-  public WritableMemory //has the "absolute" Writable methods
-    WritableMemoryImpl
-          WritableDirect   //Requires AutoClosable and Cleaner
-          WritableMapDirect //Requires AutoClosable and special Cleaner
-          WritableHeap
-          MemoryBBDW
-          MemoryBBHW
+    MemoryImpl extends Memory
+      - Concrete impls of Memory
 
-  public PositionalMemory //has positional "Buffer" logic & variables, Read-Only methods,
-    PositionalMemoryImpl
-          MemoryPDR.    //Requires AutoClosable and Cleaner
-          MemoryBBPDR
-          MapPDR.       //Requires AutoClosable and special Cleaner
-          MemoryPHR
-          MemoryBBPHR
+  public WritableMemory extends Memory
+      - static W methods: wrapping arrays, ByteBuffer, Map, Direct alloc, autoByteArray
+      - abstract W methods: put<primitive>, put<primitive>Array,
+      - plus abstract get MemoryRequest(), freeMemory()
 
-  public PositionalMemoryWritable //positional Writable methods
-    PositionalWritableMemoryImpl
-          MemoryPDW.   //Requires AutoClosable and Cleaner
-          MemroyBBPDW
-          MapPDW.      //Requires AutoClosable and special Cleaner
-          MemoryPHW
-          MemoryBBPHW
+    WritableMemoryImpl extends WritableMemory
+      - Concrete impls of Memory
+      - Concrete impls of WritableMemory
+
+      AllocateDirect extends WritableMemoryImpl implements AutoClosable
+        - Allocates direct memory, uses Cleaner
+
 */
 package com.yahoo.memory2;

@@ -29,7 +29,7 @@ public class MemoryDirectTest {
   @Test
   public void checkAutoHeapRoundTrip() {
     int n = 1024; //longs
-    WritableMemory mem = WritableMemory.allocate(n * 8, null);
+    WritableMemory mem = WritableMemory.allocate(n * 8);
     for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
@@ -112,6 +112,20 @@ public class MemoryDirectTest {
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
       Assert.assertEquals(v, i);
+    }
+  }
+
+  @Test
+  public void checkPutGetArraysHeap() {
+    int n = 1024; //longs
+    long[] arr = new long[n];
+    for (int i = 0; i < n; i++) { arr[i] = i; }
+    WritableMemory wmem = WritableMemory.allocate(n * 8);
+    wmem.putLongArray(0, arr, 0, n);
+    long[] arr2 = new long[n];
+    wmem.getLongArray(0, arr2, 0, n);
+    for (int i = 0; i < n; i++) {
+      Assert.assertEquals(arr2[i], i);
     }
   }
 

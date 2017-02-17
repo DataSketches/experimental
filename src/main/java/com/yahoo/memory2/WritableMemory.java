@@ -33,64 +33,51 @@ public abstract class WritableMemory extends Memory {
   //ACCESS PRIMITIVE ARRAYS for write
 
   public static WritableMemory writableWrap(final boolean[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_BOOLEAN_BASE_OFFSET, null, 0L,
-        arr.length << BOOLEAN_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_BOOLEAN_BASE_OFFSET, arr.length << BOOLEAN_SHIFT);
   }
 
   public static WritableMemory writableWrap(final byte[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_BYTE_BASE_OFFSET, null, 0L,
-        arr.length << BYTE_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_BYTE_BASE_OFFSET, arr.length << BYTE_SHIFT);
   }
 
   public static WritableMemory writableWrap(final char[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_CHAR_BASE_OFFSET, null, 0L,
-        arr.length << CHAR_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_CHAR_BASE_OFFSET, arr.length << CHAR_SHIFT);
   }
 
   public static WritableMemory writableWrap(final short[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_SHORT_BASE_OFFSET, null, 0L,
-        arr.length << SHORT_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_SHORT_BASE_OFFSET, arr.length << SHORT_SHIFT);
   }
 
   public static WritableMemory writableWrap(final int[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_INT_BASE_OFFSET, null, 0L,
-        arr.length << INT_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_INT_BASE_OFFSET, arr.length << INT_SHIFT);
   }
 
   public static WritableMemory writableWrap(final long[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_LONG_BASE_OFFSET, null, 0L,
-        arr.length << LONG_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_LONG_BASE_OFFSET, arr.length << LONG_SHIFT);
   }
 
   public static WritableMemory writableWrap(final float[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_FLOAT_BASE_OFFSET, null, 0L,
-        arr.length << FLOAT_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_FLOAT_BASE_OFFSET, arr.length << FLOAT_SHIFT);
   }
 
   public static WritableMemory writableWrap(final double[] arr) {
-    return new WritableMemoryImpl(0L, arr, ARRAY_DOUBLE_BASE_OFFSET, null, 0L,
-        arr.length << DOUBLE_SHIFT, null);
+    return new WritableMemoryImpl(arr, ARRAY_DOUBLE_BASE_OFFSET, arr.length << DOUBLE_SHIFT);
   }
-
 
   //Allocations using native memory and heap
 
-  //ALLOCATE DIRECT
+  //ALLOCATE DIRECT memory
   public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
     return AllocateDirect.allocDirect(capacity, memReq);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
-  public static WritableMemory allocate(final int capacity, final MemoryRequest memReq) {
-    return WritableMemoryImpl.allocateArray(capacity, memReq);
+  public static WritableMemory allocate(final int capacity) {
+    return WritableMemoryImpl.allocateArray(capacity);
   }
 
   //ByteBuffer
 
-  /**
-   * @param byteBuf blah
-   * @return blah
-   */
   public static WritableMemory writableWrap(final ByteBuffer byteBuf) {
     return WritableMemoryImpl.writableWrap(byteBuf);
   }
@@ -156,11 +143,30 @@ public abstract class WritableMemory extends Memory {
 
   //Primitive Put Arrays
 
+  /**
+   * Puts the boolean array at the given offset
+   * @param offsetBytes offset bytes relative to this Memory start
+   * @param srcArray The source array.
+   * @param srcOffset offset in array units
+   * @param length number of array units to transfer
+   */
+  public abstract void putBooleanArray(final long offsetBytes, final boolean[] srcArray,
+      final int srcOffset, final int length);
+
+  /**
+   * Puts the long array at the given offset
+   * @param offsetBytes offset bytes relative to this Memory start
+   * @param srcArray The source array.
+   * @param srcOffset offset in array units
+   * @param length number of array units to transfer
+   */
+  public abstract void putLongArray(final long offsetBytes, final long[] srcArray,
+      final int srcOffset, final int length);
 
   //Plus a number of convenience write methods not listed
   // e.g., clean, fill, MemoryRequest, etc.
 
   public abstract MemoryRequest getMemoryRequest();
 
-  public void freeMemory() {}
+  public abstract void freeMemory();
 }

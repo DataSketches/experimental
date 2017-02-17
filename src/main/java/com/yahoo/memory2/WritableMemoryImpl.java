@@ -25,44 +25,79 @@ import java.nio.ByteBuffer;
 
 //@SuppressWarnings("unused")
 class WritableMemoryImpl extends WritableMemory {
-  long nativeBaseOffset;
-  Object memObj;
-  long memObjHeader;
-  ByteBuffer byteBuf;
-  long cumBaseOffset;
-  long regionOffset;
-  long capacity;
+  long nativeBaseOffset = 0;
+  Object unsafeObj = null;
+  long unsafeObjHeader = 0;
+  ByteBuffer byteBuf = null;
+  long cumBaseOffset = 0;
+  long regionOffset = 0;
+  long capacity = 0;
   MemoryRequest memReq = null;
 
-  /**
-   * @param regionOffset blah
-   * @param capacity blah
-   * @param cumBaseOffset blah
-   */
-  WritableMemoryImpl(final long nativeBaseOffset, final Object memObj, final long memObjHeader,
+  //for Heap array access
+  WritableMemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity) {
+    assert unsafeObj != null;
+    assert unsafeObjHeader > 0;
+    this.unsafeObj = unsafeObj;
+    this.unsafeObjHeader = unsafeObjHeader;
+    this.capacity = capacity;
+    this.cumBaseOffset = unsafeObjHeader;
+  }
+
+  //For ByteBuffer Direct
+  WritableMemoryImpl(final long nativeBaseOffset, final ByteBuffer byteBuf, final long capacity) {
+    this.nativeBaseOffset = nativeBaseOffset; //already adjusted for slices
+    this.byteBuf = byteBuf;
+    this.capacity = capacity;
+    this.cumBaseOffset = nativeBaseOffset;
+  }
+
+  //For ByteBuffer Heap
+  WritableMemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final ByteBuffer byteBuf,
+      final long regionOffset, final long capacity) {
+    assert unsafeObj != null;
+    assert unsafeObjHeader > 0;
+    this.unsafeObj = unsafeObj;
+    this.unsafeObjHeader = unsafeObjHeader;
+    this.byteBuf = byteBuf;
+    this.regionOffset = regionOffset;
+    this.capacity = capacity;
+    this.cumBaseOffset = regionOffset + unsafeObjHeader;
+  }
+
+  //For Direct native allocation
+  WritableMemoryImpl(final long nativeBaseOffset, final long capacity, final MemoryRequest memReq) {
+    this.nativeBaseOffset = nativeBaseOffset;
+    this.capacity = capacity;
+    this.memReq = memReq;
+    this.cumBaseOffset = nativeBaseOffset;
+  }
+
+  //Everything - not sure this is needed
+  WritableMemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
       final MemoryRequest memReq) {
     this.nativeBaseOffset = nativeBaseOffset;
-    this.memObj = memObj;
-    this.memObjHeader = memObjHeader;
+    this.unsafeObj = unsafeObj;
+    this.unsafeObjHeader = unsafeObjHeader;
     this.byteBuf = byteBuf;
     this.regionOffset = regionOffset;
-    this.cumBaseOffset = (memObj == null)
+    this.cumBaseOffset = (unsafeObj == null)
         ? nativeBaseOffset + regionOffset
-        : memObjHeader + regionOffset;
+        : unsafeObjHeader + regionOffset;
     this.capacity = capacity;
     this.memReq = memReq;
   }
 
-  static WritableMemoryImpl allocateArray(final int capacity, final MemoryRequest memReq) {
-    final byte[] memObj = new byte[capacity];
-    return new WritableMemoryImpl(0L, memObj, ARRAY_BYTE_BASE_OFFSET, null, 0L,
-        capacity, memReq);
+  //To automatically allocate a byte[]
+  static WritableMemoryImpl allocateArray(final int capacity) {
+    final byte[] unsafeObj = new byte[capacity];
+    return new WritableMemoryImpl(unsafeObj, ARRAY_BYTE_BASE_OFFSET, capacity);
   }
 
   @Override
   public Memory asReadOnly() {
-    return new MemoryImpl(nativeBaseOffset, memObj, memObjHeader, byteBuf, regionOffset, capacity);
+    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity);
   }
 
   //ByteBuffer
@@ -75,8 +110,8 @@ class WritableMemoryImpl extends WritableMemory {
    */
   public static WritableMemory writableWrap(final ByteBuffer byteBuffer) {
     final long nativeBaseAddress;  //includes the slice() offset for direct.
-    final Object memObj;
-    final long memObjHeader;
+    final Object unsafeObj;
+    final long unsafeObjHeader;
     final ByteBuffer byteBuf = byteBuffer;
     final long regionOffset; //the slice() offset for heap.
     final long capacity = byteBuffer.capacity();
@@ -95,24 +130,14 @@ class WritableMemoryImpl extends WritableMemory {
       if (direct) {
         //address() is already adjusted for direct slices, so regionOffset = 0
         nativeBaseAddress = ((sun.nio.ch.DirectBuffer) byteBuf).address();
-        memObj = null;
-        memObjHeader = 0L;
-        regionOffset = 0L;
-
-        final WritableMemoryImpl nmr = new WritableMemoryImpl(
-            nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity, null);
-        return nmr;
+        return new WritableMemoryImpl(nativeBaseAddress, byteBuffer, capacity);
       }
 
       //WRITABLE-HEAP
-      nativeBaseAddress = 0L;
+      unsafeObj = byteBuf.array();
+      unsafeObjHeader = ARRAY_BYTE_BASE_OFFSET;
       regionOffset = byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE;
-      memObjHeader = ARRAY_BYTE_BASE_OFFSET;
-      memObj = byteBuf.array();
-
-      final WritableMemoryImpl nmr = new WritableMemoryImpl(
-          nativeBaseAddress, memObj, memObjHeader, byteBuffer, regionOffset, capacity, null);
-      return nmr;
+      return new WritableMemoryImpl(unsafeObj, unsafeObjHeader, byteBuffer, regionOffset, capacity);
     }
   }
 
@@ -123,49 +148,49 @@ class WritableMemoryImpl extends WritableMemory {
   @Override
   public boolean getBoolean(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_BOOLEAN_INDEX_SCALE, capacity);
-    return unsafe.getBoolean(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getBoolean(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public byte getByte(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
-    return unsafe.getByte(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getByte(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public char getChar(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_CHAR_INDEX_SCALE, capacity);
-    return unsafe.getChar(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getChar(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public short getShort(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_SHORT_INDEX_SCALE, capacity);
-    return unsafe.getShort(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getShort(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public int getInt(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
-    return unsafe.getInt(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getInt(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public long getLong(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    return unsafe.getLong(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getLong(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public float getFloat(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_FLOAT_INDEX_SCALE, capacity);
-    return unsafe.getFloat(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getFloat(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public double getDouble(final long offsetBytes) {
     assertBounds(offsetBytes, ARRAY_DOUBLE_INDEX_SCALE, capacity);
-    return unsafe.getDouble(memObj, cumBaseOffset + offsetBytes);
+    return unsafe.getDouble(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   //Primitive Get Arrays
@@ -177,7 +202,7 @@ class WritableMemoryImpl extends WritableMemory {
     assertBounds(offsetBytes, copyBytes, capacity);
     assertBounds(dstOffset, length, dstArray.length);
     unsafe.copyMemory(
-      memObj,
+      unsafeObj,
       cumBaseOffset,
       dstArray,
       ARRAY_BOOLEAN_BASE_OFFSET + (dstOffset << BOOLEAN_SHIFT),
@@ -191,61 +216,88 @@ class WritableMemoryImpl extends WritableMemory {
     assertBounds(offsetBytes, copyBytes, capacity);
     assertBounds(dstOffset, length, dstArray.length);
     unsafe.copyMemory(
-      memObj,
+      unsafeObj,
       cumBaseOffset,
       dstArray,
       ARRAY_LONG_BASE_OFFSET + (dstOffset << LONG_SHIFT),
       copyBytes);
   }
 
-
-
   //Primitive Puts
 
   @Override
   public void putBoolean(final long offsetBytes, final boolean value) {
     assertBounds(offsetBytes, ARRAY_BOOLEAN_INDEX_SCALE, capacity);
-    unsafe.putBoolean(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putBoolean(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   @Override
   public void putByte(final long offsetBytes, final byte value) {
     assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
-    unsafe.putByte(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putByte(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   @Override
   public void putChar(final long offsetBytes, final char value) {
     assertBounds(offsetBytes, ARRAY_CHAR_INDEX_SCALE, capacity);
-    unsafe.putChar(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putChar(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   @Override
   public void putInt(final long offsetBytes, final int value) {
     assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
-    unsafe.putInt(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putInt(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   @Override
   public void putLong(final long offsetBytes, final long value) {
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    unsafe.putLong(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putLong(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   @Override
   public void putFloat(final long offsetBytes, final float value) {
     assertBounds(offsetBytes, ARRAY_FLOAT_INDEX_SCALE, capacity);
-    unsafe.putFloat(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putFloat(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   @Override
   public void putDouble(final long offsetBytes, final double value) {
     assertBounds(offsetBytes, ARRAY_DOUBLE_INDEX_SCALE, capacity);
-    unsafe.putDouble(memObj, cumBaseOffset + offsetBytes, value);
+    unsafe.putDouble(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   //Primitive Put Arrays
 
+  @Override
+  public void putBooleanArray(final long offsetBytes, final boolean[] srcArray, final int srcOffset,
+      final int length) {
+    final long copyBytes = length << BOOLEAN_SHIFT;
+    assertBounds(srcOffset, length, srcArray.length);
+    assertBounds(offsetBytes, copyBytes, capacity);
+    unsafe.copyMemory(
+      srcArray,
+      ARRAY_BOOLEAN_BASE_OFFSET + (srcOffset << BOOLEAN_SHIFT),
+      unsafeObj,
+      cumBaseOffset,
+      copyBytes
+      );
+  }
+
+  @Override
+  public void putLongArray(final long offsetBytes, final long[] srcArray, final int srcOffset,
+      final int length) {
+    final long copyBytes = length << LONG_SHIFT;
+    assertBounds(srcOffset, length, srcArray.length);
+    assertBounds(offsetBytes, copyBytes, capacity);
+    unsafe.copyMemory(
+      srcArray,
+      ARRAY_LONG_BASE_OFFSET + (srcOffset << LONG_SHIFT),
+      unsafeObj,
+      cumBaseOffset,
+      copyBytes
+      );
+  }
 
 
   //Plus a number of convenience write methods not listed
@@ -262,8 +314,8 @@ class WritableMemoryImpl extends WritableMemory {
   @Override
   public void freeMemory() {
     nativeBaseOffset = 0L;
-    memObj = null;
-    memObjHeader = 0L;
+    unsafeObj = null;
+    unsafeObjHeader = 0L;
     byteBuf = null;
     cumBaseOffset = 0L;
     regionOffset = 0L;

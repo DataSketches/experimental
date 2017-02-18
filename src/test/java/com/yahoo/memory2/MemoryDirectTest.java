@@ -16,7 +16,7 @@ public class MemoryDirectTest {
   @Test
   public void checkDirectRoundTrip() {
     int n = 1024; //longs
-    WritableMemory mem = WritableMemory.allocateDirect(n * 8, null);
+    WritableMemory2 mem = WritableMemory2.allocateDirect(n * 8, null);
     for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
@@ -29,7 +29,7 @@ public class MemoryDirectTest {
   @Test
   public void checkAutoHeapRoundTrip() {
     int n = 1024; //longs
-    WritableMemory mem = WritableMemory.allocate(n * 8);
+    WritableMemory2 mem = WritableMemory2.allocate(n * 8);
     for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
@@ -41,7 +41,7 @@ public class MemoryDirectTest {
   public void checkArrayWrap() {
     int n = 1024; //longs
     byte[] arr = new byte[n * 8];
-    WritableMemory wmem = WritableMemory.writableWrap(arr);
+    WritableMemory2 wmem = WritableMemory2.writableWrap(arr);
     for (int i = 0; i < n; i++) wmem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = wmem.getLong(i * 8);
@@ -60,7 +60,7 @@ public class MemoryDirectTest {
     byte[] arr = new byte[n * 8];
     ByteBuffer bb = ByteBuffer.wrap(arr);
     bb.order(ByteOrder.nativeOrder());
-    WritableMemory wmem = WritableMemory.writableWrap(bb);
+    WritableMemory2 wmem = WritableMemory2.writableWrap(bb);
     for (int i = 0; i < n; i++) { //write to wmem
       wmem.putLong(i * 8, i);
     }
@@ -90,7 +90,7 @@ public class MemoryDirectTest {
     int n = 1024; //longs
     ByteBuffer bb = ByteBuffer.allocateDirect(n * 8);
     bb.order(ByteOrder.nativeOrder());
-    WritableMemory wmem = WritableMemory.writableWrap(bb);
+    WritableMemory2 wmem = WritableMemory2.writableWrap(bb);
     for (int i = 0; i < n; i++) { //write to wmem
       wmem.putLong(i * 8, i);
     }
@@ -120,7 +120,7 @@ public class MemoryDirectTest {
     int n = 1024; //longs
     long[] arr = new long[n];
     for (int i = 0; i < n; i++) { arr[i] = i; }
-    WritableMemory wmem = WritableMemory.allocate(n * 8);
+    WritableMemory2 wmem = WritableMemory2.allocate(n * 8);
     wmem.putLongArray(0, arr, 0, n);
     long[] arr2 = new long[n];
     wmem.getLongArray(0, arr2, 0, n);
@@ -131,28 +131,35 @@ public class MemoryDirectTest {
 
   @Test
   public void checkRORegions() {
-    int n = 64;
+    int n = 16;
     int n2 = n / 2;
     long[] arr = new long[n];
     for (int i = 0; i < n; i++) { arr[i] = i; }
     Memory mem = Memory.wrap(arr);
     Memory reg = mem.region(n2 * 8, n2 * 8);
-    long[] arr2 = new long[n2];
-    reg.getLongArray(0, arr2, 0, arr2.length);
-    for (int i = 0; i < n2; i++) { println("" + arr2[i]); }
+    for (int i = 0; i < n2; i++) { println("" + reg.getLong(i * 8)); }
   }
 
   @Test
   public void checkWRegions() {
-    int n = 64;
+    int n = 16;
     int n2 = n / 2;
     long[] arr = new long[n];
     for (int i = 0; i < n; i++) { arr[i] = i; }
-    Memory mem = Memory.wrap(arr);
-    Memory reg = mem.region(n2 * 8, n2 * 8);
-    long[] arr2 = new long[n2];
-    reg.getLongArray(0, arr2, 0, arr2.length);
-    for (int i = 0; i < n2; i++) { println("" + arr2[i]); }
+    WritableMemory2 wmem = WritableMemory2.writableWrap(arr);
+    for (int i = 0; i < n; i++) { println("" + wmem.getLong(i * 8)); }
+    println("");
+    WritableMemory2 reg = wmem.writableRegion(n2 * 8, n2 * 8);
+    for (int i = 0; i < n2; i++) { reg.putLong(i * 8, i); }
+    for (int i = 0; i < n; i++) { println("" + wmem.getLong(i * 8)); }
+  }
+
+  @Test(expectedExceptions = AssertionError.class)
+  public void checkCleaner() {
+    WritableMemory2 wmem = WritableMemory2.allocateDirect(1024, null);
+    wmem.putLong(0, -1L);
+    wmem.freeMemory();
+    wmem.putLong(0,0);
   }
 
   @Test

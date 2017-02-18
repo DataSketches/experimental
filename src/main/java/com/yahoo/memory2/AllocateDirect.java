@@ -9,7 +9,7 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 
 import sun.misc.Cleaner;
 
-final class AllocateDirect extends WritableMemoryImpl implements AutoCloseable {
+final class AllocateDirect extends WritableMemory2 implements AutoCloseable {
   private final Cleaner cleaner_;
 
   private AllocateDirect(final long nativeBaseOffset, final long capacity, final MemoryRequest memReq) {
@@ -17,7 +17,7 @@ final class AllocateDirect extends WritableMemoryImpl implements AutoCloseable {
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset));
   }
 
-  static WritableMemoryImpl allocDirect(final long capacity, final MemoryRequest memReq) {
+  static WritableMemory2 allocDirect(final long capacity, final MemoryRequest memReq) {
     return new AllocateDirect(unsafe.allocateMemory(capacity), capacity, memReq);
   }
 

@@ -32,10 +32,10 @@ class MemoryImpl extends Memory {
   long unsafeObjHeader = 0;
   ByteBuffer byteBuf = null;
   long regionOffset = 0;
-  long cumBaseOffset = 0;
   long capacity = 0;
+  long cumBaseOffset = 0;
 
-  //for Heap array access
+  //Constructor for heap array access
   MemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity) {
     assert unsafeObj != null;
     assert unsafeObjHeader > 0;
@@ -45,7 +45,7 @@ class MemoryImpl extends Memory {
     this.cumBaseOffset = unsafeObjHeader;
   }
 
-  //For ByteBuffer Direct
+  //Constructor for ByteBuffer direct
   MemoryImpl(final long nativeBaseOffset, final ByteBuffer byteBuf, final long capacity) {
     this.nativeBaseOffset = nativeBaseOffset; //already adjusted for slices
     this.byteBuf = byteBuf;
@@ -53,7 +53,7 @@ class MemoryImpl extends Memory {
     this.cumBaseOffset = nativeBaseOffset;
   }
 
-  //For ByteBuffer Heap
+  //Constructor for ByteBuffer heap
   MemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final ByteBuffer byteBuf,
       final long regionOffset, final long capacity) {
     assert unsafeObj != null;
@@ -67,17 +67,16 @@ class MemoryImpl extends Memory {
     this.cumBaseOffset = regionOffset + unsafeObjHeader;
   }
 
-  //For Regions
-  MemoryImpl(
-      final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
+  //Constructor for Regions
+  MemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity) {
     this.nativeBaseOffset = nativeBaseOffset;
     this.unsafeObj = unsafeObj;
     this.unsafeObjHeader = unsafeObjHeader;
     this.byteBuf = byteBuf;
     this.regionOffset = regionOffset;
-    this.cumBaseOffset = regionOffset + ((unsafeObj == null) ? nativeBaseOffset : unsafeObjHeader);
     this.capacity = capacity;
+    this.cumBaseOffset = regionOffset + ((unsafeObj == null) ? nativeBaseOffset : unsafeObjHeader);
   }
 
   //ByteBuffer

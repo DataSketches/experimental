@@ -24,6 +24,7 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("unused")
 class MemoryImpl extends Memory {
@@ -34,42 +35,29 @@ class MemoryImpl extends Memory {
   long regionOffset = 0;
   long capacity = 0;
   long cumBaseOffset = 0;
+  AtomicBoolean valid;
 
   //Constructor for heap array access
   MemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity) {
-    assert unsafeObj != null;
-    assert unsafeObjHeader > 0;
-    this.unsafeObj = unsafeObj;
-    this.unsafeObjHeader = unsafeObjHeader;
-    this.capacity = capacity;
-    this.cumBaseOffset = unsafeObjHeader;
+    this(0L, unsafeObj, unsafeObjHeader, null, 0L, capacity, new AtomicBoolean(true));
   }
 
   //Constructor for ByteBuffer direct
   MemoryImpl(final long nativeBaseOffset, final ByteBuffer byteBuf, final long capacity) {
-    this.nativeBaseOffset = nativeBaseOffset; //already adjusted for slices
-    this.byteBuf = byteBuf;
-    this.capacity = capacity;
-    this.cumBaseOffset = nativeBaseOffset;
+    this(nativeBaseOffset, null, 0L, byteBuf, 0L, capacity, new AtomicBoolean(true));
   }
 
   //Constructor for ByteBuffer heap
   MemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final ByteBuffer byteBuf,
       final long regionOffset, final long capacity) {
-    assert unsafeObj != null;
-    assert unsafeObjHeader > 0;
+    this(0L, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, new AtomicBoolean(true));
     assert regionOffset < capacity;
-    this.unsafeObj = unsafeObj;
-    this.unsafeObjHeader = unsafeObjHeader;
-    this.byteBuf = byteBuf;
-    this.regionOffset = regionOffset;
-    this.capacity = capacity;
-    this.cumBaseOffset = regionOffset + unsafeObjHeader;
   }
 
-  //Constructor for Regions
+  //Constructor for Regions : Everything
   MemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
-      final ByteBuffer byteBuf, final long regionOffset, final long capacity) {
+      final ByteBuffer byteBuf, final long regionOffset, final long capacity,
+      final AtomicBoolean valid) {
     this.nativeBaseOffset = nativeBaseOffset;
     this.unsafeObj = unsafeObj;
     this.unsafeObjHeader = unsafeObjHeader;
@@ -77,6 +65,9 @@ class MemoryImpl extends Memory {
     this.regionOffset = regionOffset;
     this.capacity = capacity;
     this.cumBaseOffset = regionOffset + ((unsafeObj == null) ? nativeBaseOffset : unsafeObjHeader);
+    this.valid = valid;
+    assert ((unsafeObj == null) ^ (unsafeObjHeader > 0));
+    assert valid.get();
   }
 
   //ByteBuffer
@@ -154,48 +145,56 @@ class MemoryImpl extends Memory {
 
   @Override
   public boolean getBoolean(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_BOOLEAN_INDEX_SCALE, capacity);
     return unsafe.getBoolean(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public byte getByte(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
     return unsafe.getByte(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public char getChar(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_CHAR_INDEX_SCALE, capacity);
     return unsafe.getChar(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public short getShort(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_SHORT_INDEX_SCALE, capacity);
     return unsafe.getShort(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public int getInt(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
     return unsafe.getInt(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public long getLong(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
     return unsafe.getLong(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public float getFloat(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_FLOAT_INDEX_SCALE, capacity);
     return unsafe.getFloat(unsafeObj, cumBaseOffset + offsetBytes);
   }
 
   @Override
   public double getDouble(final long offsetBytes) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_DOUBLE_INDEX_SCALE, capacity);
     return unsafe.getDouble(unsafeObj, cumBaseOffset + offsetBytes);
   }
@@ -205,6 +204,7 @@ class MemoryImpl extends Memory {
   @Override
   public void getBooleanArray(final long offsetBytes, final boolean[] dstArray, final int dstOffset,
       final int length) {
+    checkValid();
     final long copyBytes = length << BOOLEAN_SHIFT;
     assertBounds(offsetBytes, copyBytes, capacity);
     assertBounds(dstOffset, length, dstArray.length);
@@ -220,6 +220,7 @@ class MemoryImpl extends Memory {
   @Override
   public void getLongArray(final long offsetBytes, final long[] dstArray, final int dstOffset,
       final int length) {
+    checkValid();
     final long copyBytes = length << LONG_SHIFT;
     assertBounds(offsetBytes, copyBytes, capacity);
     assertBounds(dstOffset, length, dstArray.length);
@@ -243,7 +244,14 @@ class MemoryImpl extends Memory {
     final long newRegionOffset = this.regionOffset + offsetBytes;
     final long newCapacity = capacityBytes;
     return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
-        newRegionOffset, newCapacity);
+        newRegionOffset, newCapacity, valid);
+  }
+
+  @Override
+  boolean isValid() { return valid.get(); }
+
+  final void checkValid() {
+    assert isValid() : "Memory not valid.";
   }
 
 }

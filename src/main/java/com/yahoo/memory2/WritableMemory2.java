@@ -33,6 +33,7 @@ import static com.yahoo.memory.UnsafeUtil.unsafe;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WritableMemory2 extends MemoryImpl {
   MemoryRequest memReq = null;
@@ -56,8 +57,8 @@ public class WritableMemory2 extends MemoryImpl {
   //Constructor for regions
   WritableMemory2(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
-      final MemoryRequest memReq) {
-    super(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity);
+      final MemoryRequest memReq, final AtomicBoolean valid) {
+    super(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, valid);
     this.memReq = memReq;
   }
 
@@ -69,7 +70,7 @@ public class WritableMemory2 extends MemoryImpl {
 
   public Memory asReadOnly() {
     return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset,
-        capacity);
+        capacity, valid);
   }
 
   //ACCESS PRIMITIVE ARRAYS for write
@@ -111,6 +112,10 @@ public class WritableMemory2 extends MemoryImpl {
   //ALLOCATE DIRECT memory
   public static WritableMemory2 allocateDirect(final long capacity, final MemoryRequest memReq) {
     return AllocateDirect.allocDirect(capacity, memReq);
+  }
+
+  public static WritableMemory2 allocateDirect(final long capacity) {
+    return AllocateDirect.allocDirect(capacity, null);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
@@ -177,6 +182,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putBoolean(final long offsetBytes, final boolean value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_BOOLEAN_INDEX_SCALE, capacity);
     unsafe.putBoolean(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -187,6 +193,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putByte(final long offsetBytes, final byte value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
     unsafe.putByte(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -197,6 +204,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putChar(final long offsetBytes, final char value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_CHAR_INDEX_SCALE, capacity);
     unsafe.putChar(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -207,6 +215,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putInt(final long offsetBytes, final int value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
     unsafe.putInt(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -217,6 +226,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putLong(final long offsetBytes, final long value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
     unsafe.putLong(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -227,6 +237,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putFloat(final long offsetBytes, final float value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_FLOAT_INDEX_SCALE, capacity);
     unsafe.putFloat(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -237,6 +248,7 @@ public class WritableMemory2 extends MemoryImpl {
    * @param value the value to put
    */
   public void putDouble(final long offsetBytes, final double value) {
+    checkValid();
     assertBounds(offsetBytes, ARRAY_DOUBLE_INDEX_SCALE, capacity);
     unsafe.putDouble(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
@@ -252,6 +264,7 @@ public class WritableMemory2 extends MemoryImpl {
    */
   public void putBooleanArray(final long offsetBytes, final boolean[] srcArray, final int srcOffset,
       final int length) {
+    checkValid();
     final long copyBytes = length << BOOLEAN_SHIFT;
     assertBounds(srcOffset, length, srcArray.length);
     assertBounds(offsetBytes, copyBytes, capacity);
@@ -273,6 +286,7 @@ public class WritableMemory2 extends MemoryImpl {
    */
   public void putLongArray(final long offsetBytes, final long[] srcArray, final int srcOffset,
       final int length) {
+    checkValid();
     final long copyBytes = length << LONG_SHIFT;
     assertBounds(srcOffset, length, srcArray.length);
     assertBounds(offsetBytes, copyBytes, capacity);
@@ -301,7 +315,7 @@ public class WritableMemory2 extends MemoryImpl {
     final long newRegionOffset = this.regionOffset + offsetBytes;
     final long newCapacity = capacityBytes;
     return new WritableMemory2(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
-        newRegionOffset, newCapacity, memReq);
+        newRegionOffset, newCapacity, memReq, valid);
   }
 
   public MemoryRequest getMemoryRequest() {
@@ -312,13 +326,13 @@ public class WritableMemory2 extends MemoryImpl {
    * blah
    */
   public void freeMemory() {
-    nativeBaseOffset = 0L;
-    unsafeObj = null;
-    unsafeObjHeader = 0L;
-    byteBuf = null;
-    cumBaseOffset = 0L;
-    regionOffset = 0L;
-    capacity = 0L;
-    memReq = null;
+  //    nativeBaseOffset = 0L;
+  //    unsafeObj = null;
+  //    unsafeObjHeader = 0L;
+  //    byteBuf = null;
+  //    cumBaseOffset = 0L;
+  //    regionOffset = 0L;
+  //    capacity = 0L;
+  //    memReq = null;
   }
 }

@@ -155,4 +155,6 @@ public abstract class Memory {
 
   public abstract Memory region(long offsetBytes, long capacityBytes);
 
+  abstract boolean isValid();
+
 }

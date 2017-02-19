@@ -11,7 +11,7 @@ import java.nio.ByteOrder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class MemoryDirectTest {
+public class MemoryTest {
 
   @Test
   public void checkDirectRoundTrip() {
@@ -22,7 +22,6 @@ public class MemoryDirectTest {
       long v = mem.getLong(i * 8);
       Assert.assertEquals(v, i);
     }
-
     mem.freeMemory();
   }
 
@@ -155,24 +154,35 @@ public class MemoryDirectTest {
   }
 
   @Test(expectedExceptions = AssertionError.class)
-  public void checkCleaner() {
-    WritableMemory2 wmem = WritableMemory2.allocateDirect(1024, null);
-    wmem.putLong(0, -1L);
+  public void checkParentUseAfterFree() {
+    int bytes = 64 * 8;
+    WritableMemory2 wmem = WritableMemory2.allocateDirect(bytes, null);
     wmem.freeMemory();
-    wmem.putLong(0,0);
+    //with -ea assert: Memory not valid.
+    //with -da sometimes segfaults, sometimes passes!
+    wmem.getLong(0);
   }
 
-  @Test
-  public void printlnTest() {
-    println("PRINTING: "+this.getClass().getName());
+  @Test(expectedExceptions = AssertionError.class)
+  public void checkRegionUseAfterFree() {
+    int bytes = 64;
+    WritableMemory2 wmem = WritableMemory2.allocateDirect(bytes);
+    WritableMemory2 region = wmem.writableRegion(0L, bytes);
+    wmem.freeMemory();
+    //with -ea assert: Memory not valid.
+    //with -da sometimes segfaults, sometimes passes!
+    region.getByte(0);
   }
 
-  /**
-   * @param s value to print
-   */
+  public static void main(String[] args) {
+    MemoryTest test = new MemoryTest();
+    test.checkParentUseAfterFree();
+    test.checkRegionUseAfterFree();
+    println("Passed!");
+  }
+
   static void println(String s) {
-    System.out.println(s); //disable here
+    //System.out.println(s);
   }
-
 
 }

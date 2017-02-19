@@ -67,9 +67,9 @@ public abstract class WritableMemory extends Memory {
   //Allocations using native memory and heap
 
   //ALLOCATE DIRECT memory
-//  public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
-//    return AllocateDirect.allocDirect(capacity, memReq);
-//  }
+  //  public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
+  //    return AllocateDirect.allocDirect(capacity, memReq);
+  //  }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
   public static WritableMemory allocate(final int capacity) {

@@ -95,8 +95,9 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public Memory asReadOnly() {
-    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset,
-        capacity);
+    //    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset,
+    //        capacity);
+    return null; //TODO
   }
 
   //ByteBuffer
@@ -305,10 +306,11 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public Memory region(final long offsetBytes, final long capacityBytes) {
-    final long newRegionOffset = this.regionOffset + offsetBytes;
-    final long newCapacity = capacityBytes;
-    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
-        newRegionOffset, newCapacity);
+    //    final long newRegionOffset = this.regionOffset + offsetBytes;
+    //    final long newCapacity = capacityBytes;
+    //    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
+    //        newRegionOffset, newCapacity);
+    return null; //TODO
   }
 
   @Override
@@ -331,14 +333,17 @@ class WritableMemoryImpl extends WritableMemory {
    */
   @Override
   public void freeMemory() {
-    nativeBaseOffset = 0L;
-    unsafeObj = null;
-    unsafeObjHeader = 0L;
-    byteBuf = null;
-    cumBaseOffset = 0L;
-    regionOffset = 0L;
-    capacity = 0L;
-    memReq = null;
+  //    nativeBaseOffset = 0L;
+  //    unsafeObj = null;
+  //    unsafeObjHeader = 0L;
+  //    byteBuf = null;
+  //    cumBaseOffset = 0L;
+  //    regionOffset = 0L;
+  //    capacity = 0L;
+  //    memReq = null;
   }
+
+  @Override
+  boolean isValid() { return true; }
 
 }

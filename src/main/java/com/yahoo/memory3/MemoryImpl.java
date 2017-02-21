@@ -34,6 +34,7 @@ class MemoryImpl extends Memory {
   final long cumBaseOffset;
   final MemoryRequest memReq;
   final AtomicBoolean valid;
+  final boolean readOnly;
 
   //Constructor for heap array access and auto byte[] allocation
   MemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity) {
@@ -51,18 +52,18 @@ class MemoryImpl extends Memory {
     this(0L, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, null);
   }
 
-  //Constructor for the above. Sets valid to true for Heap and ByteBuffer cases
+  //Constructor for the above and AllocateDirect
   MemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
       final MemoryRequest memReq) {
     this(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, null,
-        new AtomicBoolean(true));
+        new AtomicBoolean(true), false);
   }
 
-  //Constructor for Regions, AllocateDirect
+  //Constructor for above, regions and read-only
   MemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
-      final MemoryRequest memReq, final AtomicBoolean valid) {
+      final MemoryRequest memReq, final AtomicBoolean valid, final boolean readOnly) {
     this.nativeBaseOffset = nativeBaseOffset;
     this.unsafeObj = unsafeObj;
     this.unsafeObjHeader = unsafeObjHeader;
@@ -72,13 +73,15 @@ class MemoryImpl extends Memory {
     this.cumBaseOffset = regionOffset + ((unsafeObj == null) ? nativeBaseOffset : unsafeObjHeader);
     this.memReq = memReq;
     this.valid = valid;
+    this.readOnly = readOnly;
     assert ((unsafeObj == null) ^ (unsafeObjHeader > 0));
     assert valid.get();
   }
 
   @Override
   public Memory asReadOnly() {
-    return null; //TODO
+    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset,
+        capacity, memReq, valid, true);
   }
 
   //REGIONS
@@ -87,12 +90,13 @@ class MemoryImpl extends Memory {
   public Memory region(final long offsetBytes, final long capacityBytes) {
     assert offsetBytes + capacityBytes <= capacity
       : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + capacity;
+
     final long newRegionOffset = this.regionOffset + offsetBytes;
     final long newCapacity = capacityBytes;
-    //TODO if RO set memReq = null
-    final MemoryRequest myMemReq = memReq;
+    final MemoryRequest myMemReq = (readOnly) ? null : memReq; //null for readOnly
+
     return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
-        newRegionOffset, newCapacity, myMemReq, valid);
+        newRegionOffset, newCapacity, myMemReq, valid, readOnly);
   }
 
   //END OF CONSTRUCTOR-TYPE METHODS
@@ -190,103 +194,69 @@ class MemoryImpl extends Memory {
 
   //PRIMITIVE PUTS
 
-  /**
-   * Puts the boolean value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putBoolean(final long offsetBytes, final boolean value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_BOOLEAN_INDEX_SCALE, capacity);
     unsafe.putBoolean(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
-  /**
-   * Puts the byte value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putByte(final long offsetBytes, final byte value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
     unsafe.putByte(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
-  /**
-   * Puts the char value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putChar(final long offsetBytes, final char value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_CHAR_INDEX_SCALE, capacity);
     unsafe.putChar(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
-  /**
-   * Puts the int value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putInt(final long offsetBytes, final int value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
     unsafe.putInt(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
-  /**
-   * Puts the long value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putLong(final long offsetBytes, final long value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
     unsafe.putLong(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
-  /**
-   * Puts the float value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putFloat(final long offsetBytes, final float value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_FLOAT_INDEX_SCALE, capacity);
     unsafe.putFloat(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
-  /**
-   * Puts the double value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param value the value to put
-   */
   @Override
   public void putDouble(final long offsetBytes, final double value) {
     checkValid();
+    checkReadOnly();
     assertBounds(offsetBytes, ARRAY_DOUBLE_INDEX_SCALE, capacity);
     unsafe.putDouble(unsafeObj, cumBaseOffset + offsetBytes, value);
   }
 
   //PRIMITIVE PUT ARRAYS
 
-  /**
-   * Puts the boolean array at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param srcArray The source array.
-   * @param srcOffset offset in array units
-   * @param length number of array units to transfer
-   */
   @Override
   public void putBooleanArray(final long offsetBytes, final boolean[] srcArray, final int srcOffset,
       final int length) {
     checkValid();
+    checkReadOnly();
     final long copyBytes = length << BOOLEAN_SHIFT;
     assertBounds(srcOffset, length, srcArray.length);
     assertBounds(offsetBytes, copyBytes, capacity);
@@ -299,17 +269,11 @@ class MemoryImpl extends Memory {
       );
   }
 
-  /**
-   * Puts the long array at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
-   * @param srcArray The source array.
-   * @param srcOffset offset in array units
-   * @param length number of array units to transfer
-   */
   @Override
   public void putLongArray(final long offsetBytes, final long[] srcArray, final int srcOffset,
       final int length) {
     checkValid();
+    checkReadOnly();
     final long copyBytes = length << LONG_SHIFT;
     assertBounds(srcOffset, length, srcArray.length);
     assertBounds(offsetBytes, copyBytes, capacity);
@@ -332,10 +296,14 @@ class MemoryImpl extends Memory {
   @Override
   public void freeMemory() {}
 
-  boolean isValid() { return valid.get(); }
+  //RESTRICTED
 
-  final void checkValid() {
-    assert isValid() : "Memory not valid.";
+  private final void checkValid() {
+    assert valid.get() : "Memory not valid.";
+  }
+
+  private final void checkReadOnly() {
+    assert !readOnly : "Memory is Read-Only. Write methods are not allowed.";
   }
 
 }

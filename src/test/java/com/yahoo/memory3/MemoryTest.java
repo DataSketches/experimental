@@ -53,7 +53,7 @@ public class MemoryTest {
     }
   }
 
-  //@Test
+  @Test
   public void checkByteBufHeap() {
     int n = 1024; //longs
     byte[] arr = new byte[n * 8];
@@ -84,7 +84,7 @@ public class MemoryTest {
     }
   }
 
-  //@Test
+  @Test
   public void checkByteBufDirect() {
     int n = 1024; //longs
     ByteBuffer bb = ByteBuffer.allocateDirect(n * 8);
@@ -172,6 +172,14 @@ public class MemoryTest {
     //with -ea assert: Memory not valid.
     //with -da sometimes segfaults, sometimes passes!
     region.getByte(0);
+  }
+
+  @Test(expectedExceptions = AssertionError.class)
+  public void checkReadOnly() {
+    int bytes = 64;
+    Memory wmem = Memory.wrap(new byte[bytes]);
+    Memory mem = wmem.asReadOnly();
+    mem.putByte(0, (byte)0);
   }
 
   public static void main(String[] args) {

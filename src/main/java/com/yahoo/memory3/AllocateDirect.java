@@ -14,12 +14,9 @@ import sun.misc.Cleaner;
 final class AllocateDirect extends MemoryImpl implements AutoCloseable {
   private final Cleaner cleaner_;
 
-  //private AtomicBoolean valid; //hoisted to MemoryImpl
-
-  //called by
   private AllocateDirect(final long nativeBaseOffset, final long capacity,
       final MemoryRequest memReq) {
-    super(nativeBaseOffset, null, 0L, null, 0L, capacity, memReq, new AtomicBoolean(true));
+    super(nativeBaseOffset, null, 0L, null, 0L, capacity, memReq);
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset, valid));
   }
 
@@ -40,11 +37,6 @@ final class AllocateDirect extends MemoryImpl implements AutoCloseable {
       throw e;
     }
     super.freeMemory();
-  }
-
-  @Override
-  boolean isValid() {
-    return valid.get();
   }
 
   private static final class Deallocator implements Runnable {

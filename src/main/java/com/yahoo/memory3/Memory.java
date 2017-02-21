@@ -244,8 +244,8 @@ public abstract class Memory {
    * @param srcOffset offset in array units
    * @param length number of array units to transfer
    */
-  public abstract void putBooleanArray(final long offsetBytes, final boolean[] srcArray, final int srcOffset,
-      final int length);
+  public abstract void putBooleanArray(final long offsetBytes, final boolean[] srcArray,
+      final int srcOffset, final int length);
 
   /**
    * Puts the long array at the given offset
@@ -254,8 +254,8 @@ public abstract class Memory {
    * @param srcOffset offset in array units
    * @param length number of array units to transfer
    */
-  public abstract void putLongArray(final long offsetBytes, final long[] srcArray, final int srcOffset,
-      final int length);
+  public abstract void putLongArray(final long offsetBytes, final long[] srcArray,
+      final int srcOffset, final int length);
 
   //OTHER
 

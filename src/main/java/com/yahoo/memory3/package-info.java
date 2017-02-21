@@ -1,6 +1,6 @@
 /*
   Version A
-  public abstract class Memory (no class vars)
+  public abstract class Memory (no class vars) -- Default Read-only
     - public static RO methods: wrapping arrays, ByteBuffers, Maps
     - public abstract RO methods: get<primitive>, get<primitive>Array. region
 
@@ -19,7 +19,7 @@
 
 
 Version B
-  public abstract class Memory (no class vars)
+  public abstract class Memory (no class vars) -- Default Read-only
     - static RO methods: wrapping arrays, ByteBuffers, Maps
     - abstract RO methods: get<primitive>, get<primitive>Array. region
 
@@ -39,5 +39,23 @@ Version B
 
           class AllocateMap extends WritableMemory implements AutoClosable
             - Allocates direct memory, uses Cleaner (for Map)
+
+          class AccessByteBuffer
+
+ Version C
+   public abstract class Memory (no class vars) -- Default Writable
+    - static methods: wrapping arrays, ByteBuffers, Maps
+    - abstract methods: get<primitive>, get<primitive>Array, region, asReadOnly, others
+
+      class MemoryImpl extends Memory ()
+        - Concrete impls of Memory
+
+        class AllocateDirect extends WritableMemoryImpl implements AutoClosable
+          - Allocates direct memory, uses Cleaner
+
+        class AllocateMap extends WritableMemory implements AutoClosable
+          - Allocates direct memory, uses Cleaner (for Map)
+
+      class AccessByteBuffer
 */
 package com.yahoo.memory3;

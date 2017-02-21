@@ -54,7 +54,7 @@ public class WritableMemory2 extends MemoryImpl {
     super(unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity);
   }
 
-  //Constructor for regions
+  //Constructor for regions: everything
   WritableMemory2(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
       final MemoryRequest memReq, final AtomicBoolean valid) {

@@ -24,7 +24,7 @@ public class MemoryTest {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
-    mem.freeMemory();
+    mem.close();
   }
 
   @Test
@@ -202,7 +202,7 @@ public class MemoryTest {
   public void checkParentUseAfterFree() {
     int bytes = 64 * 8;
     WritableMemory wmem = WritableMemory.allocateDirect(bytes, null);
-    wmem.freeMemory();
+    wmem.close();
     //with -ea assert: Memory not valid.
     //with -da sometimes segfaults, sometimes passes!
     wmem.getLong(0);
@@ -213,7 +213,7 @@ public class MemoryTest {
     int bytes = 64;
     WritableMemory wmem = WritableMemory.allocateDirect(bytes);
     WritableMemory region = wmem.writableRegion(0L, bytes);
-    wmem.freeMemory();
+    wmem.close();
     //with -ea assert: Memory not valid.
     //with -da sometimes segfaults, sometimes passes!
     region.getByte(0);

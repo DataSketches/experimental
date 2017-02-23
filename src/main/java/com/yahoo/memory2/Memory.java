@@ -25,8 +25,7 @@ import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-//@SuppressWarnings("unused")
-public abstract class Memory {
+public abstract class Memory implements AutoCloseable {
 
   //BYTE BUFFER
 
@@ -43,19 +42,76 @@ public abstract class Memory {
 
   //MAP
   /**
-   * Provides read-only access to the backing store of the given MemoryMappedFile.
+   * Provides read-only, memory-mapped access to the newly allocated native backing store for the
+   * given File..
    * Even if the given <i>File</i> is writable, the returned <i>Memory</i> will still be a
    * read-only instance.
    * @param file the given <i>File</i>
    * @param offsetBytes offset into the file in bytes.
    * @param capacityBytes the capacity of the memory-mapped buffer space in bytes.
    * @return a <i>Memory</i> object
+   * @throws Exception file not found or RuntimeException, etc.
    */
-  //@SuppressWarnings("unused")
-  public static Memory map(final File file, final long offsetBytes, final long capacityBytes) {
-    //-> MapDR  //TODO
-    return null;
+  public static Memory map(final File file, final long offsetBytes, final long capacityBytes)
+      throws Exception {
+    return AllocateMemoryMappedFile.getInstance(file, offsetBytes, capacityBytes, true);
   }
+
+  /**
+   * Applies only to mapped files. Otherwise is a no-op.
+   * Loads content into physical memory. This method makes a best effort to ensure that, when it
+   * returns, this buffer's content is resident in physical memory. Invoking this method may cause
+   * some number of page faults and I/O operations to occur.
+   *
+   * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#load--">
+   * java/nio/MappedByteBuffer.load</a>
+   */
+  public abstract void load();
+
+  /**
+   * Applies only to mapped files. Otherwise always returns false.
+   * Tells whether or not the content is resident in physical memory. A return value of true implies
+   * that it is highly likely that all of the data in this buffer is resident in physical memory and
+   * may therefore be accessed without incurring any virtual-memory page faults or I/O operations. A
+   * return value of false does not necessarily imply that the content is not resident in physical
+   * memory. The returned value is a hint, rather than a guarantee, because the underlying operating
+   * system may have paged out some of the buffer's data by the time that an invocation of this
+   * method returns.
+   *
+   * @return true if loaded
+   *
+   * @see <a href=
+   * "https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#isLoaded--"> java
+   * /nio/MappedByteBuffer.isLoaded</a>
+   */
+  public abstract boolean isLoaded();
+
+  /**
+   * Applies only to mapped files. Otherwise is a no-op.
+   * Forces any changes made to this content to be written to the storage device containing the
+   * mapped file.
+   *
+   * <p>
+   * If the file mapped into this buffer resides on a local storage device then when this method
+   * returns it is guaranteed that all changes made to the buffer since it was created, or since
+   * this method was last invoked, will have been written to that device.
+   * </p>
+   *
+   * <p>
+   * If the file does not reside on a local device then no such guarantee is made.
+   * </p>
+   *
+   * <p>
+   * If this buffer was not mapped in read/write mode
+   * (java.nio.channels.FileChannel.MapMode.READ_WRITE) then invoking this method has no effect.
+   * </p>
+   *
+   * @see <a href=
+   * "https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#force--"> java/
+   * nio/MappedByteBuffer.force</a>
+   */
+  public abstract void force();
+
 
   //ACCESS PRIMITIVE ARRAYS
 
@@ -174,7 +230,17 @@ public abstract class Memory {
   public abstract void getBooleanArray(long offsetBytes, boolean[] dstArray, int dstOffset,
       int length);
 
-  //plus 6 more
+  /**
+   * Gets the char array at the given offset
+   * @param offsetBytes offset bytes relative to this Memory start
+   * @param dstArray The preallocated destination array.
+   * @param dstOffset offset in array units
+   * @param length number of array units to transfer
+   */
+  public abstract void getCharArray(long offsetBytes, char[] dstArray, int dstOffset,
+      int length);
+
+
   /**
    * Gets the long array at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
@@ -184,9 +250,14 @@ public abstract class Memory {
    */
   public abstract void getLongArray(long offsetBytes, long[] dstArray, int dstOffset, int length);
 
+
+  public abstract long getCapacity();
   //Plus a number of convenience read methods not listed
 
 
-  public abstract boolean isValid(); //TODO Can elimiate this
+  public abstract boolean isValid();
+
+  @Override
+  public abstract void close();
 
 }

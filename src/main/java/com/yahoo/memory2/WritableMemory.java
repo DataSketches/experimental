@@ -41,10 +41,10 @@ public abstract class WritableMemory extends Memory {
   //BYTE BUFFER
   /**
    * Provides writable access to the backing store of the given ByteBuffer.
-   * If the given <i>ByteBuffer</i> is read-only, and writes are attempted, exceptions
-   * will be thrown.
+   * If the given <i>ByteBuffer</i> is read-only, any write operation will throw an exception or
+   * assertion error, if asserts are enabled.
    * @param byteBuffer the given <i>ByteBuffer</i>
-   * @return a <i>Memory</i> object
+   * @return a <i>WritableMemory</i> object
    */
   public static WritableMemory writableWrap(final ByteBuffer byteBuffer) {
     if (byteBuffer.isReadOnly()) {
@@ -55,18 +55,18 @@ public abstract class WritableMemory extends Memory {
 
   //MAP
   /**
-   * Provides read-only access to the backing store of the given MemoryMappedFile.
-   * Even if the given <i>File</i> is writable, the returned <i>Memory</i> will still be a
-   * read-only instance.
+   * Provides writable, memory-mapped access to the newly allocated native backing store for the
+   * given File. If the given <i>File</i> is read-only, any write operation will throw an
+   * exception or an assertion error, if asserts are enabled.
    * @param file the given <i>File</i>
    * @param offsetBytes offset into the file in bytes.
    * @param capacityBytes the capacity of the memory-mapped buffer space in bytes.
-   * @return a <i>Memory</i> object
+   * @return a <i>WritableMemory</i> object
+   * @throws Exception file not found or RuntimeException, etc.
    */
-  public static WritableMemory WritableMap(final File file, final long offsetBytes,
-      final long capacityBytes) {
-    //-> MapDW
-    return null;
+  public static WritableMemory writableMap(final File file, final long offsetBytes,
+      final long capacityBytes) throws Exception {
+    return AllocateMemoryMappedFile.getInstance(file, offsetBytes, capacityBytes, false);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
@@ -129,49 +129,49 @@ public abstract class WritableMemory extends Memory {
 
   /**
    * Puts the boolean value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putBoolean(long offsetBytes, boolean value);
 
   /**
    * Puts the byte value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putByte(long offsetBytes, byte value);
 
   /**
    * Puts the char value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putChar(long offsetBytes, char value);
 
   /**
    * Puts the int value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putInt(long offsetBytes, int value);
 
   /**
    * Puts the long value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putLong(long offsetBytes, long value);
 
   /**
    * Puts the float value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putFloat(long offsetBytes, float value);
 
   /**
    * Puts the double value at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param value the value to put
    */
   public abstract void putDouble(long offsetBytes, double value);
@@ -180,7 +180,7 @@ public abstract class WritableMemory extends Memory {
 
   /**
    * Puts the boolean array at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param srcArray The source array.
    * @param srcOffset offset in array units
    * @param length number of array units to transfer
@@ -189,8 +189,18 @@ public abstract class WritableMemory extends Memory {
       int length);
 
   /**
+   * Puts the char array at the given offset
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
+   * @param srcArray The source array.
+   * @param srcOffset offset in array units
+   * @param length number of array units to transfer
+   */
+  public abstract void putCharArray(long offsetBytes, char[] srcArray, int srcOffset,
+      int length);
+
+  /**
    * Puts the long array at the given offset
-   * @param offsetBytes offset bytes relative to this Memory start
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
    * @param srcArray The source array.
    * @param srcOffset offset in array units
    * @param length number of array units to transfer
@@ -205,5 +215,4 @@ public abstract class WritableMemory extends Memory {
 
   public abstract MemoryRequest getMemoryRequest();
 
-  public abstract void freeMemory();
 }

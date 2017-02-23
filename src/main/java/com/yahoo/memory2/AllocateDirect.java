@@ -11,22 +11,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import sun.misc.Cleaner;
 
-final class AllocateDirect extends WritableMemoryImpl implements AutoCloseable {
+final class AllocateDirect extends WritableMemoryImpl {
   private final Cleaner cleaner_;
-  //private AtomicBoolean valid; //hoisted to MemoryImpl
 
-  private AllocateDirect(final long nativeBaseOffset, final long capacity, final MemoryRequest memReq) {
-    super(nativeBaseOffset, null, 0L, null, 0L, capacity, memReq, false);
+  private AllocateDirect(final long nativeBaseOffset, final long capacity,
+      final MemoryRequest memReq) {
+    super(nativeBaseOffset, null, 0L, null, 0L, capacity, memReq, false); //always writable
     cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset, valid));
   }
 
   static WritableMemory allocDirect(final long capacity, final MemoryRequest memReq) {
     return new AllocateDirect(unsafe.allocateMemory(capacity), capacity, memReq);
-  }
-
-  @Override
-  public void freeMemory() {
-    close();
   }
 
   @Override
@@ -36,7 +31,6 @@ final class AllocateDirect extends WritableMemoryImpl implements AutoCloseable {
     } catch (final Exception e) {
       throw e;
     }
-    super.freeMemory();
   }
 
   @Override

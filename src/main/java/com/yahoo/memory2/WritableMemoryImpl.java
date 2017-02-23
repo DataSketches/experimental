@@ -8,6 +8,7 @@ package com.yahoo.memory2;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
+import static com.yahoo.memory.UnsafeUtil.ARRAY_CHAR_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_CHAR_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_DOUBLE_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_FLOAT_INDEX_SCALE;
@@ -16,6 +17,7 @@ import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_SHORT_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.BOOLEAN_SHIFT;
+import static com.yahoo.memory.UnsafeUtil.CHAR_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.assertBounds;
 import static com.yahoo.memory.UnsafeUtil.unsafe;
@@ -98,11 +100,9 @@ class WritableMemoryImpl extends WritableMemory {
         : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + capacity;
 
     final long newRegionOffset = this.regionOffset + offsetBytes;
-    final long newCapacity = capacityBytes;
-    final MemoryRequest myMemReq = null;
 
     return new WritableMemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
-        newRegionOffset, newCapacity, myMemReq, true, valid);
+        newRegionOffset, capacityBytes, null, true, valid);
   }
 
   @Override //for writable
@@ -111,12 +111,22 @@ class WritableMemoryImpl extends WritableMemory {
         : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + capacity;
 
     final long newRegionOffset = this.regionOffset + offsetBytes;
-    final long newCapacity = capacityBytes;
-    final MemoryRequest myMemReq = null;
 
     return new WritableMemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,
-        newRegionOffset, newCapacity, myMemReq, false, valid);
+        newRegionOffset, capacityBytes, null, false, valid);
   }
+
+  //MAP RELATED
+  @Override
+  public void load() {}
+
+  @Override
+  public boolean isLoaded() {
+    return false;
+  }
+
+  @Override
+  public void force() {}
 
   //PRIMITIVE GETS
 
@@ -190,6 +200,21 @@ class WritableMemoryImpl extends WritableMemory {
       cumBaseOffset,
       dstArray,
       ARRAY_BOOLEAN_BASE_OFFSET + (dstOffset << BOOLEAN_SHIFT),
+      copyBytes);
+  }
+
+  @Override
+  public void getCharArray(final long offsetBytes, final char[] dstArray, final int dstOffset,
+      final int length) {
+    checkValid();
+    final long copyBytes = length << CHAR_SHIFT;
+    assertBounds(offsetBytes, copyBytes, capacity);
+    assertBounds(dstOffset, length, dstArray.length);
+    unsafe.copyMemory(
+      unsafeObj,
+      cumBaseOffset,
+      dstArray,
+      ARRAY_CHAR_BASE_OFFSET + (dstOffset << CHAR_SHIFT),
       copyBytes);
   }
 
@@ -286,6 +311,24 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   @Override
+  public void putCharArray(final long offsetBytes, final char[] srcArray, final int srcOffset,
+      final int length) {
+    checkValid();
+    checkReadOnly();
+    final long copyBytes = length << CHAR_SHIFT;
+    assertBounds(srcOffset, length, srcArray.length);
+    assertBounds(offsetBytes, copyBytes, capacity);
+    unsafe.copyMemory(
+      srcArray,
+      ARRAY_CHAR_BASE_OFFSET + (srcOffset << CHAR_SHIFT),
+      unsafeObj,
+      cumBaseOffset,
+      copyBytes
+      );
+  }
+
+
+  @Override
   public void putLongArray(final long offsetBytes, final long[] srcArray, final int srcOffset,
       final int length) {
     checkValid();
@@ -303,7 +346,10 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   //Plus a number of convenience write methods not listed
-  // e.g., clean, fill, MemoryRequest, etc.
+  @Override
+  public long getCapacity() {
+    return capacity;
+  }
 
 
 
@@ -312,11 +358,8 @@ class WritableMemoryImpl extends WritableMemory {
     return memReq;
   }
 
-  /**
-   * Optional freeMemory blah, blah
-   */
   @Override
-  public void freeMemory() {}
+  public void close() {}
 
   @Override
   public boolean isValid() { return valid.get(); }

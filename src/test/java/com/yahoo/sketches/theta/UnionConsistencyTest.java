@@ -5,23 +5,21 @@
 
 package com.yahoo.sketches.theta;
 
-import com.yahoo.sketches.utils.MultithreadedTestUtil.RepeatingTestThread;
-import com.yahoo.sketches.utils.MultithreadedTestUtil.TestContext;
-
-import com.google.common.collect.Lists;
-import com.yahoo.sketches.utils.RandomSketchesAndDatumGenerator;
-
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import com.google.common.collect.Lists;
+import com.yahoo.sketches.utils.MultithreadedTestUtil.RepeatingTestThread;
+import com.yahoo.sketches.utils.MultithreadedTestUtil.TestContext;
+import com.yahoo.sketches.utils.RandomSketchesAndDatumGenerator;
 
 /**
  */
@@ -195,7 +193,7 @@ public class UnionConsistencyTest {
     private void validateThetaGreaterThanHashValues(CompactSketch result) {
       long theta = result.getThetaLong();
       for(long val : result.getCache()) {
-        if(val > theta) {
+        if(val >= theta) {
           gotThetaFailure(theta, val, result);
         } else {
           numVerified++;

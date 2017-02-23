@@ -36,6 +36,8 @@ class MemoryImpl extends Memory {
   final AtomicBoolean valid;
   final boolean readOnly;
 
+  //FORMAL CONSTRUCTORS
+
   //Constructor for heap array access and auto byte[] allocation
   MemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity) {
     this(0L, unsafeObj, unsafeObjHeader, null, 0L, capacity, null);
@@ -56,7 +58,7 @@ class MemoryImpl extends Memory {
   MemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
       final MemoryRequest memReq) {
-    this(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, null,
+    this(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, memReq,
         new AtomicBoolean(true), false);
   }
 
@@ -78,10 +80,12 @@ class MemoryImpl extends Memory {
     assert valid.get();
   }
 
+  //METHODS THAT CALL CONSTRUCTORS
+
   @Override
   public Memory asReadOnly() {
-    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset,
-        capacity, memReq, valid, true);
+    return new MemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader,
+        byteBuf, regionOffset, capacity, memReq, valid, true);
   }
 
   //REGIONS
@@ -99,7 +103,7 @@ class MemoryImpl extends Memory {
         newRegionOffset, newCapacity, myMemReq, valid, readOnly);
   }
 
-  //END OF CONSTRUCTOR-TYPE METHODS
+  //END OF ALL CONSTRUCTOR-TYPE METHODS
 
   //PRIMITIVE GETS
 

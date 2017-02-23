@@ -22,55 +22,90 @@ import static com.yahoo.memory.UnsafeUtil.INT_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 //@SuppressWarnings("unused")
 public abstract class Memory {
 
+  //BYTE BUFFER
+
+  /**
+   * Provides read-only access to the backing store of the given ByteBuffer.
+   * Even if the given <i>ByteBuffer</i> is writable, the returned <i>Memory</i> will still be a
+   * read-only instance.
+   * @param byteBuffer the given <i>ByteBuffer</i>
+   * @return a <i>Memory</i> object
+   */
+  public static Memory wrap(final ByteBuffer byteBuffer) {
+    return AccessByteBuffer.writableWrap(byteBuffer, true);
+  }
+
+  //MAP
+  /**
+   * Provides read-only access to the backing store of the given MemoryMappedFile.
+   * Even if the given <i>File</i> is writable, the returned <i>Memory</i> will still be a
+   * read-only instance.
+   * @param file the given <i>File</i>
+   * @param offsetBytes offset into the file in bytes.
+   * @param capacityBytes the capacity of the memory-mapped buffer space in bytes.
+   * @return a <i>Memory</i> object
+   */
+  //@SuppressWarnings("unused")
+  public static Memory map(final File file, final long offsetBytes, final long capacityBytes) {
+    //-> MapDR  //TODO
+    return null;
+  }
+
   //ACCESS PRIMITIVE ARRAYS
 
   public static Memory wrap(final boolean[] arr) {
-    return new MemoryImpl(arr, ARRAY_BOOLEAN_BASE_OFFSET, arr.length << BOOLEAN_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_BOOLEAN_BASE_OFFSET, arr.length << BOOLEAN_SHIFT, true);
   }
 
   public static Memory wrap(final byte[] arr) {
-    return new MemoryImpl(arr, ARRAY_BYTE_BASE_OFFSET, arr.length << BYTE_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_BYTE_BASE_OFFSET, arr.length << BYTE_SHIFT, true);
   }
 
   public static Memory wrap(final char[] arr) {
-    return new MemoryImpl(arr, ARRAY_CHAR_BASE_OFFSET,arr.length << CHAR_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_CHAR_BASE_OFFSET,arr.length << CHAR_SHIFT, true);
   }
 
   public static Memory wrap(final short[] arr) {
-    return new MemoryImpl(arr, ARRAY_SHORT_BASE_OFFSET, arr.length << SHORT_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_SHORT_BASE_OFFSET, arr.length << SHORT_SHIFT, true);
   }
 
   public static Memory wrap(final int[] arr) {
-    return new MemoryImpl(arr, ARRAY_INT_BASE_OFFSET, arr.length << INT_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_INT_BASE_OFFSET, arr.length << INT_SHIFT, true);
   }
 
   public static Memory wrap(final long[] arr) {
-    return new MemoryImpl(arr, ARRAY_LONG_BASE_OFFSET, arr.length << LONG_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_LONG_BASE_OFFSET, arr.length << LONG_SHIFT, true);
   }
 
   public static Memory wrap(final float[] arr) {
-    return new MemoryImpl(arr, ARRAY_FLOAT_BASE_OFFSET, arr.length << FLOAT_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_FLOAT_BASE_OFFSET, arr.length << FLOAT_SHIFT, true);
   }
 
   public static Memory wrap(final double[] arr) {
-    return new MemoryImpl(arr, ARRAY_DOUBLE_BASE_OFFSET, arr.length << DOUBLE_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_DOUBLE_BASE_OFFSET, arr.length << DOUBLE_SHIFT, true);
   }
 
-  //ByteBuffer
+  //REGIONS
+  public abstract Memory region(long offsetBytes, long capacityBytes);
 
-  public static Memory wrap(final ByteBuffer byteBuf) {
-    return MemoryImpl.wrap(byteBuf);
-  }
+  //END OF CONSTRUCTOR-TYPE METHODS
 
-  //Map
+  //PRIMITIVE GETS
 
-
-  //Primitive Gets
   /**
    * Gets the boolean value at the given offset
    * @param offsetBytes offset bytes relative to this Memory start
@@ -151,10 +186,7 @@ public abstract class Memory {
 
   //Plus a number of convenience read methods not listed
 
-  //Region
 
-  public abstract Memory region(long offsetBytes, long capacityBytes);
-
-  abstract boolean isValid();
+  public abstract boolean isValid(); //TODO Can elimiate this
 
 }

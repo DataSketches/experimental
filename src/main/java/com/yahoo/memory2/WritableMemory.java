@@ -25,70 +25,105 @@ import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-@SuppressWarnings("unused")
+//@SuppressWarnings("unused")
 public abstract class WritableMemory extends Memory {
 
-  public abstract Memory asReadOnly();
+  //ALLOCATE DIRECT WRITABLE MEMORY
+  public static WritableMemory allocateDirect(
+      final long capacityBytes, final MemoryRequest memReq) {
+    return AllocateDirect.allocDirect(capacityBytes, memReq);
+  }
+
+  public static WritableMemory allocateDirect(final long capacityBytes) {
+    return AllocateDirect.allocDirect(capacityBytes, null);
+  }
+
+  //BYTE BUFFER
+  /**
+   * Provides writable access to the backing store of the given ByteBuffer.
+   * If the given <i>ByteBuffer</i> is read-only, and writes are attempted, exceptions
+   * will be thrown.
+   * @param byteBuffer the given <i>ByteBuffer</i>
+   * @return a <i>Memory</i> object
+   */
+  public static WritableMemory writableWrap(final ByteBuffer byteBuffer) {
+    if (byteBuffer.isReadOnly()) {
+      throw new IllegalArgumentException("Given ByteBuffer is Read-Only.");
+    }
+    return AccessByteBuffer.writableWrap(byteBuffer, false);
+  }
+
+  //MAP
+  /**
+   * Provides read-only access to the backing store of the given MemoryMappedFile.
+   * Even if the given <i>File</i> is writable, the returned <i>Memory</i> will still be a
+   * read-only instance.
+   * @param file the given <i>File</i>
+   * @param offsetBytes offset into the file in bytes.
+   * @param capacityBytes the capacity of the memory-mapped buffer space in bytes.
+   * @return a <i>Memory</i> object
+   */
+  public static WritableMemory WritableMap(final File file, final long offsetBytes,
+      final long capacityBytes) {
+    //-> MapDW
+    return null;
+  }
+
+  //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
+  public static WritableMemory allocate(final int capacityBytes) {
+    final byte[] unsafeObj = new byte[capacityBytes];
+    return new WritableMemoryImpl(unsafeObj, ARRAY_BYTE_BASE_OFFSET, capacityBytes, false);
+  }
 
   //ACCESS PRIMITIVE ARRAYS for write
 
   public static WritableMemory writableWrap(final boolean[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_BOOLEAN_BASE_OFFSET, arr.length << BOOLEAN_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_BOOLEAN_BASE_OFFSET, arr.length << BOOLEAN_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final byte[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_BYTE_BASE_OFFSET, arr.length << BYTE_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_BYTE_BASE_OFFSET, arr.length << BYTE_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final char[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_CHAR_BASE_OFFSET, arr.length << CHAR_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_CHAR_BASE_OFFSET, arr.length << CHAR_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final short[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_SHORT_BASE_OFFSET, arr.length << SHORT_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_SHORT_BASE_OFFSET, arr.length << SHORT_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final int[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_INT_BASE_OFFSET, arr.length << INT_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_INT_BASE_OFFSET, arr.length << INT_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final long[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_LONG_BASE_OFFSET, arr.length << LONG_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_LONG_BASE_OFFSET, arr.length << LONG_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final float[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_FLOAT_BASE_OFFSET, arr.length << FLOAT_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_FLOAT_BASE_OFFSET, arr.length << FLOAT_SHIFT, false);
   }
 
   public static WritableMemory writableWrap(final double[] arr) {
-    return new WritableMemoryImpl(arr, ARRAY_DOUBLE_BASE_OFFSET, arr.length << DOUBLE_SHIFT);
+    return new WritableMemoryImpl(
+        arr, ARRAY_DOUBLE_BASE_OFFSET, arr.length << DOUBLE_SHIFT, false);
   }
 
-  //Allocations using native memory and heap
+  public abstract Memory asReadOnly();
 
-  //ALLOCATE DIRECT memory
-  //  public static WritableMemory allocateDirect(final long capacity, final MemoryRequest memReq) {
-  //    return AllocateDirect.allocDirect(capacity, memReq);
-  //  }
+  //Regions
+  public abstract WritableMemory writableRegion(long offsetBytes, long capacityBytes);
 
-  //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
-  public static WritableMemory allocate(final int capacity) {
-    return WritableMemoryImpl.allocateArray(capacity);
-  }
 
-  //ByteBuffer
-
-  public static WritableMemory writableWrap(final ByteBuffer byteBuf) {
-    return WritableMemoryImpl.writableWrap(byteBuf);
-  }
-
-  //Map
-
-  public static WritableMemory WritableMap(final File file, final long offset,
-      final long capacity) {
-    //-> MapDW
-    return null;
-  }
+  //END OF CONSTRUCTOR-TYPE METHODS
 
   //Primitive Puts
 
@@ -166,8 +201,7 @@ public abstract class WritableMemory extends Memory {
   //Plus a number of convenience write methods not listed
   // e.g., clean, fill, MemoryRequest, etc.
 
-  //Regions
-  public abstract WritableMemory writableRegion(long offsetBytes, long capacityBytes);
+  //OTHER
 
   public abstract MemoryRequest getMemoryRequest();
 

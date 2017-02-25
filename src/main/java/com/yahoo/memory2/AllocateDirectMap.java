@@ -19,12 +19,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import sun.misc.Cleaner;
 import sun.nio.ch.FileChannelImpl;
 
-final class AllocateMemoryMappedFile extends WritableMemoryImpl {
+final class AllocateDirectMap extends WritableMemoryImpl {
   private RandomAccessFile randomAccessFile_ = null;
   private MappedByteBuffer dummyMbbInstance_ = null;
   private final Cleaner cleaner_;
 
-  private AllocateMemoryMappedFile(final RandomAccessFile raf, final MappedByteBuffer mbb,
+  private AllocateDirectMap(final RandomAccessFile raf, final MappedByteBuffer mbb,
       final long nativeBaseAddress, final long capacity, final boolean readOnlyRequest) {
     super(nativeBaseAddress, null, 0L, null, 0L, capacity, null, readOnlyRequest);
     randomAccessFile_ = raf;
@@ -47,7 +47,7 @@ final class AllocateMemoryMappedFile extends WritableMemoryImpl {
    * @throws Exception file not found or RuntimeException, etc.
    */
   @SuppressWarnings("resource")
-  static AllocateMemoryMappedFile getInstance(final File file, final long position,
+  static AllocateDirectMap getInstance(final File file, final long position,
       final long len, final boolean readOnlyRequest) throws Exception {
     checkPositionLen(position, len);
     checkReadable(file);
@@ -62,7 +62,7 @@ final class AllocateMemoryMappedFile extends WritableMemoryImpl {
     raf.setLength(len);
     final MappedByteBuffer mbb = createDummyMbbInstance(nativeBaseAddress);
 
-    return new AllocateMemoryMappedFile(
+    return new AllocateDirectMap(
         raf, mbb, nativeBaseAddress, capacityBytes, (mode.equals("r")));
   }
 

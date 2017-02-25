@@ -54,7 +54,7 @@ public abstract class Memory implements AutoCloseable {
    */
   public static Memory map(final File file, final long offsetBytes, final long capacityBytes)
       throws Exception {
-    return AllocateMemoryMappedFile.getInstance(file, offsetBytes, capacityBytes, true);
+    return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes, true);
   }
 
   /**
@@ -228,6 +228,16 @@ public abstract class Memory implements AutoCloseable {
    * @param length number of array units to transfer
    */
   public abstract void getBooleanArray(long offsetBytes, boolean[] dstArray, int dstOffset,
+      int length);
+
+  /**
+   * Gets the byte array at the given offset
+   * @param offsetBytes offset bytes relative to this Memory start
+   * @param dstArray The preallocated destination array.
+   * @param dstOffset offset in array units
+   * @param length number of array units to transfer
+   */
+  public abstract void getByteArray(long offsetBytes, byte[] dstArray, int dstOffset,
       int length);
 
   /**

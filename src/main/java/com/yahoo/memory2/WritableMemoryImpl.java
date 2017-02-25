@@ -7,6 +7,7 @@ package com.yahoo.memory2;
 
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BOOLEAN_INDEX_SCALE;
+import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_CHAR_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_CHAR_INDEX_SCALE;
@@ -17,6 +18,7 @@ import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_BASE_OFFSET;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_LONG_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.ARRAY_SHORT_INDEX_SCALE;
 import static com.yahoo.memory.UnsafeUtil.BOOLEAN_SHIFT;
+import static com.yahoo.memory.UnsafeUtil.BYTE_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.CHAR_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.assertBounds;
@@ -36,7 +38,7 @@ class WritableMemoryImpl extends WritableMemory {
   final long cumBaseOffset;
   final MemoryRequest memReq;
   final AtomicBoolean valid;
-  final boolean readOnly;
+  final boolean readOnly; //protection against casting Memory to WritableMemory with asserts.
 
   //FORMAL CONSTRUCTORS
 
@@ -204,6 +206,21 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   @Override
+  public void getByteArray(final long offsetBytes, final byte[] dstArray, final int dstOffset,
+      final int length) {
+    checkValid();
+    final long copyBytes = length << BYTE_SHIFT;
+    assertBounds(offsetBytes, copyBytes, capacity);
+    assertBounds(dstOffset, length, dstArray.length);
+    unsafe.copyMemory(
+      unsafeObj,
+      cumBaseOffset,
+      dstArray,
+      ARRAY_BYTE_BASE_OFFSET + (dstOffset << BYTE_SHIFT),
+      copyBytes);
+  }
+
+  @Override
   public void getCharArray(final long offsetBytes, final char[] dstArray, final int dstOffset,
       final int length) {
     checkValid();
@@ -311,6 +328,23 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   @Override
+  public void putByteArray(final long offsetBytes, final byte[] srcArray, final int srcOffset,
+      final int length) {
+    checkValid();
+    checkReadOnly();
+    final long copyBytes = length << BYTE_SHIFT;
+    assertBounds(srcOffset, length, srcArray.length);
+    assertBounds(offsetBytes, copyBytes, capacity);
+    unsafe.copyMemory(
+      srcArray,
+      ARRAY_BYTE_BASE_OFFSET + (srcOffset << BYTE_SHIFT),
+      unsafeObj,
+      cumBaseOffset,
+      copyBytes
+      );
+  }
+
+  @Override
   public void putCharArray(final long offsetBytes, final char[] srcArray, final int srcOffset,
       final int length) {
     checkValid();
@@ -326,7 +360,6 @@ class WritableMemoryImpl extends WritableMemory {
       copyBytes
       );
   }
-
 
   @Override
   public void putLongArray(final long offsetBytes, final long[] srcArray, final int srcOffset,
@@ -350,8 +383,6 @@ class WritableMemoryImpl extends WritableMemory {
   public long getCapacity() {
     return capacity;
   }
-
-
 
   @Override
   public MemoryRequest getMemoryRequest() {

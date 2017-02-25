@@ -66,7 +66,7 @@ public abstract class WritableMemory extends Memory {
    */
   public static WritableMemory writableMap(final File file, final long offsetBytes,
       final long capacityBytes) throws Exception {
-    return AllocateMemoryMappedFile.getInstance(file, offsetBytes, capacityBytes, false);
+    return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes, false);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
@@ -186,6 +186,16 @@ public abstract class WritableMemory extends Memory {
    * @param length number of array units to transfer
    */
   public abstract void putBooleanArray(long offsetBytes, boolean[] srcArray, int srcOffset,
+      int length);
+
+  /**
+   * Puts the byte array at the given offset
+   * @param offsetBytes offset bytes relative to this <i>WritableMemory</i> start
+   * @param srcArray The source array.
+   * @param srcOffset offset in array units
+   * @param length number of array units to transfer
+   */
+  public abstract void putByteArray(long offsetBytes, byte[] srcArray, int srcOffset,
       int length);
 
   /**

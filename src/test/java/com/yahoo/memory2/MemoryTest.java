@@ -13,7 +13,9 @@ import java.nio.ByteOrder;
 
 import org.testng.annotations.Test;
 
+@SuppressWarnings("resource")
 public class MemoryTest {
+
 
   @Test
   public void checkDirectRoundTrip() {
@@ -230,7 +232,7 @@ public class MemoryTest {
    * @param s blah
    */
   static void println(String s) {
-    System.out.println(s);
+    //System.out.println(s);
   }
 
 }

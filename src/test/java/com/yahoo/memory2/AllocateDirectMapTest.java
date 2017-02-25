@@ -24,16 +24,15 @@ import org.testng.annotations.Test;
  *
  * @author Praveenkumar Venkatesan
  */
-public class MemoryMappedFileTest {
+@SuppressWarnings("resource")
+public class AllocateDirectMapTest {
 
-  //@SuppressWarnings("unused")
   @Test(expectedExceptions = RuntimeException.class)
   public void testMapException() throws Exception  {
     File dummy = createFile("dummy.txt", "");
     WritableMemory.writableMap(dummy, 0, dummy.length()); //zero length
   }
 
-  //@SuppressWarnings("unused")
   @Test
   public void testIllegalArguments() throws Exception {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
@@ -61,21 +60,21 @@ public class MemoryMappedFileTest {
 
   @Test
   public void testMemoryMapAndClose() {
-    File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
+    File file = new File(this.getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
     long memCapacity = file.length();
 
     try {
-      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
+      //AllocateMemoryMappedFile mmf AllocateMemoryMappedFile.getInstance(file, 0, file.length(), false);
+      WritableMemory mmf = WritableMemory.writableMap(file, 0, memCapacity);
       assertEquals(memCapacity, mmf.getCapacity());
       mmf.close();
       assertFalse(mmf.isValid());
-      assertEquals(AllocateMemoryMappedFile.pageCount(1, 16), 16); //check pageCounter
+      assertEquals(AllocateDirectMap.pageCount(1, 16), 16); //check pageCounter
     } catch (Exception e) {
       fail("Failed: testMemoryMapAndFree()");
     }
   }
 
-  @SuppressWarnings("resource")
   @Test
   public void testMultipleUnMaps() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
@@ -95,27 +94,15 @@ public class MemoryMappedFileTest {
 
   }
 
-  @SuppressWarnings("resource")
   @Test
   public void testReadUsingRegion() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
     println("FileLen: " + file.length());
     try {
-      Memory mmf = Memory.map(file, 0, file.length());
-      println("FileLen: " + file.length());
+      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
       mmf.load();
-      //char[] cbuf = new char[500];
-      //mmf.getCharArray(500, cbuf, 0, 500);
-      //CharArrayReader car = new CharArrayReader(cbuf);
 
       Memory reg = mmf.region(512, 512);
-//      char[] dst = new char[500];
-//      reg.getCharArray(0, dst, 0, 500);
-//      CharArrayReader carMr = new CharArrayReader(dst);
-//      int value = 0;
-//      while ((value = car.read()) != -1) {
-//        assertEquals((char) value, (char) carMr.read());
-//      }
       for (int i = 0; i < 512; i++ ) {
         assertEquals(reg.getByte(i), mmf.getByte(i + 512));
       }
@@ -130,7 +117,7 @@ public class MemoryMappedFileTest {
   public void testReadFailAfterFree() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
     try {
-      AllocateMemoryMappedFile mmf = AllocateMemoryMappedFile.getInstance(file, 0, file.length());
+      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
       mmf.close();
       char[] cbuf = new char[500];
       try {
@@ -147,7 +134,7 @@ public class MemoryMappedFileTest {
   public void testLoad() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
     try {
-      AllocateMemoryMappedFile mmf = AllocateMemoryMappedFile.getInstance(file, 0, file.length());
+      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
       mmf.load();
       assertTrue(mmf.isLoaded());
       mmf.close();
@@ -156,6 +143,7 @@ public class MemoryMappedFileTest {
     }
   }
 
+
   @Test
   public void testForce() throws Exception {
     File org = createFile("force_original.txt", "Corectng spellng mistks");
@@ -163,7 +151,7 @@ public class MemoryMappedFileTest {
     try {
       // extra 5bytes for buffer
       int buf = (int) orgBytes + 5;
-      AllocateMemoryMappedFile mmf = AllocateMemoryMappedFile.getInstance(org, 0, buf);
+      WritableMemory mmf = WritableMemory.writableMap(org, 0, buf);
       mmf.load();
 
       // existing content
@@ -176,9 +164,9 @@ public class MemoryMappedFileTest {
       mmf.putByteArray(0, b, 0, b.length);
 
       mmf.force();
-      mmf.freeMemory();
+      mmf.close();
 
-      AllocateMemoryMappedFile nmf = AllocateMemoryMappedFile.getInstance(org, 0, buf);
+      WritableMemory nmf = WritableMemory.writableMap(org, 0, buf);
       nmf.load();
 
       // existing content
@@ -199,7 +187,7 @@ public class MemoryMappedFileTest {
 
       assertTrue(corrected);
 
-      nmf.freeMemory();
+      nmf.close();
     } catch (Exception e) {
       fail("Failed: testForce()." + e);
     }
@@ -228,7 +216,7 @@ public class MemoryMappedFileTest {
    * @param s value to print
    */
   static void println(String s) {
-    System.out.println(s); //disable here
+    //System.out.println(s); //disable here
   }
 
 }

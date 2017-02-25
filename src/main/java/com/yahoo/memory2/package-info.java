@@ -1,10 +1,10 @@
 /*
 Version B
-  public abstract class Memory (no class vars) Methods only return Memory
+  public abstract class Memory implements AutoCloseable
     - static RO methods: wrapping arrays, ByteBuffers, Maps
-    - abstract RO methods: get<primitive>, get<primitive>Array. region
+    - abstract RO methods: get<primitive>, get<primitive>Array, region, etc
 
-      public abstract class WritableMemory extends Memory (no class vars) Methods return WritableMemory
+      public abstract class WritableMemory extends Memory
         - static W methods: wrapping arrays, ByteBuffers, Maps, Direct alloc, autoByteArrays
         - abstract W methods: put<primitive>, put<primitive>Array, getMemoryRequest(), freeMemory()
 
@@ -12,10 +12,10 @@ Version B
           - Concrete RO impls of Memory; Return Memory
           - Concrete W impls of WritableMemory; Return WritableMemory
 
-          class AllocateDirect extends WritableMemoryImpl implements AutoClosable
+          class AllocateDirect extends WritableMemoryImpl
             - Allocates direct memory, uses Cleaner
 
-          class AllocateMap extends WritableMemory implements AutoClosable
+          class AllocateDirectMap extends WritableMemoryImpl
             - Allocates direct memory, uses Cleaner (for Map)
 
       class AccessByteBuffer

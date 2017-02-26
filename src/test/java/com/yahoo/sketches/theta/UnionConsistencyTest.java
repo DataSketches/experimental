@@ -28,7 +28,9 @@ public class UnionConsistencyTest {
 
   @Parameterized.Parameters
   public static Object[] data() {
-    return new Object[] { "NOT_THREAD_SAFE", "CONCURRENT_RW_LOCK" };
+    return new Object[] {
+        //"NOT_THREAD_SAFE",
+        "CONCURRENT_RW_LOCK" };
   }
 
   enum UnionType {
@@ -125,37 +127,37 @@ public class UnionConsistencyTest {
         union.update(RandomSketchesAndDatumGenerator.generateRandomMemory(k));
         break;
       case 2:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomLongDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomLongDatum());
         break;
       case 3:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomLongsDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomLongsDatum());
         break;
       case 4:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomByteDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomByteDatum());
         break;
       case 5:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomBytesDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomBytesDatum());
         break;
       case 6:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomCharDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomCharDatum());
         break;
       case 7:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomCharsDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomCharsDatum());
         break;
       case 8:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomIntDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomIntDatum());
         break;
       case 9:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomIntsDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomIntsDatum());
         break;
       case 10:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomShortDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomShortDatum());
         break;
       case 11:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomDoubleDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomDoubleDatum());
         break;
       case 12:
-        union.update(RandomSketchesAndDatumGenerator.generateRandomFloatDatum(k));
+        union.update(RandomSketchesAndDatumGenerator.generateRandomFloatDatum());
         break;
       default:
         //place holder

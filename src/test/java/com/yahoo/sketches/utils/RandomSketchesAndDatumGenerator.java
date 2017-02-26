@@ -10,16 +10,18 @@ import com.yahoo.sketches.theta.Sketch;
 import com.yahoo.sketches.theta.Sketches;
 import com.yahoo.sketches.theta.UpdateSketch;
 
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
+
 public class RandomSketchesAndDatumGenerator {
-  private static long base = 0L;
+  private static AtomicLong base = new AtomicLong(0L);
+  private static Random random = new Random();
+
+  private static final int ARRAY_SIZE = 3;
 
   public static Sketch generateRandomSketch(int k) {
     UpdateSketch usk = UpdateSketch.builder().build(k);
-    long u = 2 * k;
-    for (long i = 0; i < u; i++) {
-      usk.update(i + base);
-    }
-    base += u;
+    buildUpdateSketch(k, usk);
     return usk;
   }
 
@@ -28,66 +30,67 @@ public class RandomSketchesAndDatumGenerator {
     byte[] arr = new byte[bytes];
     NativeMemory mem = new NativeMemory(arr);
     UpdateSketch usk = UpdateSketch.builder().initMemory(mem).build(k);
-    long u = 2 * k;
-    for (long i = 0; i < u; i++) {
-      usk.update(i + base);
-    }
-    base += u;
+    buildUpdateSketch(k, usk);
     return mem;
   }
 
-  public static long generateRandomLongDatum(int k) {
-    // TODO - implement
-    return 0;
+  private static void buildUpdateSketch(int k, UpdateSketch usk) {
+    long u = 2 * k;
+    for (long i = 0; i < u; i++) {
+      usk.update(i + base.get());
+    }
+    base.addAndGet(u);
   }
 
-  public static long[] generateRandomLongsDatum(int k) {
-    // TODO - implement
-    return new long[0];
+  public static long generateRandomLongDatum() {
+    return random.nextLong();
   }
 
-  public static byte generateRandomByteDatum(int k) {
-    // TODO - implement
-    return 0;
+  public static long[] generateRandomLongsDatum() {
+    return random.longs(ARRAY_SIZE).toArray();
   }
 
-  public static byte[] generateRandomBytesDatum(int k) {
-    // TODO - implement
-    return new byte[0];
+  public static byte generateRandomByteDatum() {
+    return (byte) random.nextLong();
   }
 
-  public static char generateRandomCharDatum(int k) {
-    // TODO - implement
-    return 0;
+  public static byte[] generateRandomBytesDatum() {
+    byte[] res = new byte[ARRAY_SIZE];
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+      res[i] = generateRandomByteDatum();
+    }
+    return res;
   }
 
-  public static char[] generateRandomCharsDatum(int k) {
-    // TODO - implement
-    return new char[0];
+  public static char generateRandomCharDatum() {
+    return (char) random.nextLong();
   }
 
-  public static int generateRandomIntDatum(int k) {
-    // TODO - implement
-    return 0;
+  public static char[] generateRandomCharsDatum() {
+    char[] res = new char[ARRAY_SIZE];
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+      res[i] = generateRandomCharDatum();
+    }
+    return res;
   }
 
-  public static int[] generateRandomIntsDatum(int k) {
-    // TODO - implement
-    return new int[0];
+  public static int generateRandomIntDatum() {
+    return (int) random.nextLong();
   }
 
-  public static short generateRandomShortDatum(int k) {
-    // TODO - implement
-    return 0;
+  public static int[] generateRandomIntsDatum() {
+    return random.ints(ARRAY_SIZE).toArray();
   }
 
-  public static double generateRandomDoubleDatum(int k) {
-    // TODO - implement
-    return 0;
+  public static short generateRandomShortDatum() {
+    return (short) random.nextLong();
   }
 
-  public static float generateRandomFloatDatum(int k) {
-    // TODO - implement
-    return 0;
+  public static double generateRandomDoubleDatum() {
+    return random.nextDouble();
+  }
+
+  public static float generateRandomFloatDatum() {
+    return random.nextFloat();
   }
 }

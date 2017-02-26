@@ -25,7 +25,9 @@ final class AccessByteBuffer {
     final boolean direct = byteBuffer.isDirect();
 
     if (readOnlyBB) {
-
+      if (!readOnlyRequest) {
+        throw new IllegalArgumentException("ByteBuffer is not writable.");
+      }
       //READ-ONLY DIRECT
       if (direct) {
         //address() is already adjusted for direct slices, so regionOffset = 0

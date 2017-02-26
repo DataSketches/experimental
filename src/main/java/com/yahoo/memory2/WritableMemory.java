@@ -26,7 +26,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 
 //@SuppressWarnings("unused")
-public abstract class WritableMemory extends Memory {
+public abstract class WritableMemory extends Memory implements AutoCloseable {
 
   //ALLOCATE DIRECT WRITABLE MEMORY
   public static WritableMemory allocateDirect(
@@ -66,7 +66,7 @@ public abstract class WritableMemory extends Memory {
    */
   public static WritableMemory writableMap(final File file, final long offsetBytes,
       final long capacityBytes) throws Exception {
-    return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes, false);
+    return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes);
   }
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
@@ -224,5 +224,8 @@ public abstract class WritableMemory extends Memory {
   //OTHER
 
   public abstract MemoryRequest getMemoryRequest();
+
+  @Override
+  public abstract void close();
 
 }

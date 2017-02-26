@@ -29,46 +29,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 //@SuppressWarnings("unused")
 class WritableMemoryImpl extends WritableMemory {
-  final long nativeBaseOffset;
-  final Object unsafeObj;
-  final long unsafeObjHeader;
-  final ByteBuffer byteBuf;
+  final long nativeBaseOffset; //Direct ByteBuffer includes the slice() offset here.
+  final Object unsafeObj; //Array objects are held here.
+  final long unsafeObjHeader; //Heap ByteBuffer includes the slice() offset here.
+  final ByteBuffer byteBuf; //Holding on to this so that it is not GCed before we are done with it.
   final long regionOffset;
   final long capacity;
-  final long cumBaseOffset;
+  final long cumBaseOffset; //Holds the cum offset to the start of data.
   final MemoryRequest memReq;
   final AtomicBoolean valid;
-  final boolean readOnly; //protection against casting Memory to WritableMemory with asserts.
+  final boolean readOnly; //Assert protection against casting Memory to WritableMemory.
 
   //FORMAL CONSTRUCTORS
 
-  //Constructor for heap array access and auto byte[] allocation
-  WritableMemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity,
-      final boolean readOnly) {
-    this(0L, unsafeObj, unsafeObjHeader, null, 0L, capacity, null, readOnly);
-  }
-
-  //Constructor for ByteBuffer direct
-  WritableMemoryImpl(final long nativeBaseOffset, final ByteBuffer byteBuf, final long capacity,
-      final boolean readOnly) {
-    this(nativeBaseOffset, null, 0L, byteBuf, 0L, capacity, null, readOnly);
-  }
-
-  //Constructor for ByteBuffer heap
-  WritableMemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final ByteBuffer byteBuf,
-      final long regionOffset, final long capacity, final boolean readOnly) {
-    this(0L, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, null, readOnly);
-  }
-
-  //Constructor for the above and AllocateDirect
-  WritableMemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
-      final ByteBuffer byteBuf, final long regionOffset, final long capacity,
-      final MemoryRequest memReq, final boolean readOnly) {
-    this(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, memReq,
-        readOnly, new AtomicBoolean(true));
-  }
-
-  //Constructor for above, regions, asReadOnly(),
+  //Base Constructor. Also used by regions, asReadOnly(), which must inherit valid.
   WritableMemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
       final ByteBuffer byteBuf, final long regionOffset, final long capacity,
       final MemoryRequest memReq, final boolean readOnly, final AtomicBoolean valid) {
@@ -84,6 +58,39 @@ class WritableMemoryImpl extends WritableMemory {
     this.valid = valid;
     assert ((unsafeObj == null) ^ (unsafeObjHeader > 0));
     assert valid.get();
+  }
+
+  //Sub-Base Constructor. Also used by AllocateDirect, AllocateDirectMap. Calls Base Constructor
+  //The ONLY place where valid is constructed and set to true.
+  WritableMemoryImpl(final long nativeBaseOffset, final Object unsafeObj, final long unsafeObjHeader,
+      final ByteBuffer byteBuf, final long regionOffset, final long capacity,
+      final MemoryRequest memReq, final boolean readOnly) {
+    this(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, memReq,
+        readOnly, new AtomicBoolean(true));
+  }
+
+  static final WritableMemoryImpl directInstance(final long nativeBaseOffset, final long capacity,
+      final MemoryRequest memReq, final boolean readOnlyRequest) {
+    return new WritableMemoryImpl(nativeBaseOffset, null, 0L, null, 0L, capacity, memReq,
+        readOnlyRequest, new AtomicBoolean(true));
+  }
+
+  //Constructor for heap array allocations. Calls Sub-Base
+  WritableMemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final long capacity,
+      final boolean readOnly) {
+    this(0L, unsafeObj, unsafeObjHeader, null, 0L, capacity, null, readOnly);
+  }
+
+  //Constructor for ByteBuffer direct
+  WritableMemoryImpl(final long nativeBaseOffset, final ByteBuffer byteBuf, final long capacity,
+      final boolean readOnly) {
+    this(nativeBaseOffset, null, 0L, byteBuf, 0L, capacity, null, readOnly);
+  }
+
+  //Constructor for ByteBuffer heap
+  WritableMemoryImpl(final Object unsafeObj, final long unsafeObjHeader, final ByteBuffer byteBuf,
+      final long regionOffset, final long capacity, final boolean readOnly) {
+    this(0L, unsafeObj, unsafeObjHeader, byteBuf, regionOffset, capacity, null, readOnly);
   }
 
   //METHODS THAT CALL CONSTRUCTORS
@@ -111,7 +118,7 @@ class WritableMemoryImpl extends WritableMemory {
   public WritableMemory writableRegion(final long offsetBytes, final long capacityBytes) {
     assert offsetBytes + capacityBytes <= capacity
         : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + capacity;
-
+    assert readOnly == false;
     final long newRegionOffset = this.regionOffset + offsetBytes;
 
     return new WritableMemoryImpl(nativeBaseOffset, unsafeObj, unsafeObjHeader, byteBuf,

@@ -25,12 +25,12 @@ final class AllocateDirectMap extends WritableMemoryImpl {
   private final Cleaner cleaner_;
 
   private AllocateDirectMap(final RandomAccessFile raf, final MappedByteBuffer mbb,
-      final long nativeBaseAddress, final long capacity, final boolean readOnlyRequest) {
-    super(nativeBaseAddress, null, 0L, null, 0L, capacity, null, readOnlyRequest);
+      final long nativeBaseOffset, final long capacity, final boolean readOnlyRequest) {
+    super(nativeBaseOffset, null, 0L, null, 0L, capacity, null, readOnlyRequest);
     randomAccessFile_ = raf;
     dummyMbbInstance_ = mbb;
     cleaner_ = Cleaner.create(this,
-        new Deallocator(randomAccessFile_, nativeBaseAddress, capacity, valid));
+        new Deallocator(randomAccessFile_, nativeBaseOffset, capacity, valid));
   }
 
   /**
@@ -48,11 +48,9 @@ final class AllocateDirectMap extends WritableMemoryImpl {
    */
   @SuppressWarnings("resource")
   static AllocateDirectMap getInstance(final File file, final long position,
-      final long len, final boolean readOnlyRequest) throws Exception {
+      final long len) throws Exception {
     checkPositionLen(position, len);
-    checkReadable(file);
-
-    final String mode = (file.canWrite() && !readOnlyRequest) ? "rw" : "r";
+    final String mode = file.canWrite() ? "rw" : "r";
     final RandomAccessFile raf = new RandomAccessFile(file, mode);
     final FileChannel fc = raf.getChannel();
     final long nativeBaseAddress = map(fc, position, len);
@@ -64,24 +62,6 @@ final class AllocateDirectMap extends WritableMemoryImpl {
 
     return new AllocateDirectMap(
         raf, mbb, nativeBaseAddress, capacityBytes, (mode.equals("r")));
-  }
-
-  private static final void checkReadable(final File file) {
-    if (!file.canRead()) {
-      throw new IllegalArgumentException("File not readable");
-    }
-  }
-
-  private static final void checkPositionLen(final long position, final long len) {
-    if (position < 0L) {
-      throw new IllegalArgumentException("Negative position");
-    }
-    if (len < 0L) {
-      throw new IllegalArgumentException("Negative size");
-    }
-    if (position + len < 0) {
-      throw new IllegalArgumentException("Position + size overflow");
-    }
   }
 
   @Override
@@ -241,8 +221,16 @@ final class AllocateDirectMap extends WritableMemoryImpl {
     }
   } //End of class Deallocator
 
-
-
-
+  private static final void checkPositionLen(final long position, final long len) {
+    if (position < 0L) {
+      throw new IllegalArgumentException("Negative position");
+    }
+    if (len < 0L) {
+      throw new IllegalArgumentException("Negative size");
+    }
+    if (position + len < 0) {
+      throw new IllegalArgumentException("Position + size overflow");
+    }
+  }
 
 }

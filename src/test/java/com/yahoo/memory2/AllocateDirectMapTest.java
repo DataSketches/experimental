@@ -24,7 +24,7 @@ import org.testng.annotations.Test;
  *
  * @author Praveenkumar Venkatesan
  */
-@SuppressWarnings("resource")
+//@SuppressWarnings("resource")
 public class AllocateDirectMapTest {
 
   @Test(expectedExceptions = RuntimeException.class)
@@ -106,7 +106,6 @@ public class AllocateDirectMapTest {
       for (int i = 0; i < 512; i++ ) {
         assertEquals(reg.getByte(i), mmf.getByte(i + 512));
       }
-
       mmf.close();
     } catch (Exception e) {
       fail("Failed: testReadUsingRegion()");

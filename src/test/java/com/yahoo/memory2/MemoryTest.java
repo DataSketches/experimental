@@ -13,14 +13,13 @@ import java.nio.ByteOrder;
 
 import org.testng.annotations.Test;
 
-@SuppressWarnings("resource")
 public class MemoryTest {
-
 
   @Test
   public void checkDirectRoundTrip() {
     int n = 1024; //longs
-    WritableMemory mem = WritableMemory.allocateDirect(n * 8, null);
+    WritableMemory mem =
+    WritableMemory.allocateDirect(n * 8, null);
     for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
@@ -38,6 +37,7 @@ public class MemoryTest {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
+    mem.close();
   }
 
   @Test
@@ -55,6 +55,7 @@ public class MemoryTest {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
+    wmem.close();
   }
 
   @Test
@@ -86,10 +87,10 @@ public class MemoryTest {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
+    wmem.close();
   }
 
-  @SuppressWarnings("unused")
-  @Test//(expectedExceptions = AssertionError.class)
+  @Test
   public void checkByteBufHeap2() {
     int n = 1024; //longs
     byte[] arr = new byte[n * 8];
@@ -102,8 +103,8 @@ public class MemoryTest {
     //convert to RO
     Memory mem = wmem.asReadOnly();
 
-    try { //perform ill-advised cast
-      WritableMemory wmem2 = (WritableMemory) mem;
+    try ( WritableMemory wmem2 = (WritableMemory) mem; )
+    { //perform ill-advised cast
       wmem2.putByte(0, (byte) 0);
       fail();
     } catch (AssertionError e) {
@@ -114,20 +115,23 @@ public class MemoryTest {
     Memory mem2 = Memory.wrap(rbb); //created from RO BB
     mem2.getByte(0);
 
-    try { //perform ill-advised cast
-      WritableMemory wmem3 = (WritableMemory) mem2;
+    try ( WritableMemory wmem3 = (WritableMemory) mem2; )
+    { //perform ill-advised cast
+
       wmem3.putByte(0, (byte) 0);
       fail();
     } catch (AssertionError e) {
       println("Ill-advised cast 2");
     }
 
-    try {
-      WritableMemory wmem4 = WritableMemory.writableWrap(rbb);
+    try ( WritableMemory wmem4 = WritableMemory.writableWrap(rbb); )
+    {
+      wmem4.close();
       fail();
     } catch (IllegalArgumentException e) {
       println("Cannot assign a ReadOnly ByteBuffer to WritableMemory.");
     }
+    wmem.close();
   }
 
 
@@ -159,6 +163,7 @@ public class MemoryTest {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
+    wmem.close();
   }
 
   @Test
@@ -173,6 +178,7 @@ public class MemoryTest {
     for (int i = 0; i < n; i++) {
       assertEquals(arr2[i], i);
     }
+    wmem.close();
   }
 
   @Test
@@ -198,6 +204,8 @@ public class MemoryTest {
     WritableMemory reg = wmem.writableRegion(n2 * 8, n2 * 8);
     for (int i = 0; i < n2; i++) { reg.putLong(i * 8, i); }
     for (int i = 0; i < n; i++) { println("" + wmem.getLong(i * 8)); }
+    wmem.close();
+    reg.close();
   }
 
   @Test(expectedExceptions = AssertionError.class)
@@ -211,21 +219,14 @@ public class MemoryTest {
   }
 
   @Test(expectedExceptions = AssertionError.class)
-  public void checkRegionUseAfterFree() {
+  public void checkRORegionUseAfterFree() {
     int bytes = 64;
     WritableMemory wmem = WritableMemory.allocateDirect(bytes);
-    WritableMemory region = wmem.writableRegion(0L, bytes);
+    Memory reg = wmem.region(0L, bytes);
     wmem.close();
     //with -ea assert: Memory not valid.
     //with -da sometimes segfaults, sometimes passes!
-    region.getByte(0);
-  }
-
-  public static void main(String[] args) {
-    MemoryTest test = new MemoryTest();
-    test.checkParentUseAfterFree();
-    test.checkRegionUseAfterFree();
-    println("Passed!");
+    reg.getByte(0);
   }
 
   /**

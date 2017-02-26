@@ -22,10 +22,9 @@ import static com.yahoo.memory.UnsafeUtil.INT_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 
-public abstract class Memory implements AutoCloseable {
+public abstract class Memory {
 
   //BYTE BUFFER
 
@@ -38,23 +37,6 @@ public abstract class Memory implements AutoCloseable {
    */
   public static Memory wrap(final ByteBuffer byteBuffer) {
     return AccessByteBuffer.writableWrap(byteBuffer, true);
-  }
-
-  //MAP
-  /**
-   * Provides read-only, memory-mapped access to the newly allocated native backing store for the
-   * given File..
-   * Even if the given <i>File</i> is writable, the returned <i>Memory</i> will still be a
-   * read-only instance.
-   * @param file the given <i>File</i>
-   * @param offsetBytes offset into the file in bytes.
-   * @param capacityBytes the capacity of the memory-mapped buffer space in bytes.
-   * @return a <i>Memory</i> object
-   * @throws Exception file not found or RuntimeException, etc.
-   */
-  public static Memory map(final File file, final long offsetBytes, final long capacityBytes)
-      throws Exception {
-    return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes, true);
   }
 
   /**
@@ -267,7 +249,6 @@ public abstract class Memory implements AutoCloseable {
 
   public abstract boolean isValid();
 
-  @Override
-  public abstract void close();
+
 
 }

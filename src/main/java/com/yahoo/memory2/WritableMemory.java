@@ -30,7 +30,8 @@ public abstract class WritableMemory extends Memory implements AutoCloseable {
 
   //ALLOCATE DIRECT WRITABLE MEMORY
   public static WritableMemory allocateDirect(
-      final long capacityBytes, final MemoryRequest memReq) {
+      final long capacityBytes,
+      final MemoryRequest memReq) {
     return AllocateDirect.allocDirect(capacityBytes, memReq);
   }
 
@@ -41,15 +42,12 @@ public abstract class WritableMemory extends Memory implements AutoCloseable {
   //BYTE BUFFER
   /**
    * Provides writable access to the backing store of the given ByteBuffer.
-   * If the given <i>ByteBuffer</i> is read-only, any write operation will throw an exception or
-   * assertion error, if asserts are enabled.
+   * If the given <i>ByteBuffer</i> is read-only and if asserts are enabled, any write operation
+   * will throw an assertion error.
    * @param byteBuffer the given <i>ByteBuffer</i>
    * @return a <i>WritableMemory</i> object
    */
   public static WritableMemory writableWrap(final ByteBuffer byteBuffer) {
-    if (byteBuffer.isReadOnly()) {
-      throw new IllegalArgumentException("Given ByteBuffer is Read-Only.");
-    }
     return AccessByteBuffer.writableWrap(byteBuffer, false);
   }
 
@@ -68,6 +66,63 @@ public abstract class WritableMemory extends Memory implements AutoCloseable {
       final long capacityBytes) throws Exception {
     return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes);
   }
+
+  /**
+   * Applies only to mapped files. Otherwise is a no-op.
+   * Loads content into physical memory. This method makes a best effort to ensure that, when it
+   * returns, this buffer's content is resident in physical memory. Invoking this method may cause
+   * some number of page faults and I/O operations to occur.
+   *
+   * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#load--">
+   * java/nio/MappedByteBuffer.load</a>
+   */
+  public abstract void load();
+
+  /**
+   * Applies only to mapped files. Otherwise always returns false.
+   * Tells whether or not the content is resident in physical memory. A return value of true implies
+   * that it is highly likely that all of the data in this buffer is resident in physical memory and
+   * may therefore be accessed without incurring any virtual-memory page faults or I/O operations. A
+   * return value of false does not necessarily imply that the content is not resident in physical
+   * memory. The returned value is a hint, rather than a guarantee, because the underlying operating
+   * system may have paged out some of the buffer's data by the time that an invocation of this
+   * method returns.
+   *
+   * @return true if loaded
+   *
+   * @see <a href=
+   * "https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#isLoaded--"> java
+   * /nio/MappedByteBuffer.isLoaded</a>
+   */
+  public abstract boolean isLoaded();
+
+  /**
+   * Applies only to mapped files. Otherwise is a no-op.
+   * Forces any changes made to this content to be written to the storage device containing the
+   * mapped file.
+   *
+   * <p>
+   * If the file mapped into this buffer resides on a local storage device then when this method
+   * returns it is guaranteed that all changes made to the buffer since it was created, or since
+   * this method was last invoked, will have been written to that device.
+   * </p>
+   *
+   * <p>
+   * If the file does not reside on a local device then no such guarantee is made.
+   * </p>
+   *
+   * <p>
+   * If this buffer was not mapped in read/write mode
+   * (java.nio.channels.FileChannel.MapMode.READ_WRITE) then invoking this method has no effect.
+   * </p>
+   *
+   * @see <a href=
+   * "https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#force--"> java/
+   * nio/MappedByteBuffer.force</a>
+   */
+  public abstract void force();
+
+  //END OF MAP
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
   public static WritableMemory allocate(final int capacityBytes) {

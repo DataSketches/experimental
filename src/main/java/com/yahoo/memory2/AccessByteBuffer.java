@@ -25,9 +25,6 @@ final class AccessByteBuffer {
     final boolean direct = byteBuffer.isDirect();
 
     if (readOnlyBB) {
-      if (!readOnlyRequest) {
-        throw new IllegalArgumentException("ByteBuffer is not writable.");
-      }
       //READ-ONLY DIRECT
       if (direct) {
         //address() is already adjusted for direct slices, so regionOffset = 0
@@ -56,7 +53,7 @@ final class AccessByteBuffer {
           unsafeObj, unsafeObjHeader, byteBuffer, regionOffset, capacity, true);
     }
 
-    else { //WRITABLE
+    else { //BB is WRITABLE
 
       //WRITABLE-DIRECT  //nativeBaseAddress, byteBuf, capacity
       if (direct) {

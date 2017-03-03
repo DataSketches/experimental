@@ -19,18 +19,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import sun.misc.Cleaner;
 import sun.nio.ch.FileChannelImpl;
 
+/**
+ * AllocateDirectMap class extends WritableMemoryImpl and is used to memory map files
+ * (including those &gt; 2GB) off heap.
+ *
+ * @author Praveenkumar Venkatesan
+ */
 final class AllocateDirectMap extends WritableMemoryImpl {
-  private RandomAccessFile randomAccessFile_ = null;
-  private MappedByteBuffer dummyMbbInstance_ = null;
-  private final Cleaner cleaner_;
+  private RandomAccessFile randomAccessFile = null;
+  private MappedByteBuffer dummyMbbInstance = null;
+  private final Cleaner cleaner;
 
-  private AllocateDirectMap(final RandomAccessFile raf, final MappedByteBuffer mbb,
-      final long nativeBaseOffset, final long capacity, final boolean readOnlyRequest) {
+  private AllocateDirectMap(
+      final RandomAccessFile raf,
+      final MappedByteBuffer mbb,
+      final long nativeBaseOffset,
+      final long capacity,
+      final boolean readOnlyRequest) {
     super(nativeBaseOffset, null, 0L, null, 0L, capacity, null, readOnlyRequest);
-    randomAccessFile_ = raf;
-    dummyMbbInstance_ = mbb;
-    cleaner_ = Cleaner.create(this,
-        new Deallocator(randomAccessFile_, nativeBaseOffset, capacity, valid));
+    this.randomAccessFile = raf;
+    this.dummyMbbInstance = mbb;
+    this.cleaner = Cleaner.create(this,
+        new Deallocator(raf, nativeBaseOffset, capacity, super.valid));
   }
 
   /**
@@ -40,28 +50,27 @@ final class AllocateDirectMap extends WritableMemoryImpl {
    * FileChannelImpl.c. The owner will have read write access to that address space.</p>
    *
    * @param file File to be mapped
-   * @param position Memory map starting from this position in the file
-   * @param len Memory map at most len bytes &gt; 0 starting from {@code position}
+   * @param offset Memory map starting from this position in the file
+   * @param capacity Memory map at most capacity bytes &gt; 0 starting from {@code position}
    * @param readOnlyRequest true if requesting method requests read-only interface.
    * @return A new MemoryMappedFile
    * @throws Exception file not found or RuntimeException, etc.
    */
   @SuppressWarnings("resource")
-  static AllocateDirectMap getInstance(final File file, final long position,
-      final long len) throws Exception {
-    checkPositionLen(position, len);
+  static AllocateDirectMap getInstance(final File file, final long offset, final long capacity)
+      throws Exception {
+    checkOffsetAndCapacity(offset, capacity);
     final String mode = file.canWrite() ? "rw" : "r";
     final RandomAccessFile raf = new RandomAccessFile(file, mode);
     final FileChannel fc = raf.getChannel();
-    final long nativeBaseAddress = map(fc, position, len);
-    final long capacityBytes = len;
+    final long nativeBaseAddress = map(fc, offset, capacity);
+    final long capacityBytes = capacity;
 
     // len can be more than the file.length
-    raf.setLength(len);
+    raf.setLength(capacity);
     final MappedByteBuffer mbb = createDummyMbbInstance(nativeBaseAddress);
 
-    return new AllocateDirectMap(
-        raf, mbb, nativeBaseAddress, capacityBytes, (mode.equals("r")));
+    return new AllocateDirectMap(raf, mbb, nativeBaseAddress, capacityBytes, (mode.equals("r")));
   }
 
   @Override
@@ -86,7 +95,7 @@ final class AllocateDirectMap extends WritableMemoryImpl {
       final Method method =
           MappedByteBuffer.class.getDeclaredMethod("isLoaded0", long.class, long.class, int.class);
       method.setAccessible(true);
-      return (boolean) method.invoke(dummyMbbInstance_, nativeBaseOffset, capacity,
+      return (boolean) method.invoke(dummyMbbInstance, nativeBaseOffset, capacity,
           pageCount);
     } catch (final Exception e) {
       throw new RuntimeException(
@@ -100,28 +109,26 @@ final class AllocateDirectMap extends WritableMemoryImpl {
       final Method method = MappedByteBuffer.class.getDeclaredMethod("force0", FileDescriptor.class,
           long.class, long.class);
       method.setAccessible(true);
-      method.invoke(dummyMbbInstance_, randomAccessFile_.getFD(), nativeBaseOffset,
+      method.invoke(dummyMbbInstance, randomAccessFile.getFD(), nativeBaseOffset,
           capacity);
     } catch (final Exception e) {
       throw new RuntimeException(String.format("Encountered %s exception in force", e.getClass()));
     }
   }
 
-
   @Override
   public void close() {
     try {
-      cleaner_.clean();
+      cleaner.clean();
     } catch (final Exception e) {
       throw e;
     }
   }
 
-
   // Restricted methods
 
-  static final int pageCount(final int ps, final long length) {
-    return (int) ( (length == 0) ? 0 : (length - 1L) / ps + 1L);
+  static final int pageCount(final int ps, final long capacity) {
+    return (int) ( (capacity == 0) ? 0 : (capacity - 1L) / ps + 1L);
   }
 
   private static final MappedByteBuffer createDummyMbbInstance(final long nativeBaseAddress)
@@ -147,7 +154,7 @@ final class AllocateDirectMap extends WritableMemoryImpl {
     try {
       final Method method = MappedByteBuffer.class.getDeclaredMethod("load0", long.class, long.class);
       method.setAccessible(true);
-      method.invoke(dummyMbbInstance_, nativeBaseOffset, capacity);
+      method.invoke(dummyMbbInstance, nativeBaseOffset, capacity);
     } catch (final Exception e) {
       throw new RuntimeException(
           String.format("Encountered %s exception while loading", e.getClass()));
@@ -180,20 +187,22 @@ final class AllocateDirectMap extends WritableMemoryImpl {
   private static final class Deallocator implements Runnable {
     private RandomAccessFile raf;
     private FileChannel fc;
-    private long nativeBaseAdd;
-    private long capBytes;
-    private AtomicBoolean myValid;
+    //This is the only place the actual native offset is kept for use by unsafe.freeMemory();
+    //It can never be modified until it is deallocated.
+    private long actualNativeBaseOffset;
+    private final long myCapacity;
+    private final AtomicBoolean parentValidRef;
 
-    private Deallocator(final RandomAccessFile randomAccessFile,
-        final long nativeBaseAddress, final long capacityBytes, final AtomicBoolean valid) {
+    private Deallocator(final RandomAccessFile randomAccessFile, final long nativeBaseOffset,
+        final long capacity, final AtomicBoolean valid) {
       assert (randomAccessFile != null);
-      assert (nativeBaseAddress != 0);
-      assert (capacityBytes != 0);
-      raf = randomAccessFile;
-      fc = randomAccessFile.getChannel();
-      nativeBaseAdd = nativeBaseAddress;
-      capBytes = capacityBytes;
-      this.myValid = valid;
+      assert (nativeBaseOffset != 0);
+      assert (capacity != 0);
+      this.raf = randomAccessFile;
+      this.fc = randomAccessFile.getChannel();
+      this.actualNativeBaseOffset = nativeBaseOffset;
+      this.myCapacity = capacity;
+      this.parentValidRef = valid;
     }
 
     /**
@@ -203,8 +212,8 @@ final class AllocateDirectMap extends WritableMemoryImpl {
       try {
         final Method method = FileChannelImpl.class.getDeclaredMethod("unmap0", long.class, long.class);
         method.setAccessible(true);
-        method.invoke(fc, nativeBaseAdd, capBytes);
-        raf.close();
+        method.invoke(this.fc, this.actualNativeBaseOffset, this.myCapacity);
+        this.raf.close();
       } catch (final Exception e) {
         throw new RuntimeException(
             String.format("Encountered %s exception while freeing memory", e.getClass()));
@@ -213,23 +222,19 @@ final class AllocateDirectMap extends WritableMemoryImpl {
 
     @Override
     public void run() {
-      if (fc != null) {
+      if (this.fc != null) {
         unmap();
       }
-      nativeBaseAdd = 0L;
-      myValid.set(false);
+      this.actualNativeBaseOffset = 0L;
+      this.parentValidRef.set(false); //The only place valid is set false.
     }
   } //End of class Deallocator
 
-  private static final void checkPositionLen(final long position, final long len) {
-    if (position < 0L) {
-      throw new IllegalArgumentException("Negative position");
-    }
-    if (len < 0L) {
-      throw new IllegalArgumentException("Negative size");
-    }
-    if (position + len < 0) {
-      throw new IllegalArgumentException("Position + size overflow");
+  private static final void checkOffsetAndCapacity(final long offset, final long capacity) {
+    if (((offset) | (capacity - 1L) | (offset + capacity)) < 0) {
+      throw new IllegalArgumentException(
+          "offset: " + offset + ", capacity: " + capacity
+          + ", offset + capacity: " + (offset + capacity));
     }
   }
 

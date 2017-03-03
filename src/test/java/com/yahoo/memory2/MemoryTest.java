@@ -6,7 +6,6 @@
 package com.yahoo.memory2;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -17,11 +16,11 @@ public class MemoryTest {
 
   @Test
   public void checkDirectRoundTrip() {
-    int n = 1024; //longs
+    int nLongs = 1024;
     WritableMemory mem =
-    WritableMemory.allocateDirect(n * 8, null);
-    for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
-    for (int i = 0; i < n; i++) {
+    WritableMemory.allocateDirect(nLongs * 8, null);
+    for (int i = 0; i < nLongs; i++) mem.putLong(i * 8, i);
+    for (int i = 0; i < nLongs; i++) {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
@@ -30,10 +29,10 @@ public class MemoryTest {
 
   @Test
   public void checkAutoHeapRoundTrip() {
-    int n = 1024; //longs
-    WritableMemory mem = WritableMemory.allocate(n * 8);
-    for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
-    for (int i = 0; i < n; i++) {
+    int nLongs = 1024;
+    WritableMemory mem = WritableMemory.allocate(nLongs * 8);
+    for (int i = 0; i < nLongs; i++) mem.putLong(i * 8, i);
+    for (int i = 0; i < nLongs; i++) {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
@@ -42,129 +41,111 @@ public class MemoryTest {
 
   @Test
   public void checkArrayWrap() {
-    int n = 1024; //longs
-    byte[] arr = new byte[n * 8];
+    int nLongs = 1024;
+    byte[] arr = new byte[nLongs * 8];
     WritableMemory wmem = WritableMemory.writableWrap(arr);
-    for (int i = 0; i < n; i++) wmem.putLong(i * 8, i);
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < nLongs; i++) wmem.putLong(i * 8, i);
+    for (int i = 0; i < nLongs; i++) {
       long v = wmem.getLong(i * 8);
       assertEquals(v, i);
     }
-    Memory mem = Memory.wrap(arr);
-    for (int i = 0; i < n; i++) {
+    Memory mem = WritableMemory.writableWrap(arr).asReadOnly();
+    for (int i = 0; i < nLongs; i++) {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
     wmem.close();
   }
 
-  @Test
-  public void checkByteBufHeap() {
-    int n = 1024; //longs
-    byte[] arr = new byte[n * 8];
-    ByteBuffer bb = ByteBuffer.wrap(arr);
-    bb.order(ByteOrder.nativeOrder());
-    WritableMemory wmem = WritableMemory.writableWrap(bb);
-    for (int i = 0; i < n; i++) { //write to wmem
-      wmem.putLong(i * 8, i);
-    }
-    for (int i = 0; i < n; i++) { //read from wmem
-      long v = wmem.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    for (int i = 0; i < n; i++) { //read from BB
-      long v = bb.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    Memory mem1 = Memory.wrap(arr);
-    for (int i = 0; i < n; i++) { //read from wrapped arr
-      long v = mem1.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    //convert to RO
-    Memory mem = wmem.asReadOnly();
-    for (int i = 0; i < n; i++) {
-      long v = mem.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    wmem.close();
-  }
+  //BYTE BUFFER
 
   @Test
-  public void checkByteBufHeap2() {
-    int n = 1024; //longs
-    byte[] arr = new byte[n * 8];
-    ByteBuffer wbb = ByteBuffer.wrap(arr);
-    wbb.order(ByteOrder.nativeOrder());
+  public void checkWBBHeap() {
+    int nLongs = 1024;
+    ByteBuffer wbb = MemoryTest.genWBB(nLongs, false, false, false); //RO, direct, load
     WritableMemory wmem = WritableMemory.writableWrap(wbb);
-    for (int i = 0; i < n; i++) { //write to wmem
-      wmem.putLong(i * 8, i);
+    //check writes / reads
+    for (int i = 0; i < nLongs; i++) {
+      wmem.putLong(i * 8, i + 1); //different values
+      long v = wmem.getLong(i * 8);
+      assertEquals(v, i + 1);
     }
-    //convert to RO
+    println(wmem.toHexString("wmem", 0, 32));
+
     Memory mem = wmem.asReadOnly();
-
-    try ( WritableMemory wmem2 = (WritableMemory) mem; )
-    { //perform ill-advised cast
-      wmem2.putByte(0, (byte) 0);
-      fail();
-    } catch (AssertionError e) {
-      println("Ill-advised cast 1");
-    }
-
-    ByteBuffer rbb = wbb.asReadOnlyBuffer();
-    Memory mem2 = Memory.wrap(rbb); //created from RO BB
-    mem2.getByte(0);
-
-    try ( WritableMemory wmem3 = (WritableMemory) mem2; )
-    { //perform ill-advised cast
-
-      wmem3.putByte(0, (byte) 0);
-      fail();
-    } catch (AssertionError e) {
-      println("Ill-advised cast 2");
-    }
-
-    try ( WritableMemory wmem4 = WritableMemory.writableWrap(rbb); )
-    {
-      wmem4.close();
-      fail();
-    } catch (IllegalArgumentException e) {
-      println("Cannot assign a ReadOnly ByteBuffer to WritableMemory.");
+    println(mem.toHexString("mem", 0, 32));
+    //check reads, wmem should have data
+    for (int i = 0; i < nLongs; i++) { //write to wmem
+      long v = mem.getLong(i * 8);
+      assertEquals(v, i + 1);
     }
     wmem.close();
   }
 
-
   @Test
-  public void checkByteBufDirect() {
-    int n = 1024; //longs
-    ByteBuffer bb = ByteBuffer.allocateDirect(n * 8);
-    bb.order(ByteOrder.nativeOrder());
-    WritableMemory wmem = WritableMemory.writableWrap(bb);
-    for (int i = 0; i < n; i++) { //write to wmem
-      wmem.putLong(i * 8, i);
-    }
-    for (int i = 0; i < n; i++) { //read from wmem
-      long v = wmem.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    for (int i = 0; i < n; i++) { //read from BB
-      long v = bb.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    Memory mem1 = Memory.wrap(bb);
-    for (int i = 0; i < n; i++) { //read from wrapped bb RO
-      long v = mem1.getLong(i * 8);
-      assertEquals(v, i);
-    }
-    //convert to RO
-    Memory mem = wmem.asReadOnly();
-    for (int i = 0; i < n; i++) {
+  public void checkROBBHeap() {
+    int nLongs = 1024;
+    ByteBuffer robb = MemoryTest.genWBB(nLongs, true, false, true); //RO, direct, load
+    WritableMemory mem = WritableMemory.writableWrap(robb); //does not throw error
+    //check reads
+    for (int i = 0; i < nLongs; i++) {
       long v = mem.getLong(i * 8);
       assertEquals(v, i);
     }
+    //check writes via readOnly flag
+    try {
+      mem.putLong(0, 0);
+      mem.close();
+      failure();
+    } catch (AssertionError e) {
+      mem.close();
+    }
+    mem.close();
+  }
+
+  @Test
+  public void checkWBBDirect() {
+    int nLongs = 1024;
+    ByteBuffer wbb = MemoryTest.genWBB(nLongs, false, true, false); //RO, direct, load
+    WritableMemory wmem = WritableMemory.writableWrap(wbb);
+
+    //check writes / reads
+    for (int i = 0; i < nLongs; i++) {
+      wmem.putLong(i * 8, i + 1);
+      long v = wmem.getLong(i * 8);
+      assertEquals(v, i + 1);
+    }
+
+    Memory mem2 = wmem.asReadOnly();
+    //check reads, wmem should have data
+    for (int i = 0; i < nLongs; i++) { //write to wmem
+      long v = mem2.getLong(i * 8);
+      assertEquals(v, i + 1);
+    }
     wmem.close();
   }
+
+  @Test
+  public void checkROBBDirect() {
+    int nLongs = 1024;
+    ByteBuffer robb = MemoryTest.genWBB(nLongs, true, true, true); //RO, direct, load
+    WritableMemory mem = WritableMemory.writableWrap(robb); //does not throw error
+    //check reads
+    for (int i = 0; i < nLongs; i++) {
+      long v = mem.getLong(i * 8);
+      assertEquals(v, i);
+    }
+    //check writes via readOnly flag
+    try {
+      mem.putLong(0, 0);
+      mem.close();
+      failure();
+    } catch (AssertionError e) {
+      mem.close();
+    }
+    mem.close();
+  }
+
 
   @Test
   public void checkPutGetArraysHeap() {
@@ -187,7 +168,7 @@ public class MemoryTest {
     int n2 = n / 2;
     long[] arr = new long[n];
     for (int i = 0; i < n; i++) { arr[i] = i; }
-    Memory mem = Memory.wrap(arr);
+    Memory mem = WritableMemory.writableWrap(arr).asReadOnly();
     Memory reg = mem.region(n2 * 8, n2 * 8);
     for (int i = 0; i < n2; i++) { println("" + reg.getLong(i * 8)); }
   }
@@ -229,11 +210,42 @@ public class MemoryTest {
     reg.getByte(0);
   }
 
+  private static ByteBuffer genWBB(int nLongs, boolean readOnly, boolean direct, boolean load) {
+    ByteBuffer wbb = (direct)
+        ? ByteBuffer.allocateDirect(nLongs * 8)
+        : ByteBuffer.allocate(nLongs * 8);
+    setEndian(wbb, true);
+    if (load) {
+      for (int i = 0; i < nLongs; i++) {
+        wbb.putLong(i * 8, i);
+      }
+    }
+    ByteBuffer out = wbb;
+    setEndian(out, true);
+    if (readOnly) {
+      out = wbb.asReadOnlyBuffer();
+      setEndian(out, true);
+    }
+    return out;
+  }
+
+  private static void setEndian(ByteBuffer bb, boolean nativeEndian) {
+    if (nativeEndian) {
+      bb.order(ByteOrder.nativeOrder());
+    } else {
+      bb.order(ByteOrder.BIG_ENDIAN);
+    }
+  }
+
+  private static void failure() {
+    throw new IllegalArgumentException("Failed");
+  }
+
   /**
    * @param s blah
    */
   static void println(String s) {
-    //System.out.println(s);
+    System.out.println(s);
   }
 
 }

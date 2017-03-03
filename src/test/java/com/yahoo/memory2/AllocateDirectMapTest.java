@@ -102,7 +102,7 @@ public class AllocateDirectMapTest {
       WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
       mmf.load();
 
-      Memory reg = mmf.region(512, 512);
+      Memory reg = mmf.writableRegion(512, 512).asReadOnly();
       for (int i = 0; i < 512; i++ ) {
         assertEquals(reg.getByte(i), mmf.getByte(i + 512));
       }

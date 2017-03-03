@@ -12,12 +12,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import sun.misc.Cleaner;
 
 final class AllocateDirect extends WritableMemoryImpl {
-  private final Cleaner cleaner_;
+  private final Cleaner cleaner;
 
+  /**
+   * Base Constructor for allocate native memory with MemoryRequest.
+   *
+   * <p>Allocates and provides access to capacityBytes directly in native (off-heap) memory
+   * leveraging the Memory interface.
+   * The allocated memory will be 8-byte aligned, but may not be page aligned.
+   * @param capacityBytes the size in bytes of the native memory
+   * @param memReq The MemoryRequest callback
+   */
   private AllocateDirect(final long nativeBaseOffset, final long capacity,
       final MemoryRequest memReq) {
     super(nativeBaseOffset, null, 0L, null, 0L, capacity, memReq, false); //always writable
-    cleaner_ = Cleaner.create(this, new Deallocator(nativeBaseOffset, valid));
+    this.cleaner = Cleaner.create(this, new Deallocator(nativeBaseOffset, super.valid));
   }
 
   static WritableMemory allocDirect(final long capacity, final MemoryRequest memReq) {
@@ -27,35 +36,33 @@ final class AllocateDirect extends WritableMemoryImpl {
   @Override
   public void close() {
     try {
-      cleaner_.clean();
+      this.cleaner.clean();
     } catch (final Exception e) {
       throw e;
     }
   }
 
-  @Override
-  public boolean isValid() {
-    return valid.get();
-  }
-
   private static final class Deallocator implements Runnable {
-    private long myNativeBaseOffset;
-    private AtomicBoolean myValid;
+    //This is the only place the actual native offset is kept for use by unsafe.freeMemory();
+    //It can never be modified until it is deallocated.
+    private long actualNativeBaseOffset; //
+    private final AtomicBoolean parentValidRef;
 
     private Deallocator(final long nativeBaseOffset, final AtomicBoolean valid) {
       assert (nativeBaseOffset != 0);
-      this.myNativeBaseOffset = nativeBaseOffset;
-      this.myValid = valid;
+      this.actualNativeBaseOffset = nativeBaseOffset;
+      this.parentValidRef = valid;
     }
 
     @Override
     public void run() {
-      if (myNativeBaseOffset == 0) {
+      if (this.actualNativeBaseOffset == 0) {
         // Paranoia
         return;
       }
-      unsafe.freeMemory(myNativeBaseOffset);
-      myValid.set(false);
+      unsafe.freeMemory(this.actualNativeBaseOffset);
+      this.actualNativeBaseOffset = 0L;
+      this.parentValidRef.set(false); //The only place valid is set false.
     }
   }
 

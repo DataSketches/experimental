@@ -245,7 +245,7 @@ public class MemoryTest {
    * @param s blah
    */
   static void println(String s) {
-    System.out.println(s);
+    //System.out.println(s);
   }
 
 }

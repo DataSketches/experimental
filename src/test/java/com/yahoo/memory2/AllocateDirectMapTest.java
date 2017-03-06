@@ -27,31 +27,33 @@ import org.testng.annotations.Test;
 //@SuppressWarnings("resource")
 public class AllocateDirectMapTest {
 
-  @Test(expectedExceptions = RuntimeException.class)
-  public void testMapException() throws Exception  {
-    File dummy = createFile("dummy.txt", "");
-    WritableMemory.writableMap(dummy, 0, dummy.length()); //zero length
+  @Test
+  public void testMapException() throws Exception {
+    File dummy = createFile("dummy.txt", ""); //zero length
+    try (MemoryHandler mh = MemoryHandler.writableMap(dummy, 0, dummy.length())) {
+
+    } catch (IllegalArgumentException e) {
+      // Expected;
+    }
   }
 
   @Test
   public void testIllegalArguments() throws Exception {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
-    try {
-      WritableMemory.writableMap(file, -1, Integer.MAX_VALUE);
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, -1, Integer.MAX_VALUE)) {
+
       fail("Failed: testIllegalArgumentException: Position was negative.");
     } catch (Exception e) {
       // Expected;
     }
 
-    try {
-      WritableMemory.writableMap(file, 0, -1);
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, 0, -1)) {
       fail("Failed: testIllegalArgumentException: Size was negative");
     } catch (Exception e) {
       // Expected;
     }
 
-    try {
-      WritableMemory.writableMap(file, Long.MAX_VALUE, 2);
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, Long.MAX_VALUE, 2)) {
       fail("Failed: testIllegalArgumentException: Sum of position + size is negative.");
     } catch (Exception e) {
       // Expected;
@@ -63,11 +65,10 @@ public class AllocateDirectMapTest {
     File file = new File(this.getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
     long memCapacity = file.length();
 
-    try {
-      //AllocateMemoryMappedFile mmf AllocateMemoryMappedFile.getInstance(file, 0, file.length(), false);
-      WritableMemory mmf = WritableMemory.writableMap(file, 0, memCapacity);
+    try (MemoryHandler mh = MemoryHandler.writableMap(file,0, memCapacity)) {
+      WritableMemory mmf = mh.getWritable();
       assertEquals(memCapacity, mmf.getCapacity());
-      mmf.close();
+      mh.close();
       assertFalse(mmf.isValid());
       assertEquals(AllocateDirectMap.pageCount(1, 16), 16); //check pageCounter
     } catch (Exception e) {
@@ -78,35 +79,30 @@ public class AllocateDirectMapTest {
   @Test
   public void testMultipleUnMaps() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
-    WritableMemory mmf = null;
-    try {
-      mmf = WritableMemory.writableMap(file, 0, file.length());
-    } catch (Exception e) {
-      if (mmf != null && mmf.isValid()) {
-        mmf.close();
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, 0, file.length())) {
+      WritableMemory mmf = mh.getWritable();
+      if (mmf.isValid()) {
+        mh.close(); // idempotent test
+        mh.close();
       }
-      fail("Failed: testMultipleUnMaps()");
+    } catch (Exception e) {
+      fail("Failed: testMemoryMapAndFree()");
     }
-    if (mmf != null) {
-      mmf.close(); // idempotent test
-      mmf.close();
-    }
-
   }
 
   @Test
   public void testReadUsingRegion() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
     println("FileLen: " + file.length());
-    try {
-      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, 0, file.length())) {
+      WritableMemory mmf = mh.getWritable();
       mmf.load();
 
       Memory reg = mmf.writableRegion(512, 512).asReadOnly();
       for (int i = 0; i < 512; i++ ) {
         assertEquals(reg.getByte(i), mmf.getByte(i + 512));
       }
-      mmf.close();
+      mh.close();
     } catch (Exception e) {
       fail("Failed: testReadUsingRegion()");
     }
@@ -115,9 +111,9 @@ public class AllocateDirectMapTest {
   @Test
   public void testReadFailAfterFree() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
-    try {
-      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
-      mmf.close();
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, 0, file.length())) {
+      WritableMemory mmf = mh.getWritable();
+      mh.close();
       char[] cbuf = new char[500];
       try {
         mmf.getCharArray(500, cbuf, 0, 500);
@@ -132,11 +128,11 @@ public class AllocateDirectMapTest {
   @Test
   public void testLoad() {
     File file = new File(getClass().getClassLoader().getResource("memory_mapped.txt").getFile());
-    try {
-      WritableMemory mmf = WritableMemory.writableMap(file, 0, file.length());
+    try (MemoryHandler mh = MemoryHandler.writableMap(file, 0, file.length())) {
+      WritableMemory mmf = mh.getWritable();
       mmf.load();
       assertTrue(mmf.isLoaded());
-      mmf.close();
+      mh.close();
     } catch (Exception e) {
       fail("Failed: testLoad()");
     }
@@ -145,39 +141,59 @@ public class AllocateDirectMapTest {
 
   @Test
   public void testForce() throws Exception {
-    File org = createFile("force_original.txt", "Corectng spellng mistks");
-    long orgBytes = org.length();
-    try {
-      // extra 5bytes for buffer
-      int buf = (int) orgBytes + 5;
-      WritableMemory mmf = WritableMemory.writableMap(org, 0, buf);
+    String origStr = "Corectng spellng mistks";
+    byte[] origArr = origStr.getBytes(UTF_8);
+    File origFile = createFile("force_original.txt", origStr); //23 bytes
+    long origFileBytes = origFile.length(); //23
+    assertEquals(origFile.length(), origArr.length);
+
+    String correctStr = "Correcting spelling mistakes"; //28 bytes
+    byte[] correctArr = correctStr.getBytes(UTF_8);
+    long bufBytes = correctArr.length; //buffer large enough
+
+    //note that the map is created with more capacity than the original file.
+    try (MemoryHandler mh = MemoryHandler.writableMap(origFile, 0, bufBytes)) {//extra 5 bytes for buffer
+      WritableMemory mmf = mh.getWritable();
+
       mmf.load();
 
-      // existing content
-      byte[] c = new byte[buf];
-      mmf.getByteArray(0, c, 0, c.length);
+      // pull in existing content from file into buffer for checking
+      byte[] bufArr = new byte[(int)bufBytes];
+      mmf.getByteArray(0, bufArr, 0, bufArr.length);  //check get array
+      //confirm orig content
+      for (int i = 0; i < origFileBytes; i++) {
+        assertEquals(bufArr[i], origArr[i]);
+      }
 
-      // add content
-      String cor = "Correcting spelling mistakes";
-      byte[] b = cor.getBytes(UTF_8);
-      mmf.putByteArray(0, b, 0, b.length);
+      // replace content
+      mmf.putByteArray(0, correctArr, 0, correctArr.length);
 
-      mmf.force();
-      mmf.close();
+      mmf.force(); //writes back, expanding the file
+      //confirm new content
+      for (int i = 0; i < bufBytes; i++) {
+        assertEquals(mmf.getByte(i), correctArr[i]);
+      }
 
-      WritableMemory nmf = WritableMemory.writableMap(org, 0, buf);
+      mh.close();
+    } catch (Exception e) {
+      fail("Failed: testLoad()");
+    }
+
+    // Additional confirmation after closing and reopening file
+    try (MemoryHandler mh2 = MemoryHandler.writableMap(origFile, 0, bufBytes)) {
+      WritableMemory nmf = mh2.getWritable();
       nmf.load();
 
       // existing content
-      byte[] n = new byte[buf];
-      nmf.getByteArray(0, n, 0, n.length);
+      byte[] nArr = new byte[(int)bufBytes];
+      nmf.getByteArray(0, nArr, 0, nArr.length);
 
       int index = 0;
       boolean corrected = true;
 
-      // make sure that new content is diff
-      while (index < buf) {
-        if (b[index] != n[index]) {
+      // make sure that new content is ok
+      while (index < bufBytes) {
+        if (correctArr[index] != nArr[index]) {
           corrected = false;
           break;
         }
@@ -186,7 +202,7 @@ public class AllocateDirectMapTest {
 
       assertTrue(corrected);
 
-      nmf.close();
+      mh2.close();
     } catch (Exception e) {
       fail("Failed: testForce()." + e);
     }

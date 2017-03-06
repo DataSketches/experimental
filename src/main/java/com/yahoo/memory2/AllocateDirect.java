@@ -29,7 +29,7 @@ final class AllocateDirect extends WritableMemoryImpl {
     this.cleaner = Cleaner.create(this, new Deallocator(nativeBaseOffset, super.valid));
   }
 
-  static WritableMemory allocDirect(final long capacity, final MemoryRequest memReq) {
+  static WritableMemoryImpl allocDirect(final long capacity, final MemoryRequest memReq) {
     return new AllocateDirect(unsafe.allocateMemory(capacity), capacity, memReq);
   }
 

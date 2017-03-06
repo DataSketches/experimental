@@ -22,50 +22,9 @@ import static com.yahoo.memory.UnsafeUtil.INT_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 
-import java.io.File;
-import java.nio.ByteBuffer;
+public abstract class WritableMemory extends Memory {
 
-//@SuppressWarnings("unused")
-public abstract class WritableMemory extends Memory implements AutoCloseable {
 
-  //ALLOCATE DIRECT WRITABLE MEMORY
-  public static WritableMemory allocateDirect(
-      final long capacityBytes,
-      final MemoryRequest memReq) {
-    return AllocateDirect.allocDirect(capacityBytes, memReq);
-  }
-
-  public static WritableMemory allocateDirect(final long capacityBytes) {
-    return AllocateDirect.allocDirect(capacityBytes, null);
-  }
-
-  //BYTE BUFFER
-  /**
-   * Provides writable access to the backing store of the given ByteBuffer.
-   * If the given <i>ByteBuffer</i> is read-only and if asserts are enabled, any write operation
-   * will throw an assertion error.
-   * @param byteBuffer the given <i>ByteBuffer</i>
-   * @return a <i>WritableMemory</i> object
-   */
-  public static WritableMemory writableWrap(final ByteBuffer byteBuffer) {
-    return AccessByteBuffer.writableWrap(byteBuffer, false);
-  }
-
-  //MAP
-  /**
-   * Provides writable, memory-mapped access to the newly allocated native backing store for the
-   * given File. If the given <i>File</i> is read-only, any write operation will throw an
-   * exception or an assertion error, if asserts are enabled.
-   * @param file the given <i>File</i>
-   * @param offsetBytes offset into the file in bytes.
-   * @param capacityBytes the capacity of the memory-mapped buffer space in bytes.
-   * @return a <i>WritableMemory</i> object
-   * @throws Exception file not found or RuntimeException, etc.
-   */
-  public static WritableMemory writableMap(final File file, final long offsetBytes,
-      final long capacityBytes) throws Exception {
-    return AllocateDirectMap.getInstance(file, offsetBytes, capacityBytes);
-  }
 
   /**
    * Applies only to mapped files. Otherwise is a no-op.
@@ -124,49 +83,54 @@ public abstract class WritableMemory extends Memory implements AutoCloseable {
   //END OF MAP
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
-  public static WritableMemory allocate(final int capacityBytes) {
+  /**
+   *
+   * @param capacityBytes blah
+   * @return blah
+   */
+  public static WritableMemoryImpl allocate(final int capacityBytes) {
     final byte[] unsafeObj = new byte[capacityBytes];
     return new WritableMemoryImpl(unsafeObj, ARRAY_BYTE_BASE_OFFSET, capacityBytes, false);
   }
 
-  //ACCESS PRIMITIVE ARRAYS for write
+  //ACCESS PRIMITIVE HEAP ARRAYS for write
 
-  public static WritableMemory writableWrap(final boolean[] arr) {
+  public static WritableMemoryImpl writableWrap(final boolean[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_BOOLEAN_BASE_OFFSET, arr.length << BOOLEAN_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final byte[] arr) {
+  public static WritableMemoryImpl writableWrap(final byte[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_BYTE_BASE_OFFSET, arr.length << BYTE_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final char[] arr) {
+  public static WritableMemoryImpl writableWrap(final char[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_CHAR_BASE_OFFSET, arr.length << CHAR_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final short[] arr) {
+  public static WritableMemoryImpl writableWrap(final short[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_SHORT_BASE_OFFSET, arr.length << SHORT_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final int[] arr) {
+  public static WritableMemoryImpl writableWrap(final int[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_INT_BASE_OFFSET, arr.length << INT_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final long[] arr) {
+  public static WritableMemoryImpl writableWrap(final long[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_LONG_BASE_OFFSET, arr.length << LONG_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final float[] arr) {
+  public static WritableMemoryImpl writableWrap(final float[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_FLOAT_BASE_OFFSET, arr.length << FLOAT_SHIFT, false);
   }
 
-  public static WritableMemory writableWrap(final double[] arr) {
+  public static WritableMemoryImpl writableWrap(final double[] arr) {
     return new WritableMemoryImpl(
         arr, ARRAY_DOUBLE_BASE_OFFSET, arr.length << DOUBLE_SHIFT, false);
   }
@@ -391,8 +355,5 @@ public abstract class WritableMemory extends Memory implements AutoCloseable {
    * @return a MemoryRequest or null
    */
   public abstract MemoryRequest getMemoryRequest();
-
-  @Override
-  public abstract void close();
 
 }

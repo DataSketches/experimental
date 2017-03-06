@@ -13,7 +13,7 @@ import java.nio.ByteBuffer;
 
 final class AccessByteBuffer {
 
-  static WritableMemory writableWrap(final ByteBuffer byteBuffer, final boolean readOnlyRequest) {
+  static WritableMemoryImpl writableWrap(final ByteBuffer byteBuffer, final boolean readOnlyRequest) {
     final long nativeBaseAddress;  //includes the slice() offset for direct.
     final Object unsafeObj;
     final long unsafeObjHeader;

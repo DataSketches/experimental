@@ -147,7 +147,7 @@ class WritableMemoryImpl extends WritableMemory {
         this.byteBuf, newRegionOffset, capacityBytes, null, false, this.valid);
   }
 
-  //MAP RELATED
+  //MAP RELATED, APPLIES TO BOTH READ AND WRITE
   @Override
   public void load() {}
 
@@ -155,9 +155,6 @@ class WritableMemoryImpl extends WritableMemory {
   public boolean isLoaded() {
     return false;
   }
-
-  @Override
-  public void force() {}
 
   ///PRIMITIVE getXXX() and getXXXArray() //TODO
 
@@ -423,6 +420,57 @@ class WritableMemoryImpl extends WritableMemory {
     return toHex(sb.toString(), offsetBytes, lengthBytes);
   }
 
+  //RESTRICTED READ AND WRITE
+
+  private final void checkValid() { //applies to both readable and writable
+    assert this.valid.get() : "Memory not valid.";
+  }
+
+  /**
+   * Returns a formatted hex string of an area of this Memory.
+   * Used primarily for testing.
+   * @param header a descriptive header
+   * @param offsetBytes offset bytes relative to the Memory start
+   * @param lengthBytes number of bytes to convert to a hex string
+   * @return a formatted hex string in a human readable array
+   */ //applies to both readable and writable.
+  private String toHex(final String header, final long offsetBytes, final int lengthBytes) {
+    assertBounds(offsetBytes, lengthBytes, capacity);
+    final StringBuilder sb = new StringBuilder();
+    final String uObj = (unsafeObj == null) ? "null"
+        : unsafeObj.getClass().getSimpleName() + ", " + unsafeObj.hashCode();
+    final String bb = (byteBuf == null) ? "null"
+        : byteBuf.getClass().getSimpleName() + ", " + byteBuf.hashCode();
+    final String mr = (memReq == null) ? "null"
+        : memReq.getClass().getSimpleName() + ", " + memReq.hashCode();
+    sb.append(header).append(LS);
+    sb.append("NativeBaseOffset    : ").append(nativeBaseOffset).append(LS);
+    sb.append("UnsafeObj           : ").append(uObj).append(LS);
+    sb.append("UnsafeObjHeader     : ").append(unsafeObjHeader).append(LS);
+    sb.append("ByteBuf             : ").append(bb).append(LS);
+    sb.append("RegionOffset        : ").append(regionOffset).append(LS);
+    sb.append("Capacity            : ").append(capacity).append(LS);
+    sb.append("CumBaseOffset       : ").append(cumBaseOffset).append(LS);
+    sb.append("MemReq              : ").append(mr).append(LS);
+    sb.append("Valid               : ").append(valid).append(LS);
+    sb.append("Read Only           : ").append(readOnly).append(LS);
+    sb.append("Memory, littleEndian:  0  1  2  3  4  5  6  7");
+    long j = offsetBytes;
+    final StringBuilder sb2 = new StringBuilder();
+    for (long i = 0; i < lengthBytes; i++) {
+      final int b = unsafe.getByte(unsafeObj, cumBaseOffset + i) & 0XFF;
+      if ((i != 0) && ((i % 8) == 0)) {
+        sb.append(String.format("%n%20s: ", j)).append(sb2);
+        j += 8;
+        sb2.setLength(0);
+      }
+      sb2.append(String.format("%02x ", b));
+    }
+    sb.append(String.format("%n%20s: ", j)).append(sb2).append(LS);
+    return sb.toString();
+  }
+
+  //ALL METHODS BELOW ONLY APPLY TO WRITABLE
   //PRIMITIVE putXXX() and putXXXArray() implementations //TODO
 
   @Override
@@ -625,7 +673,7 @@ class WritableMemoryImpl extends WritableMemory {
       );
   }
 
-  //Atomic Methods //TODO
+  //Atomic Write Methods //TODO
 
   @Override
   public int addAndGetLong(final long offsetBytes, final long delta) {
@@ -672,68 +720,24 @@ class WritableMemoryImpl extends WritableMemory {
     // TODO Auto-generated method stub
   }
 
-  //OTHER //TODO
+  //OTHER
 
   @Override
-  public MemoryRequest getMemoryRequest() {
+  public void force() {} //MAP RELATED, ONLY APPLIES TO WRITABLE
+
+  @Override
+  public MemoryRequest getMemoryRequest() { //only applicable to writable
     return this.memReq;
   }
 
-  @Override
-  public void close() {}
-
-  //RESTRICTED
-
-  private final void checkValid() {
-    assert this.valid.get() : "Memory not valid.";
-  }
+  //RESTRICTED WRITABLE
 
   private final void checkReadOnly() {
     assert !this.readOnly : "Memory is Read-Only. Write methods are not allowed.";
   }
 
-  /**
-   * Returns a formatted hex string of an area of this Memory.
-   * Used primarily for testing.
-   * @param header a descriptive header
-   * @param offsetBytes offset bytes relative to the Memory start
-   * @param lengthBytes number of bytes to convert to a hex string
-   * @return a formatted hex string in a human readable array
-   */
-  private String toHex(final String header, final long offsetBytes, final int lengthBytes) {
-    assertBounds(offsetBytes, lengthBytes, capacity);
-    final StringBuilder sb = new StringBuilder();
-    final String uObj = (unsafeObj == null) ? "null"
-        : unsafeObj.getClass().getSimpleName() + ", " + unsafeObj.hashCode();
-    final String bb = (byteBuf == null) ? "null"
-        : byteBuf.getClass().getSimpleName() + ", " + byteBuf.hashCode();
-    final String mr = (memReq == null) ? "null"
-        : memReq.getClass().getSimpleName() + ", " + memReq.hashCode();
-    sb.append(header).append(LS);
-    sb.append("NativeBaseOffset    : ").append(nativeBaseOffset).append(LS);
-    sb.append("UnsafeObj           : ").append(uObj).append(LS);
-    sb.append("UnsafeObjHeader     : ").append(unsafeObjHeader).append(LS);
-    sb.append("ByteBuf             : ").append(bb).append(LS);
-    sb.append("RegionOffset        : ").append(regionOffset).append(LS);
-    sb.append("Capacity            : ").append(capacity).append(LS);
-    sb.append("CumBaseOffset       : ").append(cumBaseOffset).append(LS);
-    sb.append("MemReq              : ").append(mr).append(LS);
-    sb.append("Valid               : ").append(valid).append(LS);
-    sb.append("Read Only           : ").append(readOnly).append(LS);
-    sb.append("Memory, littleEndian:  0  1  2  3  4  5  6  7");
-    long j = offsetBytes;
-    final StringBuilder sb2 = new StringBuilder();
-    for (long i = 0; i < lengthBytes; i++) {
-      final int b = unsafe.getByte(unsafeObj, cumBaseOffset + i) & 0XFF;
-      if ((i != 0) && ((i % 8) == 0)) {
-        sb.append(String.format("%n%20s: ", j)).append(sb2);
-        j += 8;
-        sb2.setLength(0);
-      }
-      sb2.append(String.format("%02x ", b));
-    }
-    sb.append(String.format("%n%20s: ", j)).append(sb2).append(LS);
-    return sb.toString();
+  void close() { //only applies to writable
+    this.valid.set(false);
   }
 
 }

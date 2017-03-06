@@ -30,13 +30,14 @@ final class AllocateDirectMap extends WritableMemoryImpl {
   private MappedByteBuffer dummyMbbInstance = null;
   private final Cleaner cleaner;
 
+
   private AllocateDirectMap(
       final RandomAccessFile raf,
       final MappedByteBuffer mbb,
       final long nativeBaseOffset,
       final long capacity,
-      final boolean readOnlyRequest) {
-    super(nativeBaseOffset, null, 0L, null, 0L, capacity, null, readOnlyRequest);
+      final boolean readOnly) {
+    super(nativeBaseOffset, null, 0L, null, 0L, capacity, null, readOnly);
     this.randomAccessFile = raf;
     this.dummyMbbInstance = mbb;
     this.cleaner = Cleaner.create(this,

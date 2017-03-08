@@ -11,6 +11,7 @@ public abstract class Memory {
   public abstract getXXX(offset) methods
   ... plus other read misc
   public abstract asNonNativeEndian() //not implemented
+  public abstract asNativeEndian() //not implemented
 }
 
 public abstract class WritableMemory {
@@ -31,6 +32,7 @@ public abstract class WritableMemory {
   ... plus other write misc
   public abstract MemoryRequest getMemoryRequest()
   public abstract asNonNativeEndian() //not implemented
+  public abstract asNativeEndian() //not implemented
 }
 
 public interface MemoryHandler extends AutoCloseable {

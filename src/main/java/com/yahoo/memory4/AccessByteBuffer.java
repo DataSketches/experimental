@@ -11,24 +11,28 @@ import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 
-final class AccessByteBuffer extends MemoryImpl {
+final class AccessByteBuffer extends MemoryImpl implements MemoryHandler {
 
   private AccessByteBuffer(final MemoryState state) {
     super(state);
   }
 
+  @Override
+  public Memory get() {
+    return this;
+  }
+
+  //The provided ByteBuffer (via state) can be either readOnly or writable
   static MemoryImpl wrap(final MemoryState state) {
     final ByteBuffer byteBuf = state.getByteBuffer();
     state.putCapacity(byteBuf.capacity());
     final boolean readOnlyBB = byteBuf.isReadOnly();
 
-    if (readOnlyBB) {
-      state.setReadOnly();
-    }
-
     final boolean direct = byteBuf.isDirect();
 
     if (readOnlyBB) {
+      state.setResourceReadOnly();
+
       //READ-ONLY DIRECT
       if (direct) {
         //address() is already adjusted for direct slices, so regionOffset = 0
@@ -75,6 +79,23 @@ final class AccessByteBuffer extends MemoryImpl {
       state.putRegionOffset(byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE);
       return new AccessByteBuffer(state);
     }
+  }
+
+  @Override
+  public void close() {
+    state.setInvalid();
+  }
+
+  @Override
+  public void load() {
+    // No-op
+
+  }
+
+  @Override
+  public boolean isLoaded() {
+    // means nothing.
+    return false;
   }
 
 }

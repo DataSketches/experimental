@@ -50,19 +50,19 @@ class MemoryImpl extends Memory {
     this.cumBaseOffset = state.getCumBaseOffset();
   }
 
-  //BYTE BUFFER
-
-  //MAP
-
   //REGIONS
 
   @Override
   public Memory region(final long offsetBytes, final long capacityBytes) {
-    // TODO Auto-generated method stub
-    return null;
+    assert offsetBytes + capacityBytes <= capacity
+        : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + this.capacity;
+    final MemoryState newState = this.state.copy();
+    newState.putRegionOffset(newState.getRegionOffset() + offsetBytes);
+    newState.putCapacity(capacityBytes);
+    return new MemoryImpl(newState);
   }
 
-  //PRIMITIVE getXXX() and getXXXArray() //TODO
+  //PRIMITIVE getXXX() and getXXXArray() //XXX
 
   @Override
   public boolean getBoolean(final long offsetBytes) {
@@ -240,7 +240,7 @@ class MemoryImpl extends Memory {
       copyBytes);
   }
 
-  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //TODO
+  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   @Override
   public void copy(final long srcOffsetBytes, final WritableMemory destination,
@@ -292,7 +292,7 @@ class MemoryImpl extends Memory {
     return value != 0;
   }
 
-  //OTHER READ METHODS //TODO
+  //OTHER READ METHODS //XXX
 
   @Override
   public long getCapacity() {
@@ -316,12 +316,12 @@ class MemoryImpl extends Memory {
 
   @Override
   public boolean isDirect() {
-    return state.getNativeBaseOffset() > 0L;
+    return state.isDirect();
   }
 
   @Override
   public boolean isReadOnly() { //TODO may not need this
-    return state.isReadOnly();
+    return state.isResourceReadOnly();
   }
 
   @Override

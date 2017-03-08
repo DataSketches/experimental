@@ -43,8 +43,6 @@ class WritableMemoryImpl extends WritableMemory {
   final long capacity;
   final long cumBaseOffset; //Holds the cum offset to the start of data.
 
-  //FORMAL CONSTRUCTORS
-
   WritableMemoryImpl(final MemoryState state) {
     this.state = state;
     this.unsafeObj = state.getUnsafeObject();
@@ -53,15 +51,27 @@ class WritableMemoryImpl extends WritableMemory {
     this.cumBaseOffset = state.getCumBaseOffset();
   }
 
-  //BYTE BUFFER
-
-  //MAP
-
   //REGIONS
+  @Override
+  public WritableMemory region(final long offsetBytes, final long capacityBytes) {
+    assert offsetBytes + capacityBytes <= capacity
+        : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + this.capacity;
+    final MemoryState newState = this.state.copy();
+    newState.putRegionOffset(newState.getRegionOffset() + offsetBytes);
+    newState.putCapacity(capacityBytes);
+    return new WritableMemoryImpl(newState);
+  }
 
   //AS READ ONLY
 
-  ///PRIMITIVE getXXX() and getXXXArray() //TODO
+  @Override
+  public Memory asReadOnly() {
+    final MemoryState newState = this.state.copy();
+    newState.setResourceReadOnly();
+    return new MemoryImpl(newState);
+  }
+
+  ///PRIMITIVE getXXX() and getXXXArray() //XXX
 
   @Override
   public boolean getBoolean(final long offsetBytes) {
@@ -239,7 +249,7 @@ class WritableMemoryImpl extends WritableMemory {
       copyBytes);
   }
 
-  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //TODO
+  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   @Override
   public void copy(final long srcOffsetBytes, final WritableMemory destination,
@@ -316,12 +326,12 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public boolean isDirect() {
-    return state.getNativeBaseOffset() > 0L;
+    return state.isDirect();
   }
 
   @Override
-  public boolean isReadOnly() { //TODO may not need this
-    return state.isReadOnly();
+  public boolean isReadOnly() {
+    return state.isResourceReadOnly();
   }
 
   @Override
@@ -348,7 +358,7 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   //ALL METHODS BELOW ONLY APPLY TO WRITABLE
-  //PRIMITIVE putXXX() and putXXXArray() implementations //TODO
+  //PRIMITIVE putXXX() and putXXXArray() implementations //XXX
 
   @Override
   public void putBoolean(final long offsetBytes, final boolean value) {
@@ -554,7 +564,7 @@ class WritableMemoryImpl extends WritableMemory {
     return 0;
   }
 
-  //OTHER WRITE METHODS //TODO
+  //OTHER WRITE METHODS //XXX
 
   @Override
   Object getArray() {
@@ -586,7 +596,7 @@ class WritableMemoryImpl extends WritableMemory {
     // TODO Auto-generated method stub
   }
 
-  //OTHER
+  //OTHER //XXX
 
   //@Override
   //public void force() {} //MAP RELATED, ONLY APPLIES TO WRITABLE

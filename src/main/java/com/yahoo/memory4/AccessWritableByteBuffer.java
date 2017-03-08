@@ -10,12 +10,18 @@ import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 
 import java.nio.ByteBuffer;
 
-final class AccessWritableByteBuffer extends WritableMemoryImpl {
+final class AccessWritableByteBuffer extends WritableMemoryImpl implements WritableMemoryHandler {
 
   private AccessWritableByteBuffer(final MemoryState state) {
     super(state);
   }
 
+  @Override
+  public WritableMemory getWritable() {
+    return this;
+  }
+
+  //The provided ByteBuffer (via state) must be writable
   static WritableMemoryImpl wrap(final MemoryState state) {
     final ByteBuffer byteBuf = state.getByteBuffer();
     state.putCapacity(byteBuf.capacity());
@@ -35,4 +41,27 @@ final class AccessWritableByteBuffer extends WritableMemoryImpl {
     state.putRegionOffset(byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE);
     return new AccessWritableByteBuffer(state);
   }
+
+
+  @Override
+  public void close() {
+    state.setInvalid();
+  }
+
+  @Override
+  public void load() {
+    // No-op
+  }
+
+  @Override
+  public boolean isLoaded() {
+    // Means nothing
+    return false;
+  }
+
+  @Override
+  public void force() {
+    // No-op
+  }
+
 }

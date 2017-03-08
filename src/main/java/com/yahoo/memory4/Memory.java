@@ -25,6 +25,7 @@ import static com.yahoo.memory4.UnsafeUtil.LS;
 import static com.yahoo.memory4.UnsafeUtil.assertBounds;
 import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 public abstract class Memory {
@@ -35,13 +36,41 @@ public abstract class Memory {
    * @param byteBuf the given ByteBuffer
    * @return the given ByteBuffer for read-only operations.
    */
-  public static Memory wrap(final ByteBuffer byteBuf) {
+  public static MemoryHandler wrap(final ByteBuffer byteBuf) {
     final MemoryState state = new MemoryState();
     state.putByteBuffer(byteBuf);
-    return AccessByteBuffer.wrap(state);
+    return (MemoryHandler) AccessByteBuffer.wrap(state);
   }
 
   //MAP
+  /**
+   * Allocates direct memory used to memory map files for read operations
+   * (including those &gt; 2GB).
+   * @param file the given file to map
+   * @return MemoryHandler for managing this map
+   * @throws Exception file not found or RuntimeException, etc.
+   */
+  public static MemoryHandler map(final File file) throws Exception {
+    return map(file, 0, file.length());
+  }
+
+  /**
+   * Allocates direct memory used to memory map files for read operations
+   * (including those &gt; 2GB).
+   * @param file the given file to map
+   * @param fileOffset the position in the given file
+   * @param capacity the size of the allocated direct memory
+   * @return MemoryHandler for managing this map
+   * @throws Exception file not found or RuntimeException, etc.
+   */
+  public static MemoryHandler map(final File file, final long fileOffset,
+      final long capacity) throws Exception {
+    final MemoryState state = new MemoryState();
+    state.putFile(file);
+    state.putFileOffset(fileOffset);
+    state.putCapacity(capacity);
+    return AllocateDirectMap.map(state);
+  }
 
   //REGIONS
 
@@ -65,8 +94,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_BOOLEAN_BASE_OFFSET);
     state.putCapacity(arr.length << BOOLEAN_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -80,8 +108,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_BYTE_BASE_OFFSET);
     state.putCapacity(arr.length << BYTE_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -95,8 +122,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_CHAR_BASE_OFFSET);
     state.putCapacity(arr.length << CHAR_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -110,8 +136,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_SHORT_BASE_OFFSET);
     state.putCapacity(arr.length << SHORT_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -125,8 +150,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_INT_BASE_OFFSET);
     state.putCapacity(arr.length << INT_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -140,8 +164,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_LONG_BASE_OFFSET);
     state.putCapacity(arr.length << LONG_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -155,8 +178,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_FLOAT_BASE_OFFSET);
     state.putCapacity(arr.length << FLOAT_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
@@ -170,12 +192,11 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_DOUBLE_BASE_OFFSET);
     state.putCapacity(arr.length << DOUBLE_SHIFT);
-    state.setReadOnly();
-    state.lock();
+    state.setResourceReadOnly();
     return new MemoryImpl(state);
   }
 
-  //PRIMITIVE getXXX() and getXXXArray() //TODO
+  //PRIMITIVE getXXX() and getXXXArray() //XXX
 
   /**
    * Gets the boolean value at the given offset
@@ -312,7 +333,7 @@ public abstract class Memory {
   public abstract void getShortArray(long offsetBytes, short[] dstArray, int dstOffset,
       int length);
 
-  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //TODO
+  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   /**
    * Copies bytes from a source range of this Memory to a destination range of the given Memory
@@ -358,7 +379,7 @@ public abstract class Memory {
    */
   public abstract boolean isAnyBitsSet(long offsetBytes, byte bitMask);
 
-  //OTHER READ METHODS //TODO
+  //OTHER READ METHODS //XXX
 
   /**
    * Gets the capacity of this Memory in bytes
@@ -393,10 +414,10 @@ public abstract class Memory {
   public abstract boolean isDirect();
 
   /**
-   * Returns true if this Memory is read only
-   * @return true if this Memory is read only
+   * Returns true if the backing Memory is read only
+   * @return true if the backing Memory is read only
    */
-  public abstract boolean isReadOnly(); //TODO may not need
+  public abstract boolean isReadOnly();
 
   /**
    * Returns true if this Memory is valid() and has not been closed.
@@ -446,7 +467,7 @@ public abstract class Memory {
     sb.append("CumBaseOffset       : ").append(cumBaseOffset).append(LS);
     sb.append("MemReq              : ").append(memReqStr).append(LS);
     sb.append("Valid               : ").append(state.isValid()).append(LS);
-    sb.append("Read Only           : ").append(state.isReadOnly()).append(LS);
+    sb.append("Read Only           : ").append(state.isResourceReadOnly()).append(LS);
     sb.append("Memory, littleEndian:  0  1  2  3  4  5  6  7");
     long j = offsetBytes;
     final StringBuilder sb2 = new StringBuilder();

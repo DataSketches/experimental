@@ -22,6 +22,7 @@ import static com.yahoo.memory.UnsafeUtil.INT_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.LONG_SHIFT;
 import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 public abstract class WritableMemory {
@@ -33,82 +34,72 @@ public abstract class WritableMemory {
    * @param byteBuf the given ByteBuffer
    * @return the given ByteBuffer for write operations.
    */
-  public static WritableMemory wrap(final ByteBuffer byteBuf) {
+  public static WritableMemoryHandler wrap(final ByteBuffer byteBuf) {
     final MemoryState state = new MemoryState();
     if (byteBuf.isReadOnly()) {
       throw new ReadOnlyMemoryException("ByteBuffer is read-only.");
     }
     state.putByteBuffer(byteBuf);
-    return AccessWritableByteBuffer.wrap(state);
+    return (WritableMemoryHandler) AccessWritableByteBuffer.wrap(state);
   }
 
   //MAP
+  /**
+   * Allocates direct memory used to memory map files for write operations
+   * (including those &gt; 2GB).
+   * @param file the given file to map
+   * @return MemoryHandler for managing this map
+   * @throws Exception file not found or RuntimeException, etc.
+   */
+  public static WritableMemoryHandler map(final File file) throws Exception {
+    return map(file, 0, file.length());
+  }
 
   /**
-   * Applies only to mapped files. Otherwise is a no-op.
-   * Loads content into physical memory. This method makes a best effort to ensure that, when it
-   * returns, this buffer's content is resident in physical memory. Invoking this method may cause
-   * some number of page faults and I/O operations to occur.
-   *
-   * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#load--">
-   * java/nio/MappedByteBuffer.load</a>
+   * Allocates direct memory used to memory map files for write operations
+   * (including those &gt; 2GB).
+   * @param file the given file to map
+   * @param fileOffset the position in the given file
+   * @param capacity the size of the allocated direct memory
+   * @return MemoryHandler for managing this map
+   * @throws Exception file not found or RuntimeException, etc.
    */
-  //public abstract void load();
+  public static WritableMemoryHandler map(final File file, final long fileOffset,
+      final long capacity) throws Exception {
+    final MemoryState state = new MemoryState();
+    state.putFile(file);
+    state.putFileOffset(fileOffset);
+    state.putCapacity(capacity);
+    return AllocateDirectWritableMap.map(state);
+  }
+
+  //ALLOCATE DIRECT
 
   /**
-   * Applies only to mapped files. Otherwise always returns false.
-   * Tells whether or not the content is resident in physical memory. A return value of true implies
-   * that it is highly likely that all of the data in this buffer is resident in physical memory and
-   * may therefore be accessed without incurring any virtual-memory page faults or I/O operations. A
-   * return value of false does not necessarily imply that the content is not resident in physical
-   * memory. The returned value is a hint, rather than a guarantee, because the underlying operating
-   * system may have paged out some of the buffer's data by the time that an invocation of this
-   * method returns.
-   *
-   * @return true if loaded
-   *
-   * @see <a href=
-   * "https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#isLoaded--"> java
-   * /nio/MappedByteBuffer.isLoaded</a>
+   * Allocates and provides access to capacityBytes directly in native (off-heap) memory
+   * leveraging the WritableMemory API.
+   * The allocated memory will be 8-byte aligned, but may not be page aligned.
+   * @param capacityBytes the size of the desired memory in bytes
+   * @param memReq optional callback
+   * @return WritableMemoryHandler
    */
-  //public abstract boolean isLoaded();
-
-  /**
-   * Applies only to mapped files. Otherwise is a no-op.
-   * Forces any changes made to this content to be written to the storage device containing the
-   * mapped file.
-   *
-   * <p>
-   * If the file mapped into this buffer resides on a local storage device then when this method
-   * returns it is guaranteed that all changes made to the buffer since it was created, or since
-   * this method was last invoked, will have been written to that device.
-   * </p>
-   *
-   * <p>
-   * If the file does not reside on a local device then no such guarantee is made.
-   * </p>
-   *
-   * <p>
-   * If this buffer was not mapped in read/write mode
-   * (java.nio.channels.FileChannel.MapMode.READ_WRITE) then invoking this method has no effect.
-   * </p>
-   *
-   * @see <a href=
-   * "https://docs.oracle.com/javase/8/docs/api/java/nio/MappedByteBuffer.html#force--"> java/
-   * nio/MappedByteBuffer.force</a>
-   */
-  //public abstract void force();
-  //END OF MAP
+  public static WritableMemoryHandler allocateDirect(final long capacityBytes,
+      final MemoryRequest memReq) {
+    final MemoryState state = new MemoryState();
+    state.putCapacity(capacityBytes);
+    state.putMemoryRequest(memReq);
+    return (WritableMemoryHandler) AllocateDirect.allocDirect(state);
+  }
 
   //REGIONS
 
-  //public abstract WritableMemory writableRegion(long offsetBytes, long capacityBytes);
+  public abstract WritableMemory region(long offsetBytes, long capacityBytes);
 
   /**
    * Returns a read-only version of this memory
    * @return a read-only version of this memory
    */
-  //public abstract Memory asReadOnly();
+  public abstract Memory asReadOnly();
 
 
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
@@ -122,7 +113,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(new byte[capacityBytes]);
     state.putUnsafeObjectHeader(ARRAY_BYTE_BASE_OFFSET);
     state.putCapacity(capacityBytes);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -138,7 +128,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_BOOLEAN_BASE_OFFSET);
     state.putCapacity(arr.length << BOOLEAN_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -152,7 +141,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_BYTE_BASE_OFFSET);
     state.putCapacity(arr.length << BYTE_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -166,7 +154,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_CHAR_BASE_OFFSET);
     state.putCapacity(arr.length << CHAR_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -180,7 +167,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_SHORT_BASE_OFFSET);
     state.putCapacity(arr.length << SHORT_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -194,7 +180,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_INT_BASE_OFFSET);
     state.putCapacity(arr.length << INT_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -208,7 +193,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_LONG_BASE_OFFSET);
     state.putCapacity(arr.length << LONG_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -222,7 +206,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_FLOAT_BASE_OFFSET);
     state.putCapacity(arr.length << FLOAT_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -236,7 +219,6 @@ public abstract class WritableMemory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_DOUBLE_BASE_OFFSET);
     state.putCapacity(arr.length << DOUBLE_SHIFT);
-    state.lock();
     return new WritableMemoryImpl(state);
   }
 
@@ -244,7 +226,7 @@ public abstract class WritableMemory {
 
   //END OF CONSTRUCTOR-TYPE METHODS
 
-  //PRIMITIVE getXXX() and getXXXArray() //TODO
+  //PRIMITIVE getXXX() and getXXXArray() //XXX
 
   /**
    * Gets the boolean value at the given offset
@@ -381,7 +363,7 @@ public abstract class WritableMemory {
   public abstract void getShortArray(long offsetBytes, short[] dstArray, int dstOffset,
       int length);
 
-  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //TODO
+  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   /**
    * Copies bytes from a source range of this Memory to a destination range of the given Memory
@@ -427,7 +409,7 @@ public abstract class WritableMemory {
    */
   public abstract boolean isAnyBitsSet(long offsetBytes, byte bitMask);
 
-  //OTHER READ METHODS //TODO
+  //OTHER READ METHODS //XXX
 
   /**
    * Gets the capacity of this Memory in bytes
@@ -462,10 +444,10 @@ public abstract class WritableMemory {
   public abstract boolean isDirect();
 
   /**
-   * Returns true if this Memory is read only
-   * @return true if this Memory is read only
+   * Returns true if the backing Memory is read only
+   * @return true if the backing Memory is read only
    */
-  public abstract boolean isReadOnly(); //TODO may not need
+  public abstract boolean isReadOnly();
 
   /**
    * Returns true if this Memory is valid() and has not been closed.
@@ -484,7 +466,7 @@ public abstract class WritableMemory {
   public abstract String toHexString(String header, long offsetBytes, int lengthBytes);
 
 
-  //PRIMITIVE putXXX() and putXXXArray() //TODO
+  //PRIMITIVE putXXX() and putXXXArray() //XXX
 
   /**
    * Puts the boolean value at the given offset
@@ -622,7 +604,7 @@ public abstract class WritableMemory {
   public abstract void putShortArray(long offsetBytes, short[] srcArray,
       final int srcOffset, final int length);
 
-  //Atomic Methods //TODO
+  //Atomic Methods //XXX
 
   /**
    * Atomically adds the given value to the long located at offsetBytes.
@@ -651,7 +633,7 @@ public abstract class WritableMemory {
    */
   public abstract long getAndSetLong(long offsetBytes, long newValue);
 
-  //OTHER WRITE METHODS //TODO
+  //OTHER WRITE METHODS //XXX
 
   abstract Object getArray();
 
@@ -688,7 +670,7 @@ public abstract class WritableMemory {
    */
   public abstract void fill(long offsetBytes, long lengthBytes, byte value);
 
-  //OTHER //TODO
+  //OTHER //XXX
 
   /**
    * Returns a MemoryRequest or null

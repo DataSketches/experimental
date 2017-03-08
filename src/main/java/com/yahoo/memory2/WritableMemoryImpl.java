@@ -119,8 +119,7 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public Memory asReadOnly() {
-    return new WritableMemoryImpl(this.nativeBaseOffset, this.unsafeObj, this.unsafeObjHeader,
-        this.byteBuf, this.regionOffset, this.capacity, this.memReq, true, this.valid);
+    return this;
   }
 
   //REGIONS
@@ -156,7 +155,7 @@ class WritableMemoryImpl extends WritableMemory {
     return false;
   }
 
-  ///PRIMITIVE getXXX() and getXXXArray() //TODO
+  ///PRIMITIVE getXXX() and getXXXArray() //XXX
 
   @Override
   public boolean getBoolean(final long offsetBytes) {
@@ -334,7 +333,7 @@ class WritableMemoryImpl extends WritableMemory {
       copyBytes);
   }
 
-  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //TODO
+  //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   @Override
   public void copy(final long srcOffsetBytes, final WritableMemory destination,
@@ -366,7 +365,7 @@ class WritableMemoryImpl extends WritableMemory {
     return false;
   }
 
-  //OTHER READ METHODS
+  //OTHER READ METHODS //XXX
 
   @Override
   public long getCapacity() {
@@ -420,7 +419,7 @@ class WritableMemoryImpl extends WritableMemory {
     return toHex(sb.toString(), offsetBytes, lengthBytes);
   }
 
-  //RESTRICTED READ AND WRITE
+  //RESTRICTED READ AND WRITE //XXX
 
   private final void checkValid() { //applies to both readable and writable
     assert this.valid.get() : "Memory not valid.";
@@ -471,7 +470,7 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   //ALL METHODS BELOW ONLY APPLY TO WRITABLE
-  //PRIMITIVE putXXX() and putXXXArray() implementations //TODO
+  //PRIMITIVE putXXX() and putXXXArray() implementations //XXX
 
   @Override
   public void putBoolean(final long offsetBytes, final boolean value) {
@@ -673,7 +672,7 @@ class WritableMemoryImpl extends WritableMemory {
       );
   }
 
-  //Atomic Write Methods //TODO
+  //Atomic Write Methods //XXX
 
   @Override
   public int addAndGetLong(final long offsetBytes, final long delta) {
@@ -693,7 +692,7 @@ class WritableMemoryImpl extends WritableMemory {
     return 0;
   }
 
-  //OTHER WRITE METHODS //TODO
+  //OTHER WRITE METHODS //XXX
 
   @Override
   public void clear() {
@@ -720,7 +719,7 @@ class WritableMemoryImpl extends WritableMemory {
     // TODO Auto-generated method stub
   }
 
-  //OTHER
+  //OTHER //XXX
 
   @Override
   public void force() {} //MAP RELATED, ONLY APPLIES TO WRITABLE
@@ -730,7 +729,7 @@ class WritableMemoryImpl extends WritableMemory {
     return this.memReq;
   }
 
-  //RESTRICTED WRITABLE
+  //RESTRICTED WRITABLE //XXX
 
   private final void checkReadOnly() {
     assert !this.readOnly : "Memory is Read-Only. Write methods are not allowed.";

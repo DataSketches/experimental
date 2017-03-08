@@ -5,6 +5,7 @@
 
 package com.yahoo.memory4;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 final class MemoryState {
@@ -12,6 +13,8 @@ final class MemoryState {
   private Object unsafeObj_ = null; //##Array objects are held here.
   private long unsafeObjHeader_ = 0L; //##Heap ByteBuffer includes the slice() offset here.
   private ByteBuffer byteBuf_ = null; //Holding this until we are done with it.
+  private File file_ = null; //Holding this until we are done with it.
+  private long fileOffset_;
   private long regionOffset_ = 0L;
   private long capacity_ = 0L;//##
   private long cumBaseOffset_ = 0L; //##Holds the cum offset to the start of data.
@@ -20,18 +23,33 @@ final class MemoryState {
   //##Assert protection against casting Memory to WritableMemory.
   private boolean nonNativeEndian_ = false; //##
   private boolean positional_ = false;
-  private boolean locked_ = false;
 
-  //These can be extenally driven
-  private StepBoolean readOnly_ = new StepBoolean(false); //initial state is writable
-  private StepBoolean valid = new StepBoolean(true); //## initial state is valid
+  private StepBoolean resourceIsReadOnly_ = new StepBoolean(false); //initial state is writable
+  private StepBoolean valid_ = new StepBoolean(true); //## initial state is valid
 
   MemoryState() {}
 
-  void lock() {
+  MemoryState copy() {
+    final MemoryState out = new MemoryState();
+    out.nativeBaseOffset_ = nativeBaseOffset_;
+    out.unsafeObj_ = unsafeObj_;
+    out.unsafeObjHeader_ = unsafeObjHeader_;
+    out.byteBuf_ = byteBuf_;
+    out.file_ = file_;
+    out.fileOffset_ = fileOffset_;
+    out.regionOffset_ = regionOffset_;
+    out.capacity_ = capacity_;
+    out.memReq_ = memReq_;
+    out.nonNativeEndian_ = nonNativeEndian_;
+    out.positional_ = positional_;
+    out.resourceIsReadOnly_ = resourceIsReadOnly_;
+    out.valid_ = valid_;
+    return out;
+  }
+
+  private void compute() {
     this.cumBaseOffset_ = regionOffset_
         + ((unsafeObj_ == null) ? nativeBaseOffset_ : unsafeObjHeader_);
-    this.locked_ = true;
   }
 
   long getNativeBaseOffset() {
@@ -50,6 +68,14 @@ final class MemoryState {
     return byteBuf_;
   }
 
+  File getFile() {
+    return file_;
+  }
+
+  long getFileOffset() {
+    return fileOffset_;
+  }
+
   long getRegionOffset() {
     return regionOffset_;
   }
@@ -66,81 +92,80 @@ final class MemoryState {
     return memReq_;
   }
 
-  boolean isReadOnly() {
-    return readOnly_.get();
+  boolean isResourceReadOnly() {
+    return resourceIsReadOnly_.get();
   }
 
   boolean isValid() {
-    return valid.get();
+    return valid_.get();
   }
 
   boolean isNotNativeEndian() {
     return nonNativeEndian_;
   }
 
+  boolean isDirect() {
+    return nativeBaseOffset_ > 0L;
+  }
+
   boolean isPostional() {
     return positional_;
   }
 
-  boolean isLocked() {
-    return locked_;
-  }
-
   void putNativeBaseOffset(final long nativeBaseOffset) {
-    checkLocked();
     this.nativeBaseOffset_ = nativeBaseOffset;
+    compute();
   }
 
   void putUnsafeObject(final Object unsafeObj) {
-    checkLocked();
     this.unsafeObj_ = unsafeObj;
+    compute();
   }
 
   void putUnsafeObjectHeader(final long unsafeObjHeader) {
-    checkLocked();
     this.unsafeObjHeader_ = unsafeObjHeader;
+    compute();
   }
 
   void putByteBuffer(final ByteBuffer byteBuf) {
-    checkLocked();
     this.byteBuf_ = byteBuf;
   }
 
+  void putFile(final File file) {
+    this.file_ = file;
+  }
+
+  void putFileOffset(final long fileOffset) {
+    this.fileOffset_ = fileOffset;
+  }
+
   void putRegionOffset(final long regionOffset) {
-    checkLocked();
     this.regionOffset_ = regionOffset;
+    compute();
   }
 
   void putCapacity(final long capacity) {
-    checkLocked();
     this.capacity_ = capacity;
   }
 
   void putMemoryRequest(final MemoryRequest memReq) {
-    checkLocked();
     this.memReq_ = memReq;
   }
 
-  void setReadOnly() {
-    checkLocked();
-    this.readOnly_.change();
+  void setResourceReadOnly() {
+    this.resourceIsReadOnly_.change();
   }
 
-  void setInvalid() {
-    this.valid.change();
+  void setInvalid() { //NOT SUBJECT TO LOCK
+    this.valid_.change();
   }
 
   void setNonNativeEndian(final boolean nonNativeEndian) {
-    checkLocked();
     this.nonNativeEndian_ = nonNativeEndian;
   }
 
-  void setPositional(final boolean positional) { //this one can change.
+  void setPositional(final boolean positional) {
     this.positional_ = positional;
-  }
-
-  private void checkLocked() {
-    if (locked_) { throw new ReadOnlyMemoryException("Attempted write."); }
   }
 
 }

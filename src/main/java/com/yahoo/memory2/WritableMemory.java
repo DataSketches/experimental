@@ -146,7 +146,7 @@ public abstract class WritableMemory extends Memory {
 
   //END OF CONSTRUCTOR-TYPE METHODS
 
-  //PRIMITIVE putXXX() and putXXXArray() //TODO
+  //PRIMITIVE putXXX() and putXXXArray() //XXX
 
   /**
    * Puts the boolean value at the given offset
@@ -284,7 +284,7 @@ public abstract class WritableMemory extends Memory {
   public abstract void putShortArray(long offsetBytes, short[] srcArray,
       final int srcOffset, final int length);
 
-  //Atomic Methods //TODO
+  //Atomic Methods //XXX
 
   /**
    * Atomically adds the given value to the long located at offsetBytes.
@@ -313,7 +313,7 @@ public abstract class WritableMemory extends Memory {
    */
   public abstract long getAndSetLong(long offsetBytes, long newValue);
 
-  //OTHER WRITE METHODS //TODO
+  //OTHER WRITE METHODS //XXX
 
   /**
    * Clears all bytes of this Memory to zero
@@ -348,7 +348,7 @@ public abstract class WritableMemory extends Memory {
    */
   public abstract void fill(long offsetBytes, long lengthBytes, byte value);
 
-  //OTHER //TODO
+  //OTHER //XXX
 
   /**
    * Returns a MemoryRequest or null

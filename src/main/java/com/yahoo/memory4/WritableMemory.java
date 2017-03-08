@@ -25,6 +25,9 @@ import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 import java.io.File;
 import java.nio.ByteBuffer;
 
+/**
+ * @author Lee Rhodes
+ */
 public abstract class WritableMemory {
 
   //BYTE BUFFER
@@ -74,6 +77,17 @@ public abstract class WritableMemory {
   }
 
   //ALLOCATE DIRECT
+
+  /**
+   * Allocates and provides access to capacityBytes directly in native (off-heap) memory
+   * leveraging the WritableMemory API.
+   * The allocated memory will be 8-byte aligned, but may not be page aligned.
+   * @param capacityBytes the size of the desired memory in bytes
+   * @return WritableMemoryHandler
+   */
+  public static WritableMemoryHandler allocateDirect(final long capacityBytes) {
+    return allocateDirect(capacityBytes, null);
+  }
 
   /**
    * Allocates and provides access to capacityBytes directly in native (off-heap) memory
@@ -221,9 +235,6 @@ public abstract class WritableMemory {
     state.putCapacity(arr.length << DOUBLE_SHIFT);
     return new WritableMemoryImpl(state);
   }
-
-
-
   //END OF CONSTRUCTOR-TYPE METHODS
 
   //PRIMITIVE getXXX() and getXXXArray() //XXX

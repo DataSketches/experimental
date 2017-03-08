@@ -8,6 +8,9 @@ package com.yahoo.memory4;
 import java.io.File;
 import java.nio.ByteBuffer;
 
+/**
+ * @author Lee Rhodes
+ */
 final class MemoryState {
   private long nativeBaseOffset_ = 0L; //Direct ByteBuffer includes the slice() offset here.
   private Object unsafeObj_ = null; //##Array objects are held here.

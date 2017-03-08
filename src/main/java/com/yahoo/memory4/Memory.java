@@ -28,6 +28,9 @@ import static com.yahoo.memory4.UnsafeUtil.unsafe;
 import java.io.File;
 import java.nio.ByteBuffer;
 
+/**
+ * @author Lee Rhodes
+ */
 public abstract class Memory {
 
   //BYTE BUFFER
@@ -63,8 +66,8 @@ public abstract class Memory {
    * @return MemoryHandler for managing this map
    * @throws Exception file not found or RuntimeException, etc.
    */
-  public static MemoryHandler map(final File file, final long fileOffset,
-      final long capacity) throws Exception {
+  public static MemoryHandler map(final File file, final long fileOffset, final long capacity)
+      throws Exception {
     final MemoryState state = new MemoryState();
     state.putFile(file);
     state.putFileOffset(fileOffset);

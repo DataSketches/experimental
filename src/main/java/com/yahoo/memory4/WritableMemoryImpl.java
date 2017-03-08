@@ -35,7 +35,9 @@ import static com.yahoo.memory4.UnsafeUtil.assertBounds;
 import static com.yahoo.memory4.UnsafeUtil.checkOverlap;
 import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
-//@SuppressWarnings("unused")
+/**
+ * @author Lee Rhodes
+ */
 class WritableMemoryImpl extends WritableMemory {
   final MemoryState state;
   final Object unsafeObj; //Array objects are held here.
@@ -606,12 +608,6 @@ class WritableMemoryImpl extends WritableMemory {
   @Override
   public MemoryRequest getMemoryRequest() { //only applicable to writable
     return this.state.getMemoryRequest();
-  }
-
-  //RESTRICTED WRITABLE
-
-  void close() { //only applies to writable
-    this.state.setInvalid();
   }
 
 }

@@ -5,9 +5,16 @@
 
 package com.yahoo.memory4;
 
+/**
+ * @author Lee Rhodes
+ */
 public interface WritableMemoryHandler extends AutoCloseable {
 
-  WritableMemory getWritable();
+  /**
+   * Return a WritableMemory for write operations
+   * @return a WritableMemory for write operations
+   */
+  WritableMemory get();
 
   @Override
   void close();

@@ -10,6 +10,9 @@ import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 
 import java.nio.ByteBuffer;
 
+/**
+ * @author Lee Rhodes
+ */
 final class AccessWritableByteBuffer extends WritableMemoryImpl implements WritableMemoryHandler {
 
   private AccessWritableByteBuffer(final MemoryState state) {
@@ -17,7 +20,7 @@ final class AccessWritableByteBuffer extends WritableMemoryImpl implements Writa
   }
 
   @Override
-  public WritableMemory getWritable() {
+  public WritableMemory get() {
     return this;
   }
 
@@ -45,7 +48,7 @@ final class AccessWritableByteBuffer extends WritableMemoryImpl implements Writa
 
   @Override
   public void close() {
-    state.setInvalid();
+    super.state.setInvalid();
   }
 
   @Override

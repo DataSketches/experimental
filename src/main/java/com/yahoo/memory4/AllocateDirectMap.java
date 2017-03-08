@@ -37,7 +37,7 @@ final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
     this.randomAccessFile = raf;
     this.dummyMbbInstance = mbb;
     this.cleaner = Cleaner.create(this,
-        new Deallocator(raf, state.getNativeBaseOffset(), state.getCapacity(), state));
+        new Deallocator(raf, state));
   }
 
   /**
@@ -114,7 +114,7 @@ final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
     }
   }
 
-  //@Override
+  //@Override //ONLY used with writable
   //  public void force() {
   //    try {
   //      final Method method = MappedByteBuffer.class.getDeclaredMethod("force0",
@@ -205,15 +205,14 @@ final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
     private final long myCapacity;
     private final MemoryState parentStateRef;
 
-    private Deallocator(final RandomAccessFile randomAccessFile, final long nativeBaseOffset,
-        final long capacity, final MemoryState state) {
+    private Deallocator(final RandomAccessFile randomAccessFile, final MemoryState state) {
       assert (randomAccessFile != null);
-      assert (nativeBaseOffset != 0);
-      assert (capacity != 0);
+      actualNativeBaseOffset = state.getNativeBaseOffset();
+      assert (actualNativeBaseOffset != 0);
+      this.myCapacity = state.getCapacity();
+      assert (myCapacity != 0);
       this.raf = randomAccessFile;
       this.fc = randomAccessFile.getChannel();
-      this.actualNativeBaseOffset = nativeBaseOffset;
-      this.myCapacity = capacity;
       this.parentStateRef = state;
     }
 

@@ -11,6 +11,9 @@ import static com.yahoo.memory.UnsafeUtil.ARRAY_BYTE_INDEX_SCALE;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 
+/**
+ * @author Lee Rhodes
+ */
 final class AccessByteBuffer extends MemoryImpl implements MemoryHandler {
 
   private AccessByteBuffer(final MemoryState state) {

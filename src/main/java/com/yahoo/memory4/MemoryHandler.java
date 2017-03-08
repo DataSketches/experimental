@@ -5,8 +5,15 @@
 
 package com.yahoo.memory4;
 
+/**
+ * @author Lee Rhodes
+ */
 public interface MemoryHandler extends AutoCloseable {
 
+  /**
+   * Returns a Memory for read operations
+   * @return a Memory for read operations
+   */
   Memory get();
 
   @Override

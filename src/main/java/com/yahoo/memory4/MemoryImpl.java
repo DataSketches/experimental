@@ -34,6 +34,9 @@ import static com.yahoo.memory4.UnsafeUtil.UNSAFE_COPY_THRESHOLD;
 import static com.yahoo.memory4.UnsafeUtil.assertBounds;
 import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
+/**
+ * @author Lee Rhodes
+ */
 class MemoryImpl extends Memory {
   final MemoryState state;
   final Object unsafeObj; //Array objects are held here.

@@ -8,8 +8,9 @@ package com.yahoo.memory4;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * This is a step boolean function that can change its state only once.
- * This class is thread-safe.
+ * This is a step boolean function that can change its state only once and is thread-safe.
+ *
+ * @author Lee Rhodes
  */
 class StepBoolean {
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();

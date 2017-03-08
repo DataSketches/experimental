@@ -9,6 +9,9 @@ import static com.yahoo.memory2.UnsafeUtil.unsafe;
 
 import sun.misc.Cleaner;
 
+/**
+ * @author Lee Rhodes
+ */
 final class AllocateDirect extends WritableMemoryImpl implements WritableMemoryHandler {
   private final Cleaner cleaner;
 
@@ -34,6 +37,7 @@ final class AllocateDirect extends WritableMemoryImpl implements WritableMemoryH
   public void close() {
     try {
       this.cleaner.clean();
+      super.state.setInvalid();
     } catch (final Exception e) {
       throw e;
     }
@@ -64,7 +68,7 @@ final class AllocateDirect extends WritableMemoryImpl implements WritableMemoryH
   }
 
   @Override
-  public WritableMemory getWritable() {
+  public WritableMemory get() {
     return this;
   }
 

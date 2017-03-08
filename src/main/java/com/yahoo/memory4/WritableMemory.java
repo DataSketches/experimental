@@ -612,7 +612,7 @@ public abstract class WritableMemory {
    * @param delta the amount to add
    * @return the modified value
    */
-  public abstract int addAndGetLong(long offsetBytes, long delta);
+  public abstract long getAndAddLong(long offsetBytes, long delta);
 
   /**
    * Atomically sets the current value at the memory location to the given updated value

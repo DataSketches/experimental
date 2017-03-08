@@ -544,24 +544,24 @@ class WritableMemoryImpl extends WritableMemory {
       );
   }
 
-  //Atomic Write Methods //TODO
+  //Atomic Write Methods //XXX
 
   @Override
-  public int addAndGetLong(final long offsetBytes, final long delta) {
-    // TODO Auto-generated method stub
-    return 0;
+  public long getAndAddLong(final long offsetBytes, final long delta) {
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
+    return unsafe.getAndAddLong(unsafeObj, cumBaseOffset, delta) + delta;
   }
 
   @Override
   public boolean compareAndSwapLong(final long offsetBytes, final long expect, final long update) {
-    // TODO Auto-generated method stub
-    return false;
+    assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
+    return unsafe.compareAndSwapLong(unsafeObj, cumBaseOffset, expect, update);
   }
 
   @Override
   public long getAndSetLong(final long offsetBytes, final long newValue) {
-    // TODO Auto-generated method stub
-    return 0;
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
+    return unsafe.getAndSetLong(unsafeObj, cumBaseOffset, newValue);
   }
 
   //OTHER WRITE METHODS //XXX
@@ -573,33 +573,35 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public void clear() {
-    // TODO Auto-generated method stub
+    fill(0, capacity, (byte) 0);
   }
 
   @Override
   public void clear(final long offsetBytes, final long lengthBytes) {
-    // TODO Auto-generated method stub
+    fill(offsetBytes, lengthBytes, (byte) 0);
   }
 
   @Override
   public void clearBits(final long offsetBytes, final byte bitMask) {
-    // TODO Auto-generated method stub
+    assertBounds(offsetBytes, ARRAY_BYTE_INDEX_SCALE, capacity);
+    final long cumBaseOff = this.cumBaseOffset;
+    int value = unsafe.getByte(unsafeObj, cumBaseOff) & 0XFF;
+    value &= ~bitMask;
+    unsafe.putByte(unsafeObj, cumBaseOff, (byte)value);
   }
 
   @Override
   public void fill(final byte value) {
-    // TODO Auto-generated method stub
+    fill(0, capacity, value);
   }
 
   @Override
   public void fill(final long offsetBytes, final long lengthBytes, final byte value) {
-    // TODO Auto-generated method stub
+    assertBounds(offsetBytes, lengthBytes, capacity);
+    unsafe.setMemory(unsafeObj, cumBaseOffset, lengthBytes, value);
   }
 
   //OTHER //XXX
-
-  //@Override
-  //public void force() {} //MAP RELATED, ONLY APPLIES TO WRITABLE
 
   @Override
   public MemoryRequest getMemoryRequest() { //only applicable to writable

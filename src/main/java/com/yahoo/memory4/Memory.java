@@ -27,6 +27,7 @@ import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * @author Lee Rhodes
@@ -39,10 +40,14 @@ public abstract class Memory {
    * @param byteBuf the given ByteBuffer
    * @return the given ByteBuffer for read-only operations.
    */
-  public static MemoryHandler wrap(final ByteBuffer byteBuf) {
+  public static Memory wrap(final ByteBuffer byteBuf) {
+    if (byteBuf.order() != ByteOrder.nativeOrder()) {
+      throw new IllegalArgumentException(
+          "Memory does not support " + (byteBuf.order().toString()));
+    }
     final MemoryState state = new MemoryState();
     state.putByteBuffer(byteBuf);
-    return (MemoryHandler) AccessByteBuffer.wrap(state);
+    return AccessByteBuffer.wrap(state);
   }
 
   //MAP
@@ -347,7 +352,7 @@ public abstract class Memory {
    * @param dstOffsetBytes the destintaion offset
    * @param lengthBytes the number of bytes to copy
    */
-  public abstract void copy(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
+  public abstract void copyTo(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
       long lengthBytes);
 
   /**

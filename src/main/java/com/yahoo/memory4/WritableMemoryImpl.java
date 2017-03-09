@@ -254,7 +254,7 @@ class WritableMemoryImpl extends WritableMemory {
   //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   @Override
-  public void copy(final long srcOffsetBytes, final WritableMemory destination,
+  public void copyTo(final long srcOffsetBytes, final WritableMemory destination,
       final long dstOffsetBytes, final long lengthBytes) {
     assertBounds(srcOffsetBytes, lengthBytes, this.capacity);
     assertBounds(dstOffsetBytes, lengthBytes, destination.getCapacity());

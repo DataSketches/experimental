@@ -6,8 +6,7 @@
 package com.yahoo.memory4;
 
 /**
- * The exception thrown when attempting to write into a read-only Memory or construct a
- * writable class from a read-only instance of a class to be wrapped.
+ * The exception thrown when attempting to write into a read-only Memory.
  *
  * @author Praveenkumar Venkatesan
  */

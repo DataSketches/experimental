@@ -7,11 +7,15 @@ package com.yahoo.memory4;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * @author Lee Rhodes
  */
 final class MemoryState {
+  private static final ByteOrder nativeOrder_ = ByteOrder.nativeOrder();
+  private ByteOrder myOrder_ = nativeOrder_;
+  private boolean swapBytes_ = false;
   private long nativeBaseOffset_ = 0L; //Direct ByteBuffer includes the slice() offset here.
   private Object unsafeObj_ = null; //##Array objects are held here.
   private long unsafeObjHeader_ = 0L; //##Heap ByteBuffer includes the slice() offset here.
@@ -22,9 +26,6 @@ final class MemoryState {
   private long capacity_ = 0L;//##
   private long cumBaseOffset_ = 0L; //##Holds the cum offset to the start of data.
   private MemoryRequest memReq_ = null; //##
-
-  //##Assert protection against casting Memory to WritableMemory.
-  private boolean nonNativeEndian_ = false; //##
   private boolean positional_ = false;
 
   private StepBoolean resourceIsReadOnly_ = new StepBoolean(false); //initial state is writable
@@ -34,6 +35,8 @@ final class MemoryState {
 
   MemoryState copy() {
     final MemoryState out = new MemoryState();
+    out.myOrder_ = myOrder_;
+    out.swapBytes_ = swapBytes_;
     out.nativeBaseOffset_ = nativeBaseOffset_;
     out.unsafeObj_ = unsafeObj_;
     out.unsafeObjHeader_ = unsafeObjHeader_;
@@ -43,7 +46,6 @@ final class MemoryState {
     out.regionOffset_ = regionOffset_;
     out.capacity_ = capacity_;
     out.memReq_ = memReq_;
-    out.nonNativeEndian_ = nonNativeEndian_;
     out.positional_ = positional_;
     out.resourceIsReadOnly_ = resourceIsReadOnly_;
     out.valid_ = valid_;
@@ -103,10 +105,6 @@ final class MemoryState {
     return valid_.get();
   }
 
-  boolean isNotNativeEndian() {
-    return nonNativeEndian_;
-  }
-
   boolean isDirect() {
     return nativeBaseOffset_ > 0L;
   }
@@ -163,12 +161,20 @@ final class MemoryState {
     this.valid_.change();
   }
 
-  void setNonNativeEndian(final boolean nonNativeEndian) {
-    this.nonNativeEndian_ = nonNativeEndian;
-  }
-
   void setPositional(final boolean positional) {
     this.positional_ = positional;
   }
 
+  ByteOrder order() {
+    return myOrder_;
+  }
+
+  boolean swapBytes() {
+    return swapBytes_;
+  }
+
+  void order(final ByteOrder order) {
+    this.myOrder_ = order;
+    this.swapBytes_ = (myOrder_ != nativeOrder_);
+  }
 }

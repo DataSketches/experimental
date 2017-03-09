@@ -14,15 +14,10 @@ import java.nio.ByteBuffer;
 /**
  * @author Lee Rhodes
  */
-final class AccessByteBuffer extends MemoryImpl implements MemoryHandler {
+final class AccessByteBuffer extends MemoryImpl {
 
   private AccessByteBuffer(final MemoryState state) {
     super(state);
-  }
-
-  @Override
-  public Memory get() {
-    return this;
   }
 
   //The provided ByteBuffer (via state) can be either readOnly or writable
@@ -82,23 +77,6 @@ final class AccessByteBuffer extends MemoryImpl implements MemoryHandler {
       state.putRegionOffset(byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE);
       return new AccessByteBuffer(state);
     }
-  }
-
-  @Override
-  public void close() {
-    state.setInvalid();
-  }
-
-  @Override
-  public void load() {
-    // No-op
-
-  }
-
-  @Override
-  public boolean isLoaded() {
-    // means nothing.
-    return false;
   }
 
 }

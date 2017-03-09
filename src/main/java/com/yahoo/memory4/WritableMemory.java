@@ -24,6 +24,7 @@ import static com.yahoo.memory.UnsafeUtil.SHORT_SHIFT;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * @author Lee Rhodes
@@ -37,13 +38,17 @@ public abstract class WritableMemory {
    * @param byteBuf the given ByteBuffer
    * @return the given ByteBuffer for write operations.
    */
-  public static WritableMemoryHandler wrap(final ByteBuffer byteBuf) {
-    final MemoryState state = new MemoryState();
+  public static WritableMemory wrap(final ByteBuffer byteBuf) {
     if (byteBuf.isReadOnly()) {
       throw new ReadOnlyMemoryException("ByteBuffer is read-only.");
     }
+    if (byteBuf.order() != ByteOrder.nativeOrder()) {
+      throw new IllegalArgumentException(
+          "Memory does not support " + (byteBuf.order().toString()));
+    }
+    final MemoryState state = new MemoryState();
     state.putByteBuffer(byteBuf);
-    return (WritableMemoryHandler) AccessWritableByteBuffer.wrap(state);
+    return AccessWritableByteBuffer.wrap(state);
   }
 
   //MAP
@@ -385,7 +390,7 @@ public abstract class WritableMemory {
    * @param dstOffsetBytes the destintaion offset
    * @param lengthBytes the number of bytes to copy
    */
-  public abstract void copy(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
+  public abstract void copyTo(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
       long lengthBytes);
 
   /**

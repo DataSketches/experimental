@@ -13,15 +13,10 @@ import java.nio.ByteBuffer;
 /**
  * @author Lee Rhodes
  */
-final class AccessWritableByteBuffer extends WritableMemoryImpl implements WritableMemoryHandler {
+final class AccessWritableByteBuffer extends WritableMemoryImpl {
 
   private AccessWritableByteBuffer(final MemoryState state) {
     super(state);
-  }
-
-  @Override
-  public WritableMemory get() {
-    return this;
   }
 
   //The provided ByteBuffer (via state) must be writable
@@ -43,28 +38,6 @@ final class AccessWritableByteBuffer extends WritableMemoryImpl implements Writa
     state.putUnsafeObjectHeader(ARRAY_BYTE_BASE_OFFSET);
     state.putRegionOffset(byteBuf.arrayOffset() * ARRAY_BYTE_INDEX_SCALE);
     return new AccessWritableByteBuffer(state);
-  }
-
-
-  @Override
-  public void close() {
-    super.state.setInvalid();
-  }
-
-  @Override
-  public void load() {
-    // No-op
-  }
-
-  @Override
-  public boolean isLoaded() {
-    // Means nothing
-    return false;
-  }
-
-  @Override
-  public void force() {
-    // No-op
   }
 
 }

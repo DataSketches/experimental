@@ -246,7 +246,7 @@ class MemoryImpl extends Memory {
   //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   @Override
-  public void copy(final long srcOffsetBytes, final WritableMemory destination,
+  public void copyTo(final long srcOffsetBytes, final WritableMemory destination,
       final long dstOffsetBytes, final long lengthBytes) {
 
     assertBounds(srcOffsetBytes, lengthBytes, this.capacity);

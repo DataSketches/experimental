@@ -1,7 +1,7 @@
 /*
 Version 4
 public abstract class Memory {
-  public static MemoryHandler wrap(final ByteBuffer byteBuf)
+  public static Memory wrap(final ByteBuffer byteBuf)
   public static MemoryHandler map(final File file)
   public static MemoryHandler map(final File file, final long fileOffset, final long capacity)
   public abstract Memory region(long offsetBytes, long capacityBytes)
@@ -15,7 +15,7 @@ public abstract class Memory {
 }
 
 public abstract class WritableMemory {
-  public static WritableMemoryHandler wrap(final ByteBuffer byteBuf)
+  public static WritableMemory wrap(final ByteBuffer byteBuf)
   public static WritableMemoryHandler map(final File file)
   public static WritableMemoryHandler map(final File file, final long fileOffset, final long capacity)
   public static WritableMemoryHandler allocateDirect(final long capacityBytes)

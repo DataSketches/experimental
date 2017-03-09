@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Lee Rhodes
  */
-class StepBoolean {
+final class StepBoolean {
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
   private volatile boolean state;
   private final boolean initial;

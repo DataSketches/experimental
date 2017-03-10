@@ -5,7 +5,7 @@
 
 package com.yahoo.memory1;
 
-import static com.yahoo.memory2.UnsafeUtil.unsafe;
+import static com.yahoo.memory1.UnsafeUtil.unsafe;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

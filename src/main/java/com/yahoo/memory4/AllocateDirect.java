@@ -5,7 +5,7 @@
 
 package com.yahoo.memory4;
 
-import static com.yahoo.memory2.UnsafeUtil.unsafe;
+import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
 import sun.misc.Cleaner;
 

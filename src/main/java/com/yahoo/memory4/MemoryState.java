@@ -119,33 +119,54 @@ final class MemoryState {
   }
 
   void putUnsafeObject(final Object unsafeObj) {
+    if (unsafeObj == null) {
+      throw new IllegalArgumentException("Object may not be assigned null");
+    }
     this.unsafeObj_ = unsafeObj;
     compute();
   }
 
   void putUnsafeObjectHeader(final long unsafeObjHeader) {
+    if (unsafeObjHeader < 0) {
+      throw new IllegalArgumentException("Object Header may not be negative.");
+    }
     this.unsafeObjHeader_ = unsafeObjHeader;
     compute();
   }
 
   void putByteBuffer(final ByteBuffer byteBuf) {
+    if (byteBuf == null) {
+      throw new IllegalArgumentException("ByteBuffer may not be assigned null");
+    }
     this.byteBuf_ = byteBuf;
   }
 
   void putFile(final File file) {
+    if (file == null) {
+      throw new IllegalArgumentException("File may not be assigned null");
+    }
     this.file_ = file;
   }
 
   void putFileOffset(final long fileOffset) {
+    if (fileOffset < 0) {
+      throw new IllegalArgumentException("File Offset may not be negative.");
+    }
     this.fileOffset_ = fileOffset;
   }
 
   void putRegionOffset(final long regionOffset) {
+    if (regionOffset < 0) {
+      throw new IllegalArgumentException("Region Offset may not be negative.");
+    }
     this.regionOffset_ = regionOffset;
     compute();
   }
 
   void putCapacity(final long capacity) {
+    if (capacity <= 0) {
+      throw new IllegalArgumentException("Capacity may not be negative or zero.");
+    }
     this.capacity_ = capacity;
   }
 

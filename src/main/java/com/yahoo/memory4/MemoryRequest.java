@@ -19,7 +19,7 @@ public interface MemoryRequest {
    * @param capacityBytes The capacity being requested
    * @return new WritableMemory with the given capacity. If this request is refused it will be null.
    */
-  WritableMemoryImpl request(long capacityBytes);
+  WritableMemory request(long capacityBytes);
 
   /**
    * Request for allocate and copy.
@@ -40,7 +40,7 @@ public interface MemoryRequest {
    * @return The new WritableMemory with the given capacity. If this request is refused it will be
    * null.
    */
-  WritableMemoryImpl request(WritableMemoryImpl origMem, long copyToBytes, long capacityBytes);
+  WritableMemory request(WritableMemory origMem, long copyToBytes, long capacityBytes);
 
   /**
    * The given WritableMemory with its capacity is to be freed. It is assumed that the
@@ -48,7 +48,7 @@ public interface MemoryRequest {
    * to free it.
    * @param mem The WritableMemory to be freed
    */
-  void free(WritableMemoryImpl mem);
+  void free(WritableMemory mem);
 
   /**
    * The given memToFree with its capacity may be freed by the implementation.
@@ -63,5 +63,5 @@ public interface MemoryRequest {
    * Providing a reference to newMem enables the implementation to link the memToFree to the
    * newMem, if desired.
    */
-  void free(WritableMemoryImpl memToFree, WritableMemoryImpl newMem);
+  void free(WritableMemory memToFree, WritableMemory newMem);
 }

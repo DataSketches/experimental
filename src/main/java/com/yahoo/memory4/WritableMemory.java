@@ -120,7 +120,6 @@ public abstract class WritableMemory {
    */
   public abstract Memory asReadOnly();
 
-
   //ALLOCATE HEAP VIA AUTOMATIC BYTE ARRAY
   /**
    * Creates on-heap WritableMemory with the given capacity

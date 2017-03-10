@@ -8,7 +8,7 @@ package com.yahoo.memory4;
 /**
  * @author Lee Rhodes
  */
-public interface WritableMemoryHandler extends AutoCloseable {
+public interface WritableResourceHandler extends AutoCloseable {
 
   /**
    * Return a WritableMemory for write operations

@@ -25,7 +25,7 @@ import sun.nio.ch.FileChannelImpl;
  * @author Praveenkumar Venkatesan
  * @author Lee Rhodes
  */
-final class AllocateDirectMap extends WritableMemoryImpl implements MemoryHandler {
+final class AllocateDirectMap extends WritableMemoryImpl implements ResourceHandler {
   //private RandomAccessFile randomAccessFile = null; //only used in writable version
   private MappedByteBuffer dummyMbbInstance = null;
   private final Cleaner cleaner;

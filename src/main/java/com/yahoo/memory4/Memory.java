@@ -55,10 +55,10 @@ public abstract class Memory {
    * Allocates direct memory used to memory map files for read operations
    * (including those &gt; 2GB).
    * @param file the given file to map
-   * @return MemoryHandler for managing this map
+   * @return ResourceHandler for managing this map
    * @throws Exception file not found or RuntimeException, etc.
    */
-  public static MemoryHandler map(final File file) throws Exception {
+  public static ResourceHandler map(final File file) throws Exception {
     return map(file, 0, file.length());
   }
 
@@ -68,10 +68,10 @@ public abstract class Memory {
    * @param file the given file to map
    * @param fileOffset the position in the given file
    * @param capacity the size of the allocated direct memory
-   * @return MemoryHandler for managing this map
+   * @return ResourceHandler for managing this map
    * @throws Exception file not found or RuntimeException, etc.
    */
-  public static MemoryHandler map(final File file, final long fileOffset, final long capacity)
+  public static ResourceHandler map(final File file, final long fileOffset, final long capacity)
       throws Exception {
     final MemoryState state = new MemoryState();
     state.putFile(file);

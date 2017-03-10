@@ -12,7 +12,7 @@ import sun.misc.Cleaner;
 /**
  * @author Lee Rhodes
  */
-final class AllocateDirect extends WritableMemoryImpl implements WritableMemoryHandler {
+final class AllocateDirect extends WritableMemoryImpl implements WritableResourceHandler {
   private final Cleaner cleaner;
 
   /**

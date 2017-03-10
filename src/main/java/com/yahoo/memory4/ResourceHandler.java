@@ -8,7 +8,7 @@ package com.yahoo.memory4;
 /**
  * @author Lee Rhodes
  */
-public interface MemoryHandler extends AutoCloseable {
+public interface ResourceHandler extends AutoCloseable {
 
   /**
    * Returns a Memory for read operations

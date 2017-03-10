@@ -631,7 +631,7 @@ public final class MemoryPerformance {
     Point p = new Point(ppo_, minGI_ - 1, 1 << lgMinLongs_, 1 << lgMaxTrials_); //just below start
     Point.printHeader();
     while ((p = getNextPoint(p)) != null) { //an array size point
-      WritableMemoryHandler wh = WritableMemory.allocateDirect(p.arrLongs << 3);
+      WritableResourceHandler wh = WritableMemory.allocateDirect(p.arrLongs << 3);
       final WritableMemory mem = wh.get();
       //Do all write trials first
       p.sumWriteTrials_nS = 0;

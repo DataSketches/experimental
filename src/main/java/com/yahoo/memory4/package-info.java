@@ -2,8 +2,8 @@
 Version 4 Public API. -- One Impl.  AutoCloseable via Handlers.
 public abstract class Memory {
   public static Memory wrap(final ByteBuffer byteBuf)
-  public static MemoryHandler map(final File file)
-  public static MemoryHandler map(final File file, final long fileOffset, final long capacity)
+  public static ResourceHandler map(final File file)
+  public static ResourceHandler map(final File file, final long fileOffset, final long capacity)
   public abstract Memory region(long offsetBytes, long capacityBytes)
   public static Memory wrap(final prim-type[] arr)
   public abstract void copyTo(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
@@ -15,10 +15,10 @@ public abstract class Memory {
 
 public abstract class WritableMemory {
   public static WritableMemory wrap(final ByteBuffer byteBuf)
-  public static WritableMemoryHandler map(final File file)
-  public static WritableMemoryHandler map(final File file, final long fileOffset, final long capacity)
-  public static WritableMemoryHandler allocateDirect(final long capacityBytes)
-  public static WritableMemoryHandler allocateDirect(final long capacityBytes, final MemoryRequest memReq)
+  public static WritableResourceHandler map(final File file)
+  public static WritableResourceHandler map(final File file, final long fileOffset, final long capacity)
+  public static WritableResourceHandler allocateDirect(final long capacityBytes)
+  public static WritableResourceHandler allocateDirect(final long capacityBytes, final MemoryRequest memReq)
   public abstract WritableMemory region(long offsetBytes, long capacityBytes)
   public abstract Memory asReadOnly();
   public static WritableMemory allocate(final int capacityBytes)
@@ -33,14 +33,14 @@ public abstract class WritableMemory {
 
 }
 
-public interface MemoryHandler extends AutoCloseable {
+public interface ResourceHandler extends AutoCloseable {
   Memory get()
   void close()
   void load()        //only for memory-mapped-files
   boolean isLoaded() //only for memory-mapped-files
 }
 
-public interface WritableMemoryHandler extends AutoCloseable {
+public interface WritableResourceHandler extends AutoCloseable {
   WritableMemory get()
   void close()
   void load()        //only for memory-mapped-files

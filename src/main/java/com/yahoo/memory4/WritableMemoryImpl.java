@@ -258,6 +258,27 @@ class WritableMemoryImpl extends WritableMemory {
   //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
   @Override
+  public int compareTo(final long thisOffsetBytes, final long thisLengthBytes, final Memory that,
+      final long thatOffsetBytes, final long thatLengthBytes) {
+    assertBounds(thisOffsetBytes, thisLengthBytes, this.capacity);
+    assertBounds(thatOffsetBytes, thatLengthBytes, that.getCapacity());
+    final long thisAdd = this.getCumulativeOffset(thisOffsetBytes);
+    final long thatAdd = that.getCumulativeOffset(thatOffsetBytes);
+    final Object thisObj = (this.isDirect()) ? null : this.unsafeObj;
+    final Object thatObj = (that.isDirect()) ? null : ((WritableMemory)that).getArray();
+    final long lenBytes = Math.min(thisLengthBytes, thatLengthBytes);
+    for (long i = 0; i < lenBytes; i++) {
+      final int thisByte = unsafe.getByte(thisObj, thisAdd + i);
+      final int thatByte = unsafe.getByte(thatObj, thatAdd + i);
+      if (thisByte < thatByte) { return -1; }
+      if (thisByte > thatByte) { return  1; }
+    }
+    if (thisLengthBytes < thatLengthBytes) { return -1; }
+    if (thisLengthBytes > thatLengthBytes) { return  1; }
+    return 0;
+  }
+
+  @Override
   public void copyTo(final long srcOffsetBytes, final WritableMemory destination,
       final long dstOffsetBytes, final long lengthBytes) {
     assertBounds(srcOffsetBytes, lengthBytes, this.capacity);

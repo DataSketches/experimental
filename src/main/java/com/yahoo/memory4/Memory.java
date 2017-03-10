@@ -335,6 +335,9 @@ public abstract class Memory {
 
   //OTHER PRIMITIVE READ METHODS: copy, isYYYY(), areYYYY() //XXX
 
+  public abstract int compareTo(long thisOffsetBytes, long thisLengthBytes, Memory that,
+      long thatOffsetBytes, long thatLengthBytes);
+
   /**
    * Copies bytes from a source range of this Memory to a destination range of the given Memory
    * using the same low-level system copy function as found in

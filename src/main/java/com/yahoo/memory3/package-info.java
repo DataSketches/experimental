@@ -1,5 +1,5 @@
 /*
- Version C
+ Version C -- one impl. Memory is default writable, RO detected with boolean
    public abstract class Memory (no class vars) -- Default Writable
     - static methods: wrapping arrays, ByteBuffers, Maps
     - abstract methods: get<primitive>, get<primitive>Array, region, asReadOnly, others

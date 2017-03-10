@@ -1,5 +1,5 @@
 /*
-Version B
+Version B -- One Impl, AutoCloseable at Memory
   public abstract class Memory implements AutoCloseable
     - static RO methods: wrapping arrays, ByteBuffers, Maps
     - abstract RO methods: get<primitive>, get<primitive>Array, region, etc

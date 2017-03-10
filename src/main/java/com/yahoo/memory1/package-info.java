@@ -1,5 +1,5 @@
 /*
-  Version A
+  Version A  -- Two Impls, AutoCloseable in AllocDirect and AllocateMap
   public abstract class Memory (no class vars)
     - public static RO methods: wrapping arrays, ByteBuffers, Maps
     - public abstract RO methods: get<primitive>, get<primitive>Array. region

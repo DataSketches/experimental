@@ -14,14 +14,14 @@ import java.nio.ByteBuffer;
 /**
  * @author Lee Rhodes
  */
-final class AccessByteBuffer extends MemoryImpl {
+final class AccessByteBuffer extends WritableMemoryImpl {
 
   private AccessByteBuffer(final MemoryState state) {
     super(state);
   }
 
-  //The provided ByteBuffer (via state) can be either readOnly or writable
-  static MemoryImpl wrap(final MemoryState state) {
+  //The provided ByteBuffer may be either readOnly or writable
+  static WritableMemoryImpl wrap(final MemoryState state) {
     final ByteBuffer byteBuf = state.getByteBuffer();
     state.putCapacity(byteBuf.capacity());
     final boolean readOnlyBB = byteBuf.isReadOnly();
@@ -62,7 +62,7 @@ final class AccessByteBuffer extends MemoryImpl {
       return new AccessByteBuffer(state);
     }
 
-    else { //BB is WRITABLE.  Return it anyway with RO API
+    else { //BB is WRITABLE.
 
       //WRITABLE-DIRECT  //nativeBaseAddress, byteBuf, capacity
       if (direct) {

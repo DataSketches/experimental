@@ -40,10 +40,11 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
   }
 
   /**
-   * Factory method for creating a memory mapping a file.
+   * Factory method for memory mapping a file. This should only be called if the file is indeed
+   * writable.
    *
    * <p>Memory maps a file directly in off heap leveraging native map0 method used in
-   * FileChannelImpl.c. The owner will have read write access to that address space.</p>
+   * FileChannelImpl.c. The owner will have read & write access to that address space.</p>
    *
    * @param file File to be mapped
    * @param offset Memory map starting from this offset in the file
@@ -59,13 +60,12 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
     checkOffsetAndCapacity(fileOffset, capacity);
 
     final File file = state.getFile();
-    final String mode;
-    if (file.canWrite()) {
-      mode = "rw";
-    } else {
-      mode = "r";
-      state.setResourceReadOnly();
-    }
+    final String mode = "rw";
+
+
+
+
+
     final RandomAccessFile raf = new RandomAccessFile(file, mode);
     final FileChannel fc = raf.getChannel();
     final long nativeBaseOffset = map(fc, fileOffset, capacity);

@@ -25,26 +25,26 @@ import sun.nio.ch.FileChannelImpl;
  * @author Praveenkumar Venkatesan
  * @author Lee Rhodes
  */
-final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
-  @SuppressWarnings("unused")
-  private RandomAccessFile randomAccessFile = null; //only used in writable version
+final class AllocateDirectMap extends WritableMemoryImpl implements MemoryHandler {
+  //private RandomAccessFile randomAccessFile = null; //only used in writable version
   private MappedByteBuffer dummyMbbInstance = null;
   private final Cleaner cleaner;
 
   private AllocateDirectMap(final MemoryState state, final RandomAccessFile raf,
       final MappedByteBuffer mbb) {
     super(state);
-    this.randomAccessFile = raf;
+    //this.randomAccessFile = raf; //only used in writable version
     this.dummyMbbInstance = mbb;
     this.cleaner = Cleaner.create(this,
         new Deallocator(raf, state));
   }
 
   /**
-   * Factory method for creating a memory mapping a file.
+   * Factory method for memory mapping a file. This should be called only if read access
+   * is desired.
    *
    * <p>Memory maps a file directly in off heap leveraging native map0 method used in
-   * FileChannelImpl.c. The owner will have read write access to that address space.</p>
+   * FileChannelImpl.c. The owner will have read access to that address space.</p>
    *
    * @param file File to be mapped
    * @param offset Memory map starting from this offset in the file
@@ -61,7 +61,7 @@ final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
 
     final File file = state.getFile();
     final String mode;
-    if (file.canWrite()) {
+    if (file.canWrite()) { //The file itself could be writable
       mode = "rw";
     } else {
       mode = "r";
@@ -114,7 +114,7 @@ final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
     }
   }
 
-  //@Override //ONLY used with writable
+  //@Override //only used in writable version
   //  public void force() {
   //    try {
   //      final Method method = MappedByteBuffer.class.getDeclaredMethod("force0",
@@ -248,5 +248,4 @@ final class AllocateDirectMap extends MemoryImpl implements MemoryHandler {
           + ", offset + capacity: " + (offset + capacity));
     }
   }
-
 }

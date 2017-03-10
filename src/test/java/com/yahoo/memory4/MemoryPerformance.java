@@ -3,9 +3,9 @@
  * Apache License 2.0. See LICENSE file at the project root for terms.
  */
 
-package com.yahoo.memory3;
+package com.yahoo.memory4;
 
-import static com.yahoo.memory.UnsafeUtil.unsafe;
+import static com.yahoo.memory4.UnsafeUtil.unsafe;
 import static java.lang.Math.pow;
 
 import java.nio.ByteBuffer;
@@ -27,7 +27,7 @@ public final class MemoryPerformance {
   private double minGI_;     //min generating index
   private double maxGI_;     //max generating index
   private int lgMaxOps_;     //lgMaxLongs_ + lgMinTrials_
-  private long address_ = 0; //used for unsafe
+  //private long address_ = 0; //used for unsafe
 
   /**
    * Evaluate Memory performancy under different scenarios
@@ -149,19 +149,19 @@ public final class MemoryPerformance {
     Point p = new Point(ppo_, minGI_ - 1, 1 << lgMinLongs_, 1 << lgMaxTrials_); //just below start
     Point.printHeader();
     while ((p = getNextPoint(p)) != null) { //an array size point
-      address_ = unsafe.allocateMemory(p.arrLongs << 3);
+      final long address = unsafe.allocateMemory(p.arrLongs << 3);
       //Do all write trials first
       p.sumWriteTrials_nS = 0;
       for (int t = 0; t < p.trials; t++) { //do writes first: a single trial write
-        p.sumWriteTrials_nS += trial_NativeArrayByUnsafe(address_, p.arrLongs, false);
+        p.sumWriteTrials_nS += trial_NativeArrayByUnsafe(address, p.arrLongs, false);
       }
       //Do all read trials
       p.sumReadTrials_nS  = 0;
       for (int t = 0; t < p.trials; t++) { //a single trial read
-        p.sumReadTrials_nS += trial_NativeArrayByUnsafe(address_, p.arrLongs, true);
+        p.sumReadTrials_nS += trial_NativeArrayByUnsafe(address, p.arrLongs, true);
       }
       p.printRow();
-      freeMemory();
+      unsafe.freeMemory(address);
     }
   }
 
@@ -579,30 +579,30 @@ public final class MemoryPerformance {
   }
 
   /*************************************/
-  //  MEMORY Version C - HEAP
+  //  MEMORY Version 4 - HEAP
   /*************************************/
 
-  private void testMemoryCHeap() {
+  private void testMemory4Heap() {
     Point p = new Point(ppo_, minGI_ - 1, 1 << lgMinLongs_, 1 << lgMaxTrials_); //just below start
     Point.printHeader();
     while ((p = getNextPoint(p)) != null) { //an array size point
-      final Memory mem = Memory.allocate(p.arrLongs << 3);
+      final WritableMemory mem = WritableMemory.allocate(p.arrLongs << 3);
       //Do all write trials first
       p.sumWriteTrials_nS = 0;
       for (int t = 0; t < p.trials; t++) { //do writes first
-        p.sumWriteTrials_nS += trial_MemoryCHeap(mem, p.arrLongs, false); //a single trial write
+        p.sumWriteTrials_nS += trial_Memory4Heap(mem, p.arrLongs, false); //a single trial write
       }
       //Do all read trials
       p.sumReadTrials_nS  = 0;
       for (int t = 0; t < p.trials; t++) {
-        p.sumReadTrials_nS += trial_MemoryCHeap(mem, p.arrLongs, true); //a single trial read
+        p.sumReadTrials_nS += trial_Memory4Heap(mem, p.arrLongs, true); //a single trial read
       }
       p.printRow();
     }
   }
 
   //Must do writes first
-  private static final long trial_MemoryCHeap(final Memory mem, final int arrLongs,
+  private static final long trial_Memory4Heap(final WritableMemory mem, final int arrLongs,
       final boolean read) {
     final long checkSum = (arrLongs * (arrLongs - 1L)) / 2L;
     final long startTime_nS, stopTime_nS;
@@ -624,31 +624,32 @@ public final class MemoryPerformance {
   }
 
   /*************************************/
-  //  MEMORY Version C - DIRECT
+  //  MEMORY Version 4 - DIRECT
   /*************************************/
 
-  private void testMemoryCDirect() {
+  private void testMemory4Direct() {
     Point p = new Point(ppo_, minGI_ - 1, 1 << lgMinLongs_, 1 << lgMaxTrials_); //just below start
     Point.printHeader();
     while ((p = getNextPoint(p)) != null) { //an array size point
-      final Memory mem = Memory.allocateDirect(p.arrLongs << 3);
+      WritableMemoryHandler wh = WritableMemory.allocateDirect(p.arrLongs << 3);
+      final WritableMemory mem = wh.get();
       //Do all write trials first
       p.sumWriteTrials_nS = 0;
       for (int t = 0; t < p.trials; t++) { //do writes first
-        p.sumWriteTrials_nS += trial_MemoryCDirect(mem, p.arrLongs, false); //a single trial write
+        p.sumWriteTrials_nS += trial_Memory4Direct(mem, p.arrLongs, false); //a single trial write
       }
       //Do all read trials
       p.sumReadTrials_nS  = 0;
       for (int t = 0; t < p.trials; t++) {
-        p.sumReadTrials_nS += trial_MemoryCDirect(mem, p.arrLongs, true); //a single trial read
+        p.sumReadTrials_nS += trial_Memory4Direct(mem, p.arrLongs, true); //a single trial read
       }
       p.printRow();
-      mem.freeMemory();
+      wh.close();
     }
   }
 
   //Must do writes first
-  private static final long trial_MemoryCDirect(final Memory mem, final int arrLongs,
+  private static final long trial_Memory4Direct(final WritableMemory mem, final int arrLongs,
       final boolean read) {
     final long checkSum = (arrLongs * (arrLongs - 1L)) / 2L;
     final long startTime_nS, stopTime_nS;
@@ -669,36 +670,7 @@ public final class MemoryPerformance {
     return stopTime_nS - startTime_nS;
   }
 
-
-
-
-
   /*************************************/
-
-  private final void freeMemory() {
-    if (address_ != 0) {
-      unsafe.freeMemory(address_);
-      address_ = 0L;
-    }
-  }
-
-  /**
-   * If the JVM calls this method and a "freeMemory() has not been called" a <i>System.err</i>
-   * message will be logged.
-   */
-  @Override
-  protected void finalize() {
-    if (address_ > 0L) {
-      System.err.println("ERROR: freeMemory() has not been called: Address: " + address_
-        + ", capacity: " + (arrLongs_ << 3));
-      final java.lang.StackTraceElement[] arr = Thread.currentThread().getStackTrace();
-      for (int i = 0; i < arr.length; i++) {
-          System.err.println(arr[i].toString());
-      }
-      unsafe.freeMemory(address_);
-      address_ = 0L;
-    }
-  }
 
   /**
    * Start the testing
@@ -725,10 +697,10 @@ public final class MemoryPerformance {
     //    testMemoryHeapUnsafe();
     //    println("\nTest Memory Direct Unsafe");
     //    testMemoryDirectUnsafe();
-    println("\nTest Memory C Heap");
-    testMemoryCHeap();
-    println("\nTest Memory C Direct");
-    testMemoryCDirect();
+    println("\nTest Memory 4 Heap");
+    testMemory4Heap();
+    println("\nTest Memory 4 Direct");
+    testMemory4Direct();
 
     final long testMillis = System.currentTimeMillis() - startMillis;
     println("Total Time: " + milliSecToString(testMillis));

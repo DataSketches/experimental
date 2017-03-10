@@ -54,9 +54,15 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   //REGIONS
+
   @Override
-  public WritableMemory region(final long offsetBytes, final long capacityBytes) {
-    assert offsetBytes + capacityBytes <= capacity
+  public Memory region(final long offsetBytes, final long capacityBytes) {
+    return writableRegion(offsetBytes, capacityBytes);
+  }
+
+  @Override
+  public WritableMemory writableRegion(final long offsetBytes, final long capacityBytes) {
+    assert offsetBytes + capacityBytes <= this.capacity
         : "newOff + newCap: " + (offsetBytes + capacityBytes) + ", origCap: " + this.capacity;
     final MemoryState newState = this.state.copy();
     newState.putRegionOffset(newState.getRegionOffset() + offsetBytes);
@@ -68,9 +74,7 @@ class WritableMemoryImpl extends WritableMemory {
 
   @Override
   public Memory asReadOnly() {
-    final MemoryState newState = this.state.copy();
-    newState.setResourceReadOnly();
-    return new MemoryImpl(newState);
+    return this;
   }
 
   ///PRIMITIVE getXXX() and getXXXArray() //XXX
@@ -332,7 +336,7 @@ class WritableMemoryImpl extends WritableMemory {
   }
 
   @Override
-  public boolean isReadOnly() {
+  public boolean isResourceReadOnly() {
     return state.isResourceReadOnly();
   }
 
@@ -569,7 +573,7 @@ class WritableMemoryImpl extends WritableMemory {
   //OTHER WRITE METHODS //XXX
 
   @Override
-  Object getArray() {
+  public Object getArray() {
     return unsafeObj;
   }
 

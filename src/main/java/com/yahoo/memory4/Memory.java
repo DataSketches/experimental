@@ -84,8 +84,8 @@ public abstract class Memory {
 
   /**
    * Returns a read only region of this Memory.
-   * @param offsetBytes the starting offset
-   * @param capacityBytes the capacity of the region
+   * @param offsetBytes the starting offset with respect to this Memory
+   * @param capacityBytes the capacity of the region in bytes
    * @return a read only region of this Memory
    */
   public abstract Memory region(long offsetBytes, long capacityBytes);
@@ -102,8 +102,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_BOOLEAN_BASE_OFFSET);
     state.putCapacity(arr.length << BOOLEAN_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -116,8 +115,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_BYTE_BASE_OFFSET);
     state.putCapacity(arr.length << BYTE_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -130,8 +128,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_CHAR_BASE_OFFSET);
     state.putCapacity(arr.length << CHAR_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -144,8 +141,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_SHORT_BASE_OFFSET);
     state.putCapacity(arr.length << SHORT_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -158,8 +154,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_INT_BASE_OFFSET);
     state.putCapacity(arr.length << INT_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -172,8 +167,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_LONG_BASE_OFFSET);
     state.putCapacity(arr.length << LONG_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -186,8 +180,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_FLOAT_BASE_OFFSET);
     state.putCapacity(arr.length << FLOAT_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   /**
@@ -200,8 +193,7 @@ public abstract class Memory {
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_DOUBLE_BASE_OFFSET);
     state.putCapacity(arr.length << DOUBLE_SHIFT);
-    state.setResourceReadOnly();
-    return new MemoryImpl(state);
+    return new WritableMemoryImpl(state);
   }
 
   //PRIMITIVE getXXX() and getXXXArray() //XXX
@@ -422,10 +414,10 @@ public abstract class Memory {
   public abstract boolean isDirect();
 
   /**
-   * Returns true if the backing Memory is read only
-   * @return true if the backing Memory is read only
+   * Returns true if the backing resource is read only
+   * @return true if the backing resource is read only
    */
-  public abstract boolean isReadOnly();
+  public abstract boolean isResourceReadOnly();
 
   /**
    * Returns true if this Memory is valid() and has not been closed.

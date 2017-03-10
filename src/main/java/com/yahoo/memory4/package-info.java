@@ -1,17 +1,16 @@
 /*
-Version 4
+Version 4 Public API. -- One Impl.  AutoCloseable via Handlers.
 public abstract class Memory {
   public static Memory wrap(final ByteBuffer byteBuf)
   public static MemoryHandler map(final File file)
   public static MemoryHandler map(final File file, final long fileOffset, final long capacity)
   public abstract Memory region(long offsetBytes, long capacityBytes)
   public static Memory wrap(final prim-type[] arr)
-  public abstract void copy(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
+  public abstract void copyTo(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
       long lengthBytes)
   public abstract getXXX(offset) methods
-  ... plus other read misc
-  public abstract asNonNativeEndian() //not implemented
-  public abstract asNativeEndian() //not implemented
+  ... plus other read misc, compareTo
+
 }
 
 public abstract class WritableMemory {
@@ -24,15 +23,14 @@ public abstract class WritableMemory {
   public abstract Memory asReadOnly();
   public static WritableMemory allocate(final int capacityBytes)
   public static WritableMemory wrap(final prim-type[] arr)
-  public abstract void copy(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
+  public abstract void copyTo(long srcOffsetBytes, WritableMemory destination, long dstOffsetBytes,
       long lengthBytes);
-  public abstract getXXX(offset) methods
-  ... plus other read misc
+  //public abstract getXXX(offset) methods
+  //... plus other read misc
   public abstract void putXXX(long offsetBytes, prim-type value)
   ... plus other write misc
   public abstract MemoryRequest getMemoryRequest()
-  public abstract asNonNativeEndian() //not implemented
-  public abstract asNativeEndian() //not implemented
+
 }
 
 public interface MemoryHandler extends AutoCloseable {

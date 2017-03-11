@@ -649,7 +649,7 @@ public final class MemoryPerformance {
   }
 
   //Must do writes first
-  private static final long trial_Memory4Direct(final WritableMemory mem, final int arrLongs,
+  private static final long trial_Memory4Direct(final WritableMemory wmem, final int arrLongs,
       final boolean read) {
     final long checkSum = (arrLongs * (arrLongs - 1L)) / 2L;
     final long startTime_nS, stopTime_nS;
@@ -657,14 +657,14 @@ public final class MemoryPerformance {
       //Timing interval for a single trial
       long trialSum = 0;
       startTime_nS = System.nanoTime();
-      for (int i = 0; i < arrLongs; i++) { trialSum += mem.getLong(i << 3); }
+      for (int i = 0; i < arrLongs; i++) { trialSum += wmem.getLong(i << 3); }
       stopTime_nS = System.nanoTime();
       if (trialSum != checkSum) {
         throw new IllegalStateException("Bad checksum: " + trialSum + " != " + checkSum);
       }
     } else { //write
       startTime_nS = System.nanoTime();
-      for (int i = 0; i < arrLongs; i++) { mem.putLong(i << 3, i); }
+      for (int i = 0; i < arrLongs; i++) { wmem.putLong(i << 3, i); }
       stopTime_nS = System.nanoTime();
     }
     return stopTime_nS - startTime_nS;
@@ -697,8 +697,8 @@ public final class MemoryPerformance {
     //    testMemoryHeapUnsafe();
     //    println("\nTest Memory Direct Unsafe");
     //    testMemoryDirectUnsafe();
-    println("\nTest Memory 4 Heap");
-    testMemory4Heap();
+//    println("\nTest Memory 4 Heap");
+//    testMemory4Heap();
     println("\nTest Memory 4 Direct");
     testMemory4Direct();
 

@@ -689,10 +689,10 @@ public final class MemoryPerformance {
     //    testLongBufferHeap();
     //    println("\nTest LongBuffer Direct");
     //    testLongBufferDirect();
-    println("\nTest Memory Heap");
-    testMemoryHeap();
-    println("\nTest Memory Direct");
-    testMemoryDirect();
+//    println("\nTest Memory Heap");
+//    testMemoryHeap();
+//    println("\nTest Memory Direct");
+//    testMemoryDirect();
     //    println("\nTest Memory Heap Unsafe");
     //    testMemoryHeapUnsafe();
     //    println("\nTest Memory Direct Unsafe");

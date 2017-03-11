@@ -5,6 +5,8 @@
 
 package com.yahoo.memory4;
 
+import static com.yahoo.memory4.UnsafeUtil.unsafe;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -177,19 +179,30 @@ public class MemoryTest {
     region.getByte(0);
   }
 
+  @Test
+  public void checkArrayHeaderSizes() {
+    long[] arr = new long[] { 1, 2, 3, 4};
+    //long head = UnsafeUtil.ARRAY_LONG_BASE_OFFSET;
+    println(""+unsafe.getInt(arr, 0L));
+    println(""+unsafe.getInt(arr, 4L));
+    println(""+unsafe.getInt(arr, 8L));
+    println(""+unsafe.getInt(arr, 12L));
+    println(""+unsafe.getInt(arr, 16L));
+  }
+
 
   public static void main(String[] args) {
     MemoryTest test = new MemoryTest();
     test.checkParentUseAfterFree();
     test.checkRegionUseAfterFree();
-    println("Passed!");
+    println("" + UnsafeUtil.ARRAY_LONG_BASE_OFFSET);
   }
 
   /**
    * @param s blah
    */
   static void println(final String s) {
-    //System.out.println(s);
+    System.out.println(s);
   }
 
 }

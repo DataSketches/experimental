@@ -179,7 +179,7 @@ public class MemoryTest {
     region.getByte(0);
   }
 
-  @Test
+  //@Test
   public void checkArrayHeaderSizes() {
     long[] arr = new long[] { 1, 2, 3, 4};
     //long head = UnsafeUtil.ARRAY_LONG_BASE_OFFSET;
@@ -202,7 +202,7 @@ public class MemoryTest {
    * @param s blah
    */
   static void println(final String s) {
-    System.out.println(s);
+    //System.out.println(s);
   }
 
 }

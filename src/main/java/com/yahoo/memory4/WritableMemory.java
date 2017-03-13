@@ -38,7 +38,7 @@ public abstract class WritableMemory extends Memory {
    * @param byteBuf the given ByteBuffer
    * @return the given ByteBuffer for write operations.
    */
-  public static WritableMemory writableWrap(final ByteBuffer byteBuf) {
+  public static WritableMemory wrap(final ByteBuffer byteBuf) {
     if (byteBuf.isReadOnly()) {
       throw new ReadOnlyMemoryException("ByteBuffer is read-only.");
     }
@@ -59,8 +59,8 @@ public abstract class WritableMemory extends Memory {
    * @return WritableResourceHandler for managing this map
    * @throws Exception file not found or RuntimeException, etc.
    */
-  public static WritableResourceHandler writableMap(final File file) throws Exception {
-    return writableMap(file, 0, file.length());
+  public static WritableResourceHandler map(final File file) throws Exception {
+    return map(file, 0, file.length());
   }
 
   /**
@@ -72,7 +72,7 @@ public abstract class WritableMemory extends Memory {
    * @return WritableResourceHandler for managing this map
    * @throws Exception file not found or RuntimeException, etc.
    */
-  public static WritableResourceHandler writableMap(final File file, final long fileOffset,
+  public static WritableResourceHandler map(final File file, final long fileOffset,
       final long capacity) throws Exception {
     if (!file.canWrite()) {
       throw new ReadOnlyMemoryException("File is read-only.");
@@ -240,7 +240,7 @@ public abstract class WritableMemory extends Memory {
    * @param arr the given primitive array
    * @return WritableMemory for write operations
    */
-  public static WritableMemory writableWrap(final double[] arr) {
+  public static WritableMemory wrap(final double[] arr) {
     final MemoryState state = new MemoryState();
     state.putUnsafeObject(arr);
     state.putUnsafeObjectHeader(ARRAY_DOUBLE_BASE_OFFSET);

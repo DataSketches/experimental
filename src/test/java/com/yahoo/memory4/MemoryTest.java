@@ -5,8 +5,6 @@
 
 package com.yahoo.memory4;
 
-import static com.yahoo.memory4.UnsafeUtil.unsafe;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -62,7 +60,7 @@ public class MemoryTest {
     byte[] arr = new byte[n * 8];
     ByteBuffer bb = ByteBuffer.wrap(arr);
     bb.order(ByteOrder.nativeOrder());
-    WritableMemory wmem = WritableMemory.writableWrap(bb);
+    WritableMemory wmem = WritableMemory.wrap(bb);
     for (int i = 0; i < n; i++) { //write to wmem
       wmem.putLong(i * 8, i);
     }
@@ -92,7 +90,7 @@ public class MemoryTest {
     int n = 1024; //longs
     ByteBuffer bb = ByteBuffer.allocateDirect(n * 8);
     bb.order(ByteOrder.nativeOrder());
-    WritableMemory wmem = WritableMemory.writableWrap(bb);
+    WritableMemory wmem = WritableMemory.wrap(bb);
     for (int i = 0; i < n; i++) { //write to wmem
       wmem.putLong(i * 8, i);
     }
@@ -179,23 +177,10 @@ public class MemoryTest {
     region.getByte(0);
   }
 
-  //@Test
-  public void checkArrayHeaderSizes() {
-    long[] arr = new long[] { 1, 2, 3, 4};
-    //long head = UnsafeUtil.ARRAY_LONG_BASE_OFFSET;
-    println(""+unsafe.getInt(arr, 0L));
-    println(""+unsafe.getInt(arr, 4L));
-    println(""+unsafe.getInt(arr, 8L));
-    println(""+unsafe.getInt(arr, 12L));
-    println(""+unsafe.getInt(arr, 16L));
-  }
-
-
   public static void main(String[] args) {
     MemoryTest test = new MemoryTest();
     test.checkParentUseAfterFree();
     test.checkRegionUseAfterFree();
-    println("" + UnsafeUtil.ARRAY_LONG_BASE_OFFSET);
   }
 
   /**

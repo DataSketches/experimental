@@ -11,8 +11,8 @@ final class Util {
 
   /**
    * Searches a range of the specified array of longs for the specified value using the binary
-   * search algorithm. The range must be sorted (as by the sort(long[], int, int) method) prior
-   * to making this call. If it is not sorted, the results are undefined. If the range contains
+   * search algorithm. The range must be sorted method) prior to making this call.
+   * If it is not sorted, the results are undefined. If the range contains
    * multiple elements with the specified value, there is no guarantee which one will be found.
    * @param mem the Memory to be searched
    * @param fromLongIndex the index of the first element (inclusive) to be searched
@@ -24,14 +24,14 @@ final class Util {
    * than the key, or toIndex if all elements in the range are less than the specified key.
    * Note that this guarantees that the return value will be &ge; 0 if and only if the key is found.
    */
-  public static int binarySearchLongs(final Memory mem, final int fromLongIndex,
-      final int toLongIndex, final long key) {
+  public static long binarySearchLongs(final Memory mem, final long fromLongIndex,
+      final long toLongIndex, final long key) {
     assertBounds(fromLongIndex << 3, (toLongIndex - fromLongIndex) << 3, mem.getCapacity());
-    int low = fromLongIndex;
-    int high = toLongIndex - 1;
+    long low = fromLongIndex;
+    long high = toLongIndex - 1L;
 
     while (low <= high) {
-      final int mid = (low + high) >>> 1;
+      final long mid = (low + high) >>> 1;
       final long midVal = mem.getLong(mid << 3);
 
       if (midVal < key)      { low = mid + 1;  }
@@ -70,15 +70,15 @@ final class Util {
     }
     final long newCap = newDstMem.getCapacity(); //may be more than requested, but not less.
     if (newCap < newCapacityBytes) {
-      memReq.free(newDstMem);
+      memReq.closeRequest(newDstMem);
       throw new IllegalArgumentException(
-          "Insufficient space and Memory returned by MemoryRequest is not the requested capacity: "
+          "Insufficient space. Memory returned by MemoryRequest is not the requested capacity: "
           + "Returned: " + newCap + " < Requested: " + newCapacityBytes);
     }
 
     if (copy) { //copy and request free.
       origMem.copyTo(0, newDstMem, 0, Math.min(origMem.getCapacity(), newCap));
-      memReq.free(origMem, newDstMem);
+      memReq.closeRequest(origMem, newDstMem);
     }
     return newDstMem;
   }

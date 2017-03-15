@@ -462,28 +462,27 @@ public abstract class Memory {
     final long cumBaseOffset = state.getCumBaseOffset();
     sb.append(header).append(LS);
     sb.append("NativeBaseOffset    : ").append(state.getNativeBaseOffset()).append(LS);
-    sb.append("UnsafeObj           : ").append(uObjStr).append(LS);
+    sb.append("UnsafeObj, hashCode : ").append(uObjStr).append(LS);
     sb.append("UnsafeObjHeader     : ").append(state.getUnsafeObjectHeader()).append(LS);
-    sb.append("ByteBuf             : ").append(bbStr).append(LS);
+    sb.append("ByteBuf, hashCode   : ").append(bbStr).append(LS);
     sb.append("RegionOffset        : ").append(state.getRegionOffset()).append(LS);
     sb.append("Capacity            : ").append(state.getCapacity()).append(LS);
     sb.append("CumBaseOffset       : ").append(cumBaseOffset).append(LS);
-    sb.append("MemReq              : ").append(memReqStr).append(LS);
+    sb.append("MemReq, hashCode    : ").append(memReqStr).append(LS);
     sb.append("Valid               : ").append(state.isValid()).append(LS);
-    sb.append("Read Only           : ").append(state.isResourceReadOnly()).append(LS);
-    sb.append("Memory, littleEndian:  0  1  2  3  4  5  6  7");
-    long j = offsetBytes;
-    final StringBuilder sb2 = new StringBuilder();
+    sb.append("Resource Read Only  : ").append(state.isResourceReadOnly()).append(LS);
+    //Data detail
+    sb.append("Data, littleEndian  :  0  1  2  3  4  5  6  7");
+
     for (long i = 0; i < lengthBytes; i++) {
-      final int b = unsafe.getByte(uObj, cumBaseOffset + i) & 0XFF;
-      if ((i != 0) && ((i % 8) == 0)) {
-        sb.append(String.format("%n%20s: ", j)).append(sb2);
-        j += 8;
-        sb2.setLength(0);
+      final int b = unsafe.getByte(uObj, cumBaseOffset + offsetBytes + i) & 0XFF;
+      if ((i % 8) == 0) { //row header
+        sb.append(String.format("%n%20s: ", offsetBytes + i));
       }
-      sb2.append(String.format("%02x ", b));
+      sb.append(String.format("%02x ", b));
     }
-    sb.append(String.format("%n%20s: ", j)).append(sb2).append(LS);
+    sb.append(LS);
+
     return sb.toString();
   }
 

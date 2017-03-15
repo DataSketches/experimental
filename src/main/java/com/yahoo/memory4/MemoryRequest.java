@@ -43,25 +43,20 @@ public interface MemoryRequest {
   WritableMemory request(WritableMemory origMem, long copyToBytes, long capacityBytes);
 
   /**
-   * The given WritableMemory with its capacity is to be freed. It is assumed that the
-   * implementation of this interface knows the type of WritableMemory that was created and how
-   * to free it.
-   * @param mem The WritableMemory to be freed
+   * Request to close the given <i>mem</i>.
+   * @param mem The <i>WritableMemory</i> to be closed
    */
-  void free(WritableMemory mem);
+  void closeRequest(WritableMemory mem);
 
   /**
-   * The given memToFree with its capacity may be freed by the implementation.
-   * Providing a reference to newMem enables the implementation to link the memToFree to the
-   * newMem, if desired.
+   * Request to close the given <i>memToClose</i>. This callback also provides a reference to the
+   * <i>newMem</i> that was just created. This makes it easer for the owner of the allocations to
+   * link together the <i>memToClose</i> to the <i>newMem</i>, if desired.
    *
-   * @param memToFree the WritableMemory to be freed. It is assumed that the implementation of
-   * this interface knows the type of WritableMemory that was created and how to free it,
-   * if desired.
+   * @param memToClose the WritableMemory to be closed.
    *
-   * @param newMem
-   * Providing a reference to newMem enables the implementation to link the memToFree to the
-   * newMem, if desired.
+   * @param newMem the owner of the allocations may link together the <i>memToClose</i> to the
+   * <i>newMem</i>, if desired.
    */
-  void free(WritableMemory memToFree, WritableMemory newMem);
+  void closeRequest(WritableMemory memToClose, WritableMemory newMem);
 }

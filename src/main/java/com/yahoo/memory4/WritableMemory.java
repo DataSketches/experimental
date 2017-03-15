@@ -458,6 +458,14 @@ public abstract class WritableMemory extends Memory {
    */
   public abstract void fill(long offsetBytes, long lengthBytes, byte value);
 
+  /**
+   * Sets the bits defined by the bitMask
+   * @param offsetBytes offset bytes relative to this Memory start
+   * @param bitMask the bits set to one will be set
+   */
+  public abstract void setBits(long offsetBytes, byte bitMask);
+
+
   //OTHER //XXX
 
   /**

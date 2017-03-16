@@ -5,6 +5,7 @@
 
 package com.yahoo.memory4;
 
+import static com.yahoo.memory4.AllocateDirectWritableMap.isFileReadOnly;
 import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
 import java.io.File;
@@ -60,13 +61,12 @@ final class AllocateDirectMap extends WritableMemoryImpl implements ResourceHand
     checkOffsetAndCapacity(fileOffset, capacity);
 
     final File file = state.getFile();
-    final String mode;
-    if (file.canWrite()) { //The file itself could be writable
-      mode = "rw";
-    } else {
-      mode = "r";
-      state.setResourceReadOnly();
+
+    if (isFileReadOnly(file)) {
+      state.setResourceReadOnly(); //The file itself could be writable
     }
+
+    final String mode = "rw"; //we can't map it unless we use rw mode
     final RandomAccessFile raf = new RandomAccessFile(file, mode);
     final FileChannel fc = raf.getChannel();
     final long nativeBaseOffset = map(fc, fileOffset, capacity);
@@ -247,5 +247,15 @@ final class AllocateDirectMap extends WritableMemoryImpl implements ResourceHand
           "offset: " + offset + ", capacity: " + capacity
           + ", offset + capacity: " + (offset + capacity));
     }
+  }
+
+  @Override
+  public ResourceType getResourceType() {
+    return ResourceType.MEMORY_MAPPED_FILE;
+  }
+
+  @Override
+  public boolean isResourceType(final ResourceType resourceType) {
+    return resourceType == ResourceType.MEMORY_MAPPED_FILE;
   }
 }

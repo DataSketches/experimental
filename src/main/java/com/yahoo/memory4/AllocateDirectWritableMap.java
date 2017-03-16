@@ -9,11 +9,19 @@ import static com.yahoo.memory4.UnsafeUtil.unsafe;
 
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
 
 import sun.misc.Cleaner;
 import sun.nio.ch.FileChannelImpl;
@@ -60,12 +68,11 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
     checkOffsetAndCapacity(fileOffset, capacity);
 
     final File file = state.getFile();
+    if (isFileReadOnly(file)) {
+      throw new ReadOnlyMemoryException("File is read-only.");
+    }
+
     final String mode = "rw";
-
-
-
-
-
     final RandomAccessFile raf = new RandomAccessFile(file, mode);
     final FileChannel fc = raf.getChannel();
     final long nativeBaseOffset = map(fc, fileOffset, capacity);
@@ -134,6 +141,16 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
     } catch (final Exception e) {
       throw e;
     }
+  }
+
+  @Override
+  public ResourceType getResourceType() {
+    return ResourceType.MEMORY_MAPPED_FILE;
+  }
+
+  @Override
+  public boolean isResourceType(final ResourceType resourceType) {
+    return resourceType == ResourceType.MEMORY_MAPPED_FILE;
   }
 
   // Restricted methods
@@ -215,6 +232,15 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
       this.parentStateRef = state;
     }
 
+    @Override
+    public void run() {
+      if (this.fc != null) {
+        unmap();
+      }
+      this.actualNativeBaseOffset = 0L;
+      this.parentStateRef.setInvalid(); //The only place valid is set invalid.
+    }
+
     /**
      * Removes existing mapping
      */
@@ -229,15 +255,6 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
             String.format("Encountered %s exception while freeing memory", e.getClass()));
       }
     }
-
-    @Override
-    public void run() {
-      if (this.fc != null) {
-        unmap();
-      }
-      this.actualNativeBaseOffset = 0L;
-      this.parentStateRef.setInvalid(); //The only place valid is set invalid.
-    }
   } //End of class Deallocator
 
   private static final void checkOffsetAndCapacity(final long offset, final long capacity) {
@@ -247,4 +264,41 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
           + ", offset + capacity: " + (offset + capacity));
     }
   }
+
+  static final boolean isFileReadOnly(final File file) {
+    if (System.getProperty("os.name").startsWith("Windows")) {
+      return !file.canWrite();
+    }
+    //All Unix-like OSes
+    final Path path = Paths.get(file.getAbsolutePath());
+    PosixFileAttributes attributes = null;
+    try {
+      attributes = Files.getFileAttributeView(path, PosixFileAttributeView.class).readAttributes();
+    } catch (final IOException e) {
+      // File presence is guaranteed. Ignore
+      e.printStackTrace();
+    }
+    if (attributes != null) {
+      // A file is read-only in Linux only when it has 0444 permissions.
+      // Here we are going to ignore the Owner W,E bits to allow root/owner testing.
+      final Set<PosixFilePermission> permissions = attributes.permissions();
+      int bits = 0;
+      bits |= ((permissions.contains(PosixFilePermission.OWNER_READ))     ? 1 << 8 : 0);
+      //bits |= ((permissions.contains(PosixFilePermission.OWNER_WRITE))    ? 1 << 7 : 0);
+      //bits |= ((permissions.contains(PosixFilePermission.OWNER_EXECUTE))  ? 1 << 6 : 0);
+      bits |= ((permissions.contains(PosixFilePermission.GROUP_READ))     ? 1 << 5 : 0);
+      bits |= ((permissions.contains(PosixFilePermission.GROUP_WRITE))    ? 1 << 4 : 0);
+      bits |= ((permissions.contains(PosixFilePermission.GROUP_EXECUTE))  ? 1 << 3 : 0);
+      bits |= ((permissions.contains(PosixFilePermission.OTHERS_READ))    ? 1 << 2 : 0);
+      bits |= ((permissions.contains(PosixFilePermission.OTHERS_WRITE))   ? 1 << 1 : 0);
+      bits |= ((permissions.contains(PosixFilePermission.OTHERS_EXECUTE)) ? 1      : 0);
+      //System.out.println(Util.zeroPad(Integer.toBinaryString(bits), 32));
+      //System.out.println(Util.zeroPad(Integer.toOctalString(bits), 4));
+      if (bits == 0444) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 }

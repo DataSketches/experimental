@@ -74,9 +74,6 @@ public abstract class WritableMemory extends Memory {
    */
   public static WritableResourceHandler map(final File file, final long fileOffset,
       final long capacity) throws Exception {
-    if (!file.canWrite()) {
-      throw new ReadOnlyMemoryException("File is read-only.");
-    }
     final MemoryState state = new MemoryState();
     state.putFile(file);
     state.putFileOffset(fileOffset);

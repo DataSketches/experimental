@@ -6,6 +6,7 @@
 package com.yahoo.memory4;
 
 /**
+ * Wraps a resource for read operations
  * @author Lee Rhodes
  */
 public interface ResourceHandler extends AutoCloseable {
@@ -48,4 +49,9 @@ public interface ResourceHandler extends AutoCloseable {
    */
   boolean isLoaded();
 
+  enum ResourceType { MEMORY_MAPPED_FILE, NATIVE_MEMORY }
+
+  ResourceType getResourceType();
+
+  boolean isResourceType(ResourceType resourceType);
 }

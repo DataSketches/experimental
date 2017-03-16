@@ -18,10 +18,10 @@ public class CopyMemoryTest {
     int k1 = 1 << 20; //longs
     int k2 = 2 * k1;
     WritableMemory srcMem = genMem(k1, false); //!empty
-    println(srcMem.toHexString("src: ", 0, k1 << 3));
+    //println(srcMem.toHexString("src: ", 0, k1 << 3));
     WritableMemory dstMem = genMem(k2, true);
     srcMem.copyTo(0, dstMem, k1 << 3, k1 << 3);
-    println(dstMem.toHexString("dst: ", 0, k2 << 3));
+    //println(dstMem.toHexString("dst: ", 0, k2 << 3));
     check(dstMem, k1, k1, 1);
   }
 

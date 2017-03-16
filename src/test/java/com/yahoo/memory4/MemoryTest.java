@@ -115,6 +115,26 @@ public class MemoryTest {
     }
   }
 
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void checkByteBufWrongOrder() {
+    int n = 1024; //longs
+    ByteBuffer bb = ByteBuffer.allocate(n * 8);
+    bb.order(ByteOrder.BIG_ENDIAN);
+    Memory.wrap(bb);
+  }
+
+  @Test//(expectedExceptions = RuntimeException.class)
+  public void checkReadOnlyHeapByteBuffer() {
+    ByteBuffer bb = ByteBuffer.allocate(128);
+    bb.order(ByteOrder.nativeOrder());
+    for (int i = 0; i < 128; i++) { bb.put(i, (byte)i); }
+    bb.position(64);
+    ByteBuffer slice = bb.slice().asReadOnlyBuffer();
+    slice.order(ByteOrder.nativeOrder());
+    Memory mem = Memory.wrap(slice);
+    println(mem.toHexString("slice", 0, slice.capacity()));
+  }
+
   @Test
   public void checkPutGetArraysHeap() {
     int n = 1024; //longs
@@ -137,7 +157,10 @@ public class MemoryTest {
     for (int i = 0; i < n; i++) { arr[i] = i; }
     Memory mem = Memory.wrap(arr);
     Memory reg = mem.region(n2 * 8, n2 * 8);
-    for (int i = 0; i < n2; i++) { println("" + reg.getLong(i * 8)); }
+    for (int i = 0; i < n2; i++) {
+      Assert.assertEquals(reg.getLong(i * 8), i + n2);
+      //println("" + reg.getLong(i * 8));
+    }
   }
 
   @Test
@@ -147,11 +170,17 @@ public class MemoryTest {
     long[] arr = new long[n];
     for (int i = 0; i < n; i++) { arr[i] = i; }
     WritableMemory wmem = WritableMemory.wrap(arr);
-    for (int i = 0; i < n; i++) { println("" + wmem.getLong(i * 8)); }
-    println("");
+    for (int i = 0; i < n; i++) {
+      Assert.assertEquals(wmem.getLong(i * 8), i);
+      //println("" + wmem.getLong(i * 8));
+    }
+    //println("");
     WritableMemory reg = wmem.writableRegion(n2 * 8, n2 * 8);
     for (int i = 0; i < n2; i++) { reg.putLong(i * 8, i); }
-    for (int i = 0; i < n; i++) { println("" + wmem.getLong(i * 8)); }
+    for (int i = 0; i < n; i++) {
+      Assert.assertEquals(wmem.getLong(i * 8), i % 8);
+      //println("" + wmem.getLong(i * 8));
+    }
   }
 
   @Test(expectedExceptions = AssertionError.class)
@@ -187,7 +216,7 @@ public class MemoryTest {
    * @param s blah
    */
   static void println(final String s) {
-    //System.out.println(s);
+    System.out.println(s);
   }
 
 }

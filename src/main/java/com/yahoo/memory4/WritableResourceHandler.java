@@ -6,6 +6,7 @@
 package com.yahoo.memory4;
 
 /**
+ * Wraps a resource for write operations
  * @author Lee Rhodes
  */
 public interface WritableResourceHandler extends ResourceHandler {

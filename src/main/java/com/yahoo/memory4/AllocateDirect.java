@@ -88,4 +88,14 @@ final class AllocateDirect extends WritableMemoryImpl implements WritableResourc
     // No-op
   }
 
+  @Override
+  public ResourceType getResourceType() {
+    return ResourceType.NATIVE_MEMORY;
+  }
+
+  @Override
+  public boolean isResourceType(final ResourceType resourceType) {
+    return resourceType == ResourceType.NATIVE_MEMORY;
+  }
+
 }

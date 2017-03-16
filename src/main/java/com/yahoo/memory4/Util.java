@@ -83,4 +83,55 @@ final class Util {
     return newDstMem;
   }
 
+  /**
+   * Prepend the given string with zeros. If the given string is equal or greater than the given
+   * field length, it will be returned without modification.
+   * @param s the given string
+   * @param fieldLength desired total field length including the given string
+   * @return the given string prepended with zeros.
+   */
+  public static final String zeroPad(final String s, final int fieldLength) {
+    return characterPad(s, fieldLength, '0', false);
+  }
+
+  /**
+   * Prepend or postpend the given string with the given character to fill the given field length.
+   * If the given string is equal or greater than the given field length, it will be returned
+   * without modification.
+   * @param s the given string
+   * @param fieldLength the desired field length
+   * @param padChar the desired pad character
+   * @param postpend if true append the pacCharacters to the end of the string.
+   * @return prepended or postpended given string with the given character to fill the given field
+   * length.
+   */
+  public static final String characterPad(final String s, final int fieldLength, final char padChar,
+      final boolean postpend) {
+    final char[] chArr = s.toCharArray();
+    final int sLen = chArr.length;
+    if (sLen < fieldLength) {
+      final char[] out = new char[fieldLength];
+      final int blanks = fieldLength - sLen;
+
+      if (postpend) {
+        for (int i = 0; i < sLen; i++) {
+          out[i] = chArr[i];
+        }
+        for (int i = sLen; i < fieldLength; i++) {
+          out[i] = padChar;
+        }
+      } else { //prepend
+        for (int i = 0; i < blanks; i++) {
+          out[i] = padChar;
+        }
+        for (int i = blanks; i < fieldLength; i++) {
+          out[i] = chArr[i - blanks];
+        }
+      }
+
+      return String.valueOf(out);
+    }
+    return s;
+  }
+
 }

@@ -249,7 +249,7 @@ public class CommonTest {
     assertEquals(newLong, 501);
   }
 
-  //enable println to visually check
+  //enable println stmts to visually check
   public static void setClearMemoryRegionsTests(WritableMemory mem) {
     int accessCapacity = (int)mem.getCapacity();
 
@@ -265,16 +265,16 @@ public class CommonTest {
     for (int i=reg1Start; i<reg1Len+reg1Start; i++) {
       assertEquals(mem.getByte(i), b1);
     }
-    println(mem.toHexString("Region1 to 5", reg1Start, reg1Len));
+    //println(mem.toHexString("Region1 to 5", reg1Start, reg1Len));
 
     //set region 2
     byte b2 = 7;
     mem.fill(reg2Start, reg2Len, b2);
-    println(mem.toHexString("Fill", 0, (int)mem.getCapacity()));
+    //println(mem.toHexString("Fill", 0, (int)mem.getCapacity()));
     for (int i=reg2Start; i<reg2Len+reg2Start; i++) {
       assertEquals(mem.getByte(i), b2);
     }
-    println(mem.toHexString("Region2 to 7", reg2Start, reg2Len));
+    //println(mem.toHexString("Region2 to 7", reg2Start, reg2Len));
 
     //clear region 1
     byte zeroByte = 0;
@@ -282,14 +282,14 @@ public class CommonTest {
     for (int i=reg1Start; i<reg1Len+reg1Start; i++) {
       assertEquals(mem.getByte(i), zeroByte);
     }
-    println(mem.toHexString("Region1 cleared", reg1Start, reg1Len));
+    //println(mem.toHexString("Region1 cleared", reg1Start, reg1Len));
 
     //clear region 2
     mem.clear(reg2Start, reg2Len);
     for (int i=reg2Start; i<reg2Len+reg2Start; i++) {
       assertEquals(mem.getByte(i), zeroByte);
     }
-    println(mem.toHexString("Region2 cleared", reg2Start, reg2Len));
+    //println(mem.toHexString("Region2 cleared", reg2Start, reg2Len));
 
     //set all to ones
     byte b4 = 127;
@@ -297,14 +297,14 @@ public class CommonTest {
     for (int i=0; i<accessCapacity; i++) {
       assertEquals(mem.getByte(i), b4);
     }
-    println(mem.toHexString("Region1 + Region2 all ones", 0, accessCapacity));
+    //println(mem.toHexString("Region1 + Region2 all ones", 0, accessCapacity));
 
     //clear all
     mem.clear();
     for (int i=0; i<accessCapacity; i++) {
       assertEquals(mem.getByte(i), zeroByte);
     }
-    println(mem.toHexString("Region1 + Region2 cleared", 0, accessCapacity));
+    //println(mem.toHexString("Region1 + Region2 cleared", 0, accessCapacity));
   }
 
   //enable println to visually check
@@ -315,8 +315,8 @@ public class CommonTest {
       mem.putByte(i, (byte)i);
     }
 
-    println(mem.toHexString("Check toHexString(0, 48) to integers", 0, memCapacity));
-    println(mem.toHexString("Check toHexString(8, 40)", 8, 40));
+    //println(mem.toHexString("Check toHexString(0, 48) to integers", 0, memCapacity));
+    //println(mem.toHexString("Check toHexString(8, 40)", 8, 40));
   }
 
   @Test

@@ -441,26 +441,26 @@ public abstract class Memory {
   /**
    * Returns a formatted hex string of an area of this Memory.
    * Used primarily for testing.
-   * @param header a descriptive header
+   * @param preamble a descriptive header
    * @param offsetBytes offset bytes relative to the Memory start
    * @param lengthBytes number of bytes to convert to a hex string
    * @return a formatted hex string in a human readable array
    */
-  static String toHex(final String header, final long offsetBytes, final int lengthBytes,
+  static String toHex(final String preamble, final long offsetBytes, final int lengthBytes,
       final MemoryState state) {
     assertBounds(offsetBytes, lengthBytes, state.getCapacity());
     final StringBuilder sb = new StringBuilder();
     final Object uObj = state.getUnsafeObject();
     final String uObjStr = (uObj == null) ? "null"
-        : uObj.getClass().getSimpleName() + ", " + uObj.hashCode();
+        : uObj.getClass().getSimpleName() + ", " + (uObj.hashCode() & 0XFFFFFFFFL);
     final ByteBuffer bb = state.getByteBuffer();
     final String bbStr = (bb == null) ? "null"
-        : bb.getClass().getSimpleName() + ", " + bb.hashCode();
+        : bb.getClass().getSimpleName() + ", " + (bb.hashCode() & 0XFFFFFFFFL);
     final MemoryRequest memReq = state.getMemoryRequest();
     final String memReqStr = (memReq == null) ? "null"
-        : memReq.getClass().getSimpleName() + ", " + memReq.hashCode();
+        : memReq.getClass().getSimpleName() + ", " + (memReq.hashCode() & 0XFFFFFFFFL);
     final long cumBaseOffset = state.getCumBaseOffset();
-    sb.append(header).append(LS);
+    sb.append(preamble).append(LS);
     sb.append("NativeBaseOffset    : ").append(state.getNativeBaseOffset()).append(LS);
     sb.append("UnsafeObj, hashCode : ").append(uObjStr).append(LS);
     sb.append("UnsafeObjHeader     : ").append(state.getUnsafeObjectHeader()).append(LS);
@@ -471,6 +471,7 @@ public abstract class Memory {
     sb.append("MemReq, hashCode    : ").append(memReqStr).append(LS);
     sb.append("Valid               : ").append(state.isValid()).append(LS);
     sb.append("Resource Read Only  : ").append(state.isResourceReadOnly()).append(LS);
+    sb.append("JDK Version         : ").append(UnsafeUtil.JDK).append(LS);
     //Data detail
     sb.append("Data, littleEndian  :  0  1  2  3  4  5  6  7");
 

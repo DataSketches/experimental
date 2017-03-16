@@ -13,8 +13,6 @@ package com.yahoo.memory4;
 public class ReadOnlyMemoryException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
-    public ReadOnlyMemoryException() { }
-
     public ReadOnlyMemoryException(final String message) {
       super(message);
     }

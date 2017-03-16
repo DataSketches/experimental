@@ -121,10 +121,10 @@ public final class UnsafeUtil {
     final String jdkVer = System.getProperty("java.version");
     if (jdkVer.startsWith("1.7")) {
       JDK = 7;
-      compatibilityMethods = new JDK8Compatible(unsafe);
+      compatibilityMethods = new JDK7Compatible(unsafe);
     } else if (jdkVer.startsWith("1.8")) {
       JDK = 8;
-      compatibilityMethods = new JDK7Compatible(unsafe);
+      compatibilityMethods = new JDK8Compatible(unsafe);
     } else {
       throw new ExceptionInInitializerError("JDK must be either 7 or 8");
     }
@@ -177,9 +177,6 @@ public final class UnsafeUtil {
   }
 
   interface JDKCompatibility {
-    int getAndAddInt(Object obj, long address, int increment);
-
-    int getAndSetInt(Object obj, long address, int value);
 
     long getAndAddLong(Object obj, long address, long increment);
 
@@ -191,16 +188,6 @@ public final class UnsafeUtil {
 
     JDK8Compatible(final Unsafe unsafe) {
       this.myUnsafe = unsafe;
-    }
-
-    @Override
-    public int getAndAddInt(final Object obj, final long address, final int increment) {
-      return myUnsafe.getAndAddInt(obj, address, increment);
-    }
-
-    @Override
-    public int getAndSetInt(final Object obj, final long address, final int value) {
-      return myUnsafe.getAndSetInt(obj, address, value);
     }
 
     @Override
@@ -219,26 +206,6 @@ public final class UnsafeUtil {
 
     JDK7Compatible(final Unsafe unsafe) {
       this.myUnsafe = unsafe;
-    }
-
-    @Override
-    public int getAndAddInt(final Object obj, final long address, final int increment) {
-      int retVal;
-      do {
-        retVal = myUnsafe.getIntVolatile(obj, address);
-      } while (!myUnsafe.compareAndSwapInt(obj, address, retVal, retVal + increment));
-
-      return retVal;
-    }
-
-    @Override
-    public int getAndSetInt(final Object obj, final long address, final int value) {
-      int retVal;
-      do {
-        retVal = myUnsafe.getIntVolatile(obj, address);
-      } while (!myUnsafe.compareAndSwapInt(obj, address, retVal, value));
-
-      return retVal;
     }
 
     @Override

@@ -385,11 +385,15 @@ class WritableMemoryImpl extends WritableMemory {
   @Override
   public String toHexString(final String header, final long offsetBytes, final int lengthBytes) {
     checkValid();
-    final StringBuilder sb = new StringBuilder();
-    sb.append(header).append(LS);
+    final String klass = this.getClass().getSimpleName();
     final String s1 = String.format("(..., %d, %d)", offsetBytes, lengthBytes);
-    sb.append(this.getClass().getSimpleName()).append(".toHexString")
-      .append(s1).append(", hash: ").append(this.hashCode()).append(LS);
+    final long hcode = this.hashCode() & 0XFFFFFFFFL;
+    final String call = ".toHexString" + s1 + ", hashCode: " + hcode;
+    final StringBuilder sb = new StringBuilder();
+    sb.append("### MEMORY SUMMARY ###").append(LS);
+    sb.append("Header Comment      : ").append(header).append(LS);
+    sb.append("Class               : ").append(klass).append(LS);
+    sb.append("Call                : ").append(call);
 
     return Memory.toHex(sb.toString(), offsetBytes, lengthBytes, this.state);
   }
@@ -584,10 +588,21 @@ class WritableMemoryImpl extends WritableMemory {
   //Atomic Write Methods //XXX
 
   @Override
-  public long getAndAddLong(final long offsetBytes, final long delta) {
+  public long getAndAddLong(final long offsetBytes, final long delta) { //JDK 8+
     checkValid();
     assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    return unsafe.getAndAddLong(unsafeObj, cumBaseOffset + offsetBytes, delta) + delta;
+    final long add = cumBaseOffset + offsetBytes;
+    return UnsafeUtil.compatibilityMethods.getAndAddLong(unsafeObj, add, delta) + delta;
+    //return unsafe.getAndAddLong(unsafeObj, add, delta) + delta;
+  }
+
+  @Override
+  public long getAndSetLong(final long offsetBytes, final long newValue) { //JDK 8+
+    checkValid();
+    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
+    final long add = cumBaseOffset + offsetBytes;
+    return UnsafeUtil.compatibilityMethods.getAndSetLong(unsafeObj, add, newValue);
+    //return unsafe.getAndSetLong(unsafeObj, add, newValue);
   }
 
   @Override
@@ -595,13 +610,6 @@ class WritableMemoryImpl extends WritableMemory {
     checkValid();
     assertBounds(offsetBytes, ARRAY_INT_INDEX_SCALE, capacity);
     return unsafe.compareAndSwapLong(unsafeObj, cumBaseOffset + offsetBytes, expect, update);
-  }
-
-  @Override
-  public long getAndSetLong(final long offsetBytes, final long newValue) {
-    checkValid();
-    assertBounds(offsetBytes, ARRAY_LONG_INDEX_SCALE, capacity);
-    return unsafe.getAndSetLong(unsafeObj, cumBaseOffset + offsetBytes, newValue);
   }
 
   //OTHER WRITE METHODS //XXX

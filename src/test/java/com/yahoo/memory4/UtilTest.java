@@ -26,6 +26,7 @@ public class UtilTest {
     //expand X 2 again
     WritableMemory newMem2 = memoryRequestHandler(newMem, 4 * k, false);
     assertEquals(newMem2.getCapacity(), 4 * k);
+    newMem2.toHexString("Test", 0, (int)newMem2.getCapacity());
     goodMM.closeRequest(newMem);
     goodMM.closeRequest(newMem2);
   }
@@ -224,7 +225,7 @@ public class UtilTest {
    * @param s value to print
    */
   static void println(String s) {
-    System.out.println(s); //disable here
+    //System.out.println(s); //disable here
   }
 
 }

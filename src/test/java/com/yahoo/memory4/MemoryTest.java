@@ -5,10 +5,11 @@
 
 package com.yahoo.memory4;
 
+import static org.testng.Assert.assertEquals;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class MemoryTest {
@@ -21,7 +22,7 @@ public class MemoryTest {
     for (int i = 0; i < n; i++) mem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     wh.close();
   }
@@ -33,7 +34,7 @@ public class MemoryTest {
     for (int i = 0; i < n; i++) wmem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = wmem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
   }
 
@@ -45,12 +46,12 @@ public class MemoryTest {
     for (int i = 0; i < n; i++) wmem.putLong(i * 8, i);
     for (int i = 0; i < n; i++) {
       long v = wmem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     Memory mem = Memory.wrap(arr);
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
   }
 
@@ -66,22 +67,22 @@ public class MemoryTest {
     }
     for (int i = 0; i < n; i++) { //read from wmem
       long v = wmem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     for (int i = 0; i < n; i++) { //read from BB
       long v = bb.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     Memory mem1 = Memory.wrap(arr);
     for (int i = 0; i < n; i++) { //read from wrapped arr
       long v = mem1.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     //convert to RO
     Memory mem = wmem.asReadOnly();
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
   }
 
@@ -96,22 +97,22 @@ public class MemoryTest {
     }
     for (int i = 0; i < n; i++) { //read from wmem
       long v = wmem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     for (int i = 0; i < n; i++) { //read from BB
       long v = bb.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     Memory mem1 = Memory.wrap(bb);
     for (int i = 0; i < n; i++) { //read from wrapped bb RO
       long v = mem1.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
     //convert to RO
     Memory mem = wmem.asReadOnly();
     for (int i = 0; i < n; i++) {
       long v = mem.getLong(i * 8);
-      Assert.assertEquals(v, i);
+      assertEquals(v, i);
     }
   }
 
@@ -123,7 +124,7 @@ public class MemoryTest {
     Memory.wrap(bb);
   }
 
-  @Test//(expectedExceptions = RuntimeException.class)
+  @Test
   public void checkReadOnlyHeapByteBuffer() {
     ByteBuffer bb = ByteBuffer.allocate(128);
     bb.order(ByteOrder.nativeOrder());
@@ -132,6 +133,9 @@ public class MemoryTest {
     ByteBuffer slice = bb.slice().asReadOnlyBuffer();
     slice.order(ByteOrder.nativeOrder());
     Memory mem = Memory.wrap(slice);
+    for (int i = 0; i < 64; i++) {
+      assertEquals(mem.getByte(i), 64 + i);
+    }
     println(mem.toHexString("slice", 0, slice.capacity()));
   }
 
@@ -145,7 +149,7 @@ public class MemoryTest {
     long[] arr2 = new long[n];
     wmem.getLongArray(0, arr2, 0, n);
     for (int i = 0; i < n; i++) {
-      Assert.assertEquals(arr2[i], i);
+      assertEquals(arr2[i], i);
     }
   }
 
@@ -158,7 +162,7 @@ public class MemoryTest {
     Memory mem = Memory.wrap(arr);
     Memory reg = mem.region(n2 * 8, n2 * 8);
     for (int i = 0; i < n2; i++) {
-      Assert.assertEquals(reg.getLong(i * 8), i + n2);
+      assertEquals(reg.getLong(i * 8), i + n2);
       //println("" + reg.getLong(i * 8));
     }
   }
@@ -171,14 +175,14 @@ public class MemoryTest {
     for (int i = 0; i < n; i++) { arr[i] = i; }
     WritableMemory wmem = WritableMemory.wrap(arr);
     for (int i = 0; i < n; i++) {
-      Assert.assertEquals(wmem.getLong(i * 8), i);
+      assertEquals(wmem.getLong(i * 8), i);
       //println("" + wmem.getLong(i * 8));
     }
     //println("");
     WritableMemory reg = wmem.writableRegion(n2 * 8, n2 * 8);
     for (int i = 0; i < n2; i++) { reg.putLong(i * 8, i); }
     for (int i = 0; i < n; i++) {
-      Assert.assertEquals(wmem.getLong(i * 8), i % 8);
+      assertEquals(wmem.getLong(i * 8), i % 8);
       //println("" + wmem.getLong(i * 8));
     }
   }

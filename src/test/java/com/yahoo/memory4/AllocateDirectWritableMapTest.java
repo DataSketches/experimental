@@ -5,9 +5,11 @@
 
 package com.yahoo.memory4;
 
+import static com.yahoo.memory4.AllocateDirectWritableMap.checkOffsetAndCapacity;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -69,6 +71,30 @@ public class AllocateDirectWritableMapTest {
       wMap.getByteArray(0, buf, 0, (int)corrBytes);
       String bufStr = new String(buf, UTF_8);
       assertEquals(bufStr, correctStr);
+    }
+  }
+
+  @Test
+  public void checkOffsetNCapacity() {
+    try {
+      checkOffsetAndCapacity(-1, 1);
+      fail();
+    } catch (IllegalArgumentException e) {
+      //OK
+    }
+
+    try {
+      checkOffsetAndCapacity(0, 0);
+      fail();
+    } catch (IllegalArgumentException e) {
+      //OK
+    }
+
+    try {
+      checkOffsetAndCapacity(Long.MAX_VALUE, 2L);
+      fail();
+    } catch (IllegalArgumentException e) {
+      //OK
     }
   }
 

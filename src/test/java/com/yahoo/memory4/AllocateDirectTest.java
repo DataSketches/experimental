@@ -6,15 +6,18 @@
 package com.yahoo.memory4;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 import org.testng.annotations.Test;
 
-public class AllocMemoryTest {
+import com.yahoo.memory4.ResourceHandler.ResourceType;
+
+public class AllocateDirectTest {
 
   @Test
   public void checkAllocateDirect() {
-    int longs = 1024;
+    int longs = 32;
     int bytes = longs << 3;
     WritableResourceHandler wh = WritableMemory.allocateDirect(bytes);
     WritableMemory wMem1 = wh.get();
@@ -22,6 +25,12 @@ public class AllocMemoryTest {
       wMem1.putLong(i << 3, i);
       assertEquals(wMem1.getLong(i << 3), i);
     }
+    wMem1.toHexString("Test", 0, 32 * 8);
+    wh.load();
+    assertFalse(wh.isLoaded());
+    wh.force();
+    assertEquals(wh.getResourceType(), ResourceType.NATIVE_MEMORY);
+    assertTrue(wh.isResourceType(ResourceType.NATIVE_MEMORY));
     wh.close();
   }
 

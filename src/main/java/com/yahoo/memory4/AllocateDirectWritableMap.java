@@ -257,7 +257,7 @@ final class AllocateDirectWritableMap extends WritableMemoryImpl implements Writ
     }
   } //End of class Deallocator
 
-  private static final void checkOffsetAndCapacity(final long offset, final long capacity) {
+  static final void checkOffsetAndCapacity(final long offset, final long capacity) {
     if (((offset) | (capacity - 1L) | (offset + capacity)) < 0) {
       throw new IllegalArgumentException(
           "offset: " + offset + ", capacity: " + capacity

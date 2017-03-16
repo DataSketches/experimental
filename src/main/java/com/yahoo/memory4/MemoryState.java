@@ -109,7 +109,7 @@ final class MemoryState {
     return nativeBaseOffset_ > 0L;
   }
 
-  boolean isPostional() {
+  boolean isPositional() {
     return positional_;
   }
 
@@ -178,7 +178,7 @@ final class MemoryState {
     this.resourceIsReadOnly_.change();
   }
 
-  void setInvalid() { //NOT SUBJECT TO LOCK
+  void setInvalid() {
     this.valid_.change();
   }
 

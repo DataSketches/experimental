@@ -141,7 +141,6 @@ public class WritableMemoryImplTest {
     for (int i=0; i<8; i++) {
       assertEquals(dstArray[i], srcArray[i]);
     }
-    println(mem.toHexString("Test", 0, (int)mem.getCapacity())); //XXX
   }
 
   @Test
@@ -730,7 +729,7 @@ public class WritableMemoryImplTest {
    * @param s value to print
    */
   static void println(String s) {
-    System.out.println(s); //disable here
+    //System.out.println(s); //disable here
   }
 
 }

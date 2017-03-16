@@ -18,7 +18,11 @@ public class HashMapTroveRebuilds extends HashMap {
   @SuppressWarnings("hiding")
   int capacity;
 
-  public HashMapTroveRebuilds(int capacity) {
+  /**
+   * blah
+   * @param capacity blah
+   */
+  public HashMapTroveRebuilds(final int capacity) {
     super(1);
     this.capacity = capacity;
     hashmap = new TLongLongHashMap(capacity);
@@ -30,24 +34,24 @@ public class HashMapTroveRebuilds extends HashMap {
   }
 
   @Override
-  public boolean isActive(int probe) {
+  public boolean isActive(final int probe) {
     return false;
   }
 
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
+  public void adjustOrPutValue(final long key, final long adjustAmount, final long putAmount) {
     hashmap.adjustOrPutValue(key, adjustAmount, putAmount);
   }
 
   @Override
-  public long get(long key) {
+  public long get(final long key) {
     return hashmap.get(key);
   }
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue) {
-    TLongLongHashMap newHashmap = new TLongLongHashMap(capacity);
-    TLongLongIterator iterator = hashmap.iterator();
+  public void keepOnlyLargerThan(final long thresholdValue) {
+    final TLongLongHashMap newHashmap = new TLongLongHashMap(capacity);
+    final TLongLongIterator iterator = hashmap.iterator();
     for (int i = hashmap.size(); i-- > 0;) {
       iterator.advance();
       if (iterator.value() > thresholdValue) {
@@ -66,38 +70,38 @@ public class HashMapTroveRebuilds extends HashMap {
   public long[] getValues() {
     return hashmap.values();
   }
-  
+
   @Override
-  public long quickSelect(int rank){
-   	assert(rank > 1 && rank <= getSize());
-    long[] vals = getValues();
-    int sampleSize = vals.length;
-    return select(vals,0,sampleSize-1,sampleSize-rank);   
+  public long quickSelect(final int rank) {
+    assert rank > 1 && rank <= getSize();
+    final long[] vals = getValues();
+    final int sampleSize = vals.length;
+    return select(vals,0,sampleSize - 1, sampleSize - rank);
   }
-  
+
   @Override
-  public long quickSelect(double relativeRank,int sampleSize){
-  	long[] vals = getValues();
-    return select(vals,0,vals.length-1,(int)(vals.length*relativeRank));
+  public long quickSelect(final double relativeRank, final int sampleSize) {
+    final long[] vals = getValues();
+    return select(vals,0,vals.length - 1, (int)(vals.length * relativeRank));
   }
-  
-  
+
+
   @Override
-  public void adjustAllValuesBy(long adjustAmount) {
+  public void adjustAllValuesBy(final long adjustAmount) {
     hashmap.transformValues(new AdjustAllValuesBy(adjustAmount));
   }
 
   private class AdjustAllValuesBy implements TLongFunction {
     long adjustAmount;
 
-    public AdjustAllValuesBy(long adjustAmount) {
+    public AdjustAllValuesBy(final long adjustAmount) {
       this.adjustAmount = adjustAmount;
     }
 
     @Override
-    public long execute(long value) {
+    public long execute(final long value) {
       return value + adjustAmount;
     }
   }
-  
+
 }

@@ -23,17 +23,17 @@ import com.yahoo.sketches.hashmaps.HashMapLinearProbingWithRebuilds;
  * the implementation, the difference between the upper bound and the estimate is at most 2*eps*n,
  * where n denotes the stream length (i.e, sum of all the frequencies), and similarly for the lower
  * bound and the estimate. In practice, the difference is usually smaller.
- * 
- * Background: This code implements a variant of what is commonly known as the
+ *
+ * <p>Background: This code implements a variant of what is commonly known as the
  * "Misra-Gries algorithm" or "Frequent Items". Variants of it were discovered and rediscovered and
  * redesigned several times over the years. "Finding repeated elements", Misra, Gries, 1982
  * "Frequency estimation of internet packet streams with limited space" Demaine, Lopez-Ortiz, Munro,
  * 2002 "A simple algorithm for finding frequent elements in streams and bags" Karp, Shenker,
  * Papadimitriou, 2003 "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
- * 
- * Uses HashMapLinearProbingWithRebuilds
- * 
+ *
+ * <p>Uses HashMapLinearProbingWithRebuilds
+ *
  * @author Justin8712
  */
 public class FrequentItemsLPWR {
@@ -54,16 +54,19 @@ public class FrequentItemsLPWR {
    *        space usage of the sketch is proportional to the inverse of errorParameter. If fewer
    *        than ~1/errorParameter different keys are inserted then the counts will be exact.
    */
-  public FrequentItemsLPWR(double errorParameter) {
-    if (errorParameter <= 0)
+  public FrequentItemsLPWR(final double errorParameter) {
+    if (errorParameter <= 0) {
       throw new IllegalArgumentException("Received negative or zero value for maxSize.");
+    }
     this.maxSize = (int) (1 / errorParameter) + 1;
     counters = new HashMapLinearProbingWithRebuilds(this.maxSize);
     this.offset = 0;
-    if (this.maxSize < 100)
+    if (this.maxSize < 100) {
       this.sample_size = this.maxSize;
-    else
+    }
+    else {
       this.sample_size = 100;
+    }
     samples = new long[sample_size];
   }
 
@@ -78,47 +81,50 @@ public class FrequentItemsLPWR {
    * @param key whose count estimate is returned.
    * @return an estimate of the count for the key.
    */
-  public long getEstimate(long key) {
+  public long getEstimate(final long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxSize counters are in use, 0 is returned.
     // Otherwise, the minimum counter value is returned.
 
-    if (counters.get(key) > 0)
+    if (counters.get(key) > 0) {
       return counters.get(key) + offset;
-    else
+    }
+    else {
       return 0;
+    }
   }
 
   /**
    * @param key whose count estimate is returned.
    * @return an upper bound on the count for the key.
    */
-  public long getEstimateUpperBound(long key) {
-    long estimate = getEstimate(key);
-    if (estimate > 0)
+  public long getEstimateUpperBound(final long key) {
+    final long estimate = getEstimate(key);
+    if (estimate > 0) {
       return estimate + mergeError;
-
+    }
     return mergeError + offset;
-
   }
 
   /**
    * @param key whose count estimate is returned.
    * @return a lower bound on the count for the key.
    */
-  public long getEstimateLowerBound(long key) {
-    if (getEstimate(key) == 0)
+  public long getEstimateLowerBound(final long key) {
+    if (getEstimate(key) == 0) {
       return 0;
+    }
 
-    if ((getEstimate(key) - offset - mergeError) < 0)
+    if ((getEstimate(key) - offset - mergeError) < 0) {
       return 0;
+    }
 
     return (getEstimate(key) - offset - mergeError);
   }
 
   /**
    * @return the maximal error of the estimate one gets from get(key).
-   * 
+   *
    */
   public long getMaxError() {
     return offset + mergeError;
@@ -127,16 +133,16 @@ public class FrequentItemsLPWR {
   /**
    * @param key Process a key (specified as a long) update and treat the increment as 1
    */
-  public void update(long key) {
+  public void update(final long key) {
     update(key, 1);
   }
 
   /**
    * @param key A key (as long) whose frequency is to be incremented. The key cannot be null.
    * @param increment Amount to increment frequency by.
-   * 
+   *
    */
-  public void update(long key, long increment) {
+  public void update(final long key, final long increment) {
     this.streamLength += increment;
     counters.adjust(key, increment);
     if (counters.getSize() > this.maxSize) {
@@ -152,10 +158,11 @@ public class FrequentItemsLPWR {
    */
   private void purge() {
     int limit = this.sample_size;
-    if (limit > counters.getSize())
+    if (limit > counters.getSize()) {
       limit = counters.getSize();
+    }
 
-    long[] values = counters.ProtectedGetValues();
+    final long[] values = counters.ProtectedGetValues();
     int num_samples = 0;
     int i = 0;
 
@@ -168,7 +175,7 @@ public class FrequentItemsLPWR {
     }
 
     Arrays.sort(samples, 0, limit);
-    long val = samples[limit / 2];
+    final long val = samples[limit / 2];
     counters.adjustAllValuesBy(-1 * val);
     counters.keepOnlyLargerThan(0);
     this.offset += val;
@@ -180,12 +187,12 @@ public class FrequentItemsLPWR {
    *         This method does not create a new sketch. The sketch whose function is executed is
    *         changed.
    */
-  public FrequentItemsLPWR merge(FrequentItemsLPWR other) {
+  public FrequentItemsLPWR merge(final FrequentItemsLPWR other) {
     this.streamLength += other.streamLength;
     this.mergeError += other.getMaxError();
 
-    long[] other_keys = other.counters.getKeys();
-    long[] other_values = other.counters.getValues();
+    final long[] other_keys = other.counters.getKeys();
+    final long[] other_values = other.counters.getValues();
 
     for (int i = other_keys.length; i-- > 0;) {
       this.update(other_keys[i], other_values[i]);
@@ -197,11 +204,11 @@ public class FrequentItemsLPWR {
   /**
    * @return an array containing all keys exceed the frequency threshold of roughly
    *         1/errorParameter+1
-   * 
+   *
    */
   public long[] getFrequentKeys() {
     int count = 0;
-    long[] keys = counters.ProtectedGetKey();
+    final long[] keys = counters.ProtectedGetKey();
 
     for (int i = 0; i < counters.getLength(); i++) {
       if (counters.isActive(i) && (getEstimate(keys[i]) >= (this.streamLength / this.maxSize))) {
@@ -209,7 +216,7 @@ public class FrequentItemsLPWR {
       }
     }
 
-    long[] freq_keys = new long[count];
+    final long[] freq_keys = new long[count];
     count = 0;
     for (int i = counters.getLength(); i-- > 0;) {
       if (counters.isActive(i) && (getEstimate(keys[i]) >= (this.streamLength / this.maxSize))) {

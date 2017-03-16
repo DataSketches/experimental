@@ -2,6 +2,7 @@
  * Copyright 2016, Yahoo! Inc. Licensed under the terms of the Apache License 2.0. See LICENSE file
  * at the project root for terms.
  */
+
 package com.yahoo.sketches.frequencies;
 
 /**
@@ -20,7 +21,7 @@ package com.yahoo.sketches.frequencies;
  * of keys whose frequencies might be above a certain threshold (specifically, the threshold is
  * 1/errorTolerance + 1) 5) merge itself with another FrequencyEstimator algorithm from the same
  * instantiation of the abstract class.
- * 
+ *
  */
 public abstract class FrequencyEstimator {
 
@@ -75,7 +76,7 @@ public abstract class FrequencyEstimator {
 
   /**
    * This function merges two FrequencyEstimator sketches, potentially of different sizes.
-   * 
+   *
    * @param other another FrequenciesEstimator of the same class
    * @return a pointer to a FrequencyEstimator whose estimates are within the guarantees of the
    *         largest error tolerance of the two merged sketches. This method does not create a new
@@ -86,28 +87,28 @@ public abstract class FrequencyEstimator {
 
   /**
    * Returns the current number of counters the sketch is configured to support.
-   * 
+   *
    * @return the current number of counters the sketch is configured to support.
    */
   abstract public int getK();
 
   /**
    * Returns the maximum number of counters the sketch will ever be configured to support.
-   * 
+   *
    * @return the maximum number of counters the sketch will ever be configured to support.
    */
   abstract public int getMaxK();
 
   /**
    * Returns true if this sketch is empty
-   * 
+   *
    * @return true if this sketch is empty
    */
   abstract public boolean isEmpty();
 
   /**
    * Returns the sum of the frequencies in the stream seen so far by the sketch
-   * 
+   *
    * @return the sum of the frequencies in the stream seen so far by the sketch
    */
   abstract public long getStreamLength();

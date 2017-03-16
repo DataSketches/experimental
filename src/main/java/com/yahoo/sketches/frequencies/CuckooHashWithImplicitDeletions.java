@@ -2,13 +2,14 @@
  * Copyright 2016, Yahoo! Inc. Licensed under the terms of the Apache License 2.0. See LICENSE file
  * at the project root for terms.
  */
+
 package com.yahoo.sketches.frequencies;
 
 import com.yahoo.sketches.hash.MurmurHash3;
 
 //TODO Reexamine.  Where does this belong? Is it real?
 /**
- * 
+ *
  * @author Edo Liberty
  */
 public class CuckooHashWithImplicitDeletions {
@@ -21,38 +22,53 @@ public class CuckooHashWithImplicitDeletions {
   int[] keyLocationInArray;
   long[] keyArr = new long[1];
 
-  public CuckooHashWithImplicitDeletions(int maxSize) {
-    if (maxSize <= 0)
+  /**
+   * blah
+   * @param maxSize blah
+   */
+  public CuckooHashWithImplicitDeletions(final int maxSize) {
+    if (maxSize <= 0) {
       throw new IllegalArgumentException("Received negative or zero value for maxSize.");
+    }
     keyValueArrayLength = (int) (maxSize / LOAD_FACTOR);
     keys = new long[keyValueArrayLength];
     values = new long[keyValueArrayLength];
     offset = 0;
   }
 
-  public long get(long key) {
+  /**
+   * blah
+   * @param key blah
+   * @return blah
+   */
+  public long get(final long key) {
     for (int i = LOCATIONS_PER_KEY; i-- > 0;) {
-      int index = indexForKey(key, i);
+      final int index = indexForKey(key, i);
       if (keys[index] == key) {
-        long value = values[index];
+        final long value = values[index];
         return (value > offset) ? value - offset : 0;
       }
     }
     return 0;
   }
 
-  private int indexForKey(long key, int i) {
+  private int indexForKey(final long key, final int i) {
     keyArr[0] = key;
     return (((int) (MurmurHash3.hash(keyArr, i)[0])) >>> 1) % keyValueArrayLength;
   }
 
-  public boolean increment(long key) {
+  /**
+   * blah
+   * @param key blah
+   * @return blah
+   */
+  public boolean increment(final long key) {
     // In case the key is in the map already
     int availableIndex = -1;
     for (int i = LOCATIONS_PER_KEY; i-- > 0;) {
-      int index = indexForKey(key, i);
+      final int index = indexForKey(key, i);
       if (keys[index] == key) {
-        long value = values[index];
+        final long value = values[index];
         values[index] = (value > offset) ? value + 1 : offset + 1;
         return true;
       }

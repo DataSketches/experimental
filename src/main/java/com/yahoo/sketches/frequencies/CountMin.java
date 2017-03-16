@@ -12,15 +12,16 @@ import com.yahoo.sketches.hash.MurmurHash3;
  * queries, i.e., queries of the form "what is the frequency of key i"? It can also answer other
  * queries as well (range queries, inner product queries, heavy hitters, quantiles, etc.), though it
  * incurs significant overheads for some of these other queries.
- * 
- * The advantage of CountMin vs Frequent Items is that it allows deletions while FrequentItems does 
- * not. CountMin however, is less space efficient and slower than FrequentItems.  
- * 
- * In CountMin, eps and delta can be translated into a "k and delta" which would together specify 
- * the size of the matrix.
- * 
- * Also the error bounds have probablistic error bounds, while FI has deterministic bounds on error.
- * 
+ *
+ * <p>The advantage of CountMin vs Frequent Items is that it allows deletions while FrequentItems does
+ * not. CountMin however, is less space efficient and slower than FrequentItems.</p>
+ *
+ * <p>In CountMin, eps and delta can be translated into a "k and delta" which would together specify
+ * the size of the matrix.</p>
+ *
+ * <p>Also the error bounds have probablistic error bounds, while FI has deterministic bounds on
+ * error.</p>
+ *
  * @author Justin8712
  */
 public class CountMin {
@@ -35,13 +36,13 @@ public class CountMin {
    * Constructs and initializes a CountMin sketch. The guarantee of the sketch is that the answer
    * returned to any individual point query will, with probability at least 1-delta, be accurate to
    * error plus or minus eps*F, where F is the sum of all the increments the sketch has processed.
-   * 
+   *
    * @param eps Estimates are guaranteed to have error eps*n with probability at least 1-delta,
    *        where n is sum of item frequencies
    * @param delta Estimates are guaranteed to have error eps*n with probability at least 1-delta,
    *        where n is sum of item frequencies
    */
-  public CountMin(double eps, double delta) {
+  public CountMin(final double eps, final double delta) {
     if (eps <= 0 || delta <= 0) {
       throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
     }
@@ -57,54 +58,54 @@ public class CountMin {
 
   /**
    * Process a key (specified as a long) update and treat the increment as 1
-   * 
+   *
    * @param key A key specified as a long.
    */
-  public void update(long key) {
+  public void update(final long key) {
     update(key, 1);
   }
 
   /**
    * Process a key (specified as a long) update and treat the increment as 1
-   * 
+   *
    * @param key A key specified as a long.
    */
 
-  public void conservative_update(long key) {
+  public void conservative_update(final long key) {
     conservative_update(key, 1);
   }
 
   /**
    * Process a key (specified as a long) and an increment (can be negative).
-   * 
+   *
    * @param key A key specified as a long.
    * @param increment amount by which to increment frequency of key
    */
-  public void update(long key, long increment) {
+  public void update(final long key, final long increment) {
     this.update_sum += increment;
     for (int i = 0; i < this.rows; i++) {
-      int index = indexForKey(key, i);
+      final int index = indexForKey(key, i);
       counts[index] += increment;
     }
   }
 
   /**
    * Process a key (specified as a long) and an increment (can be negative).
-   * 
+   *
    * @param key A key specified as a long
    * @param increment amount by which to increment frequency of key.
    */
-  public void conservative_update(long key, long increment) {
+  public void conservative_update(final long key, final long increment) {
     this.update_sum += increment;
     long min_count = Long.MAX_VALUE;
     for (int i = 0; i < this.rows; i++) {
-      int index = indexForKey(key, i);
+      final int index = indexForKey(key, i);
       if (counts[index] < min_count) {
         min_count = counts[index];
       }
     }
     for (int i = 0; i < this.rows; i++) {
-      int index = indexForKey(key, i);
+      final int index = indexForKey(key, i);
       if (counts[index] < min_count + increment) {
         counts[index] = min_count + increment;
       }
@@ -114,7 +115,7 @@ public class CountMin {
   /**
    * Returns the index of the i'th cell in the sketch that key maps to
    */
-  private int indexForKey(long key, int i) {
+  private int indexForKey(final long key, final int i) {
     keyArr[0] = key;
     return columns * i + (((int) (MurmurHash3.hash(keyArr, i)[0])) >>> 1) % columns;
   }
@@ -123,15 +124,15 @@ public class CountMin {
    * Determine an estimate for the frequency of key, specified as a long. It is guaranteed that with
    * probability at least 1-delta 1) getEstimate(key) &gt;= real count 2) getEstimate(key) &lt;= real
    * count + getMaxError()
-   * 
+   *
    * @param key whose count estimate is returned.
    * @return the approximate count for the key.
    */
-  public long getEstimate(long key) {
+  public long getEstimate(final long key) {
     keyArr[0] = key;
     long min_count = Long.MAX_VALUE;
     for (int i = 0; i < this.rows; i++) {
-      int index = indexForKey(key, i);
+      final int index = indexForKey(key, i);
       if (counts[index] < min_count) {
         min_count = counts[index];
       }
@@ -143,11 +144,11 @@ public class CountMin {
    * Determine an estimate for the frequency of key, specified as a long. It is guaranteed that with
    * probability at least 1-delta 1) getEstimateUpperBound(key) &gt;= real count 2)
    * getEstimateUpperBound(key) &lt;= real count + getMaxError()
-   * 
+   *
    * @param key whose count estimate is returned.
    * @return the approximate count for the key.
    */
-  public long getEstimateUpperBound(long key) {
+  public long getEstimateUpperBound(final long key) {
     return getEstimate(key);
   }
 
@@ -155,22 +156,22 @@ public class CountMin {
    * Determine an estimate for the frequency of key, specified as a long. It is guaranteed that with
    * probability at least 1-delta 1) getEstimateLowerBound(key) &gt;= real count - getMaxError() 2)
    * getEstimateLowerBound(key) &gt;= real count
-   * 
+   *
    * @param key whose count estimate is returned.
    * @return an approximate count for the key.
    */
-  public long getEstimateLowerBound(long key) {
+  public long getEstimateLowerBound(final long key) {
     return getEstimate(key) - getMaxError();
   }
 
   /**
    * Returns a bound on the error of any estimate returned by the sketch (the bound holds for each
    * estimate with probability at least 1-delta).
-   * 
-   * Note that the error is one sided. If the real count is realCount(key) then getEstimate(key) &gt;=
+   *
+   * <p>Note that the error is one sided. If the real count is realCount(key) then getEstimate(key) &gt;=
    * realCount(key). The guarantee of the sketch is that, for any fixed key, with probability at
-   * least 1-delta, realCount(key) is also at most get(key) + getMaxError()
-   * 
+   * least 1-delta, realCount(key) is also at most get(key) + getMaxError() </p>
+   *
    * @return a bound on the error of the estimate one gets from getEstimate(key).
    */
   public long getMaxError() {
@@ -179,14 +180,14 @@ public class CountMin {
 
   /**
    * Merges two CountMin sketches, returning pointer to the resulting sketch.
-   * 
+   *
    * @param other Another CountMin sketch. Must have been created using the same hash functions
    *        (i.e., same seed to MurmurHash) and have the same parameter values eps, delta.
    * @return pointer to the sketch resulting in adding the approximate counts of another sketch.
    *         This method does not create a new sketch. The sketch whose function is executed is
    *         changed.
    */
-  public CountMin merge(CountMin other) {
+  public CountMin merge(final CountMin other) {
     if (this.rows != other.rows || this.columns != other.columns) {
       throw new IllegalArgumentException(
           "Trying to merge two CountMin data structures of different sizes.");

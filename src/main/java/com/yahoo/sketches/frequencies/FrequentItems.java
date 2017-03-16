@@ -32,19 +32,19 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
 /**
  * Implements frequent items sketch on the Java heap.
  *
- * The frequent-items sketch is useful for keeping approximate counters for keys (map from key
+ * <p>The frequent-items sketch is useful for keeping approximate counters for keys (map from key
  * (long) to value (long)). The sketch is initialized with a value k. The sketch will keep roughly k
  * counters when it is full size. More specifically, when k is a power of 2, a HashMap will be
  * created with 2*k cells, and the number of counters will typically oscillate between roughly .75*k
  * and 1.5*k. The space usage of the sketch is therefore proportional to k when it reaches full
  * size.
  *
- * When the sketch is updated with a key and increment, the corresponding counter is incremented or,
+ * <p>When the sketch is updated with a key and increment, the corresponding counter is incremented or,
  * if there is no counter for that key, a new counter is created. If the sketch reaches its maximal
  * allowed size, it decrements all of the counters (by an approximately computed median), and
  * removes any non-positive counters.
  *
- * The logic of the frequent-items sketch is such that the stored counts and real counts are never
+ * <p>The logic of the frequent-items sketch is such that the stored counts and real counts are never
  * too different. More specifically, for any key KEY, the sketch can return an estimate of the true
  * frequency of KEY, along with upper and lower bounds on the frequency (that hold
  * deterministically). For our implementation, it is guaranteed that, with high probability over the
@@ -53,7 +53,7 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
  * similarly for the lower bound and the estimate. In practice, the difference is usually much
  * smaller.
  *
- * Background: This code implements a variant of what is commonly known as the "Misra-Gries
+ * <p>Background: This code implements a variant of what is commonly known as the "Misra-Gries
  * algorithm" or "Frequent Items". Variants of it were discovered and rediscovered and redesigned
  * several times over the years. a) "Finding repeated elements", Misra, Gries, 1982 b)
  * "Frequency estimation of internet packet streams with limited space" Demaine, Lopez-Ortiz, Munro,
@@ -61,7 +61,7 @@ import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
  * Papadimitriou, 2003 d) "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
  *
- * Uses HashMapReverseEfficient
+ * <p>Uses HashMapReverseEfficient
  *
  * @author Justin Thaler
  */
@@ -146,9 +146,11 @@ public class FrequentItems extends FrequencyEstimator {
    *        HashMap is set to 0.75, the number of cells of the hash table that are actually filled
    *        should oscillate between roughly .75*k and 1.5 * k.
    */
-  public FrequentItems(int k, int initialCapacity) {
+  public FrequentItems(final int k, final int initialCapacity) {
 
-    if (k <= 0) throw new IllegalArgumentException("Received negative or zero value for k.");
+    if (k <= 0) {
+      throw new IllegalArgumentException("Received negative or zero value for k.");
+    }
 
     //set initial size of counters data structure so it can exactly store a stream with
     //initialCapacity distinct elements
@@ -163,18 +165,20 @@ public class FrequentItems extends FrequencyEstimator {
     // by a HashMap with the appropriate number of cells (specifically,
     // 2*k cells if k is a power of 2) and a load that does not exceed
     // the designated load factor
-    int maxHashMapLength = Integer.highestOneBit(4 * k - 1);
+    final int maxHashMapLength = Integer.highestOneBit(4 * k - 1);
     this.maxK = (int) (maxHashMapLength * counters.LOAD_FACTOR);
 
     this.offset = 0;
 
-    if (this.maxK < SAMPLE_SIZE)
+    if (this.maxK < SAMPLE_SIZE) {
       this.sampleSize = this.maxK;
-    else
+    }
+    else {
       this.sampleSize = SAMPLE_SIZE;
+    }
   }
 
-  public FrequentItems(int k) {
+  public FrequentItems(final int k) {
     this(k, MIN_FREQUENT_ITEMS_SIZE);
   }
 
@@ -186,31 +190,34 @@ public class FrequentItems extends FrequencyEstimator {
   }
 
   @Override
-  public long getEstimate(long key) {
+  public long getEstimate(final long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxK counters are in use, 0 is returned.
     // Otherwise, the minimum counter value is returned.
-    if (counters.get(key) > 0)
+    if (counters.get(key) > 0) {
       return counters.get(key) + offset;
-    else
+    }
+    else {
       return 0;
+    }
   }
 
   @Override
-  public long getEstimateUpperBound(long key) {
-    long estimate = getEstimate(key);
-    if (estimate > 0)
+  public long getEstimateUpperBound(final long key) {
+    final long estimate = getEstimate(key);
+    if (estimate > 0) {
       return estimate + mergeError;
+    }
 
     return mergeError + offset;
 
   }
 
   @Override
-  public long getEstimateLowerBound(long key) {
-    long estimate = getEstimate(key);
+  public long getEstimateLowerBound(final long key) {
+    final long estimate = getEstimate(key);
 
-    long returnVal = estimate - offset - mergeError;
+    final long returnVal = estimate - offset - mergeError;
     return (returnVal > 0) ? returnVal : 0;
   }
 
@@ -220,26 +227,26 @@ public class FrequentItems extends FrequencyEstimator {
   }
 
   @Override
-  public void update(long key) {
+  public void update(final long key) {
     update(key, 1);
   }
 
   @Override
-  public void update(long key, long increment) {
+  public void update(final long key, final long increment) {
     this.streamLength += increment;
     counters.adjust(key, increment);
-    int size = this.nnz();
+    final int size = this.nnz();
 
     // if the data structure needs to be grown
     if ((size >= this.K) && (this.K < this.maxK)) {
       // grow the size of the data structure
-      int newSize = Math.max(Math.min(this.maxK, 2 * this.K), 1);
+      final int newSize = Math.max(Math.min(this.maxK, 2 * this.K), 1);
       this.K = newSize;
-      HashMapReverseEfficient newTable = new HashMapReverseEfficient(newSize);
-      long[] keys = this.counters.getKeys();
-      long[] values = this.counters.getValues();
+      final HashMapReverseEfficient newTable = new HashMapReverseEfficient(newSize);
+      final long[] keys = this.counters.getKeys();
+      final long[] values = this.counters.getValues();
 
-      assert(keys.length == size);
+      assert keys.length == size;
       for (int i = 0; i < size; i++) {
         newTable.adjust(keys[i], values[i]);
       }
@@ -259,12 +266,12 @@ public class FrequentItems extends FrequencyEstimator {
    * longer positive, and increments offset accordingly.
    */
   private void purge() {
-    int limit = Math.min(this.sampleSize, nnz());
+    final int limit = Math.min(this.sampleSize, nnz());
 
-    long[] values = counters.ProtectedGetValues();
+    final long[] values = counters.ProtectedGetValues();
     int numSamples = 0;
     int i = 0;
-    long[] samples = new long[limit];
+    final long[] samples = new long[limit];
 
     while (numSamples < limit) {
       if (counters.isActive(i)) {
@@ -275,23 +282,24 @@ public class FrequentItems extends FrequencyEstimator {
     }
 
     Arrays.sort(samples, 0, numSamples);
-    long val = samples[limit / 2];
+    final long val = samples[limit / 2];
     counters.adjustAllValuesBy(-1 * val);
     counters.keepOnlyLargerThan(0);
     this.offset += val;
   }
 
   @Override
-  public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof FrequentItems))
+  public FrequencyEstimator merge(final FrequencyEstimator other) {
+    if (!(other instanceof FrequentItems)) {
       throw new IllegalArgumentException("FrequentItems can only merge with other FrequentItems");
-    FrequentItems otherCasted = (FrequentItems) other;
+    }
+    final FrequentItems otherCasted = (FrequentItems) other;
 
     this.streamLength += otherCasted.streamLength;
     this.mergeError += otherCasted.getMaxError();
 
-    long[] otherKeys = otherCasted.counters.getKeys();
-    long[] otherValues = otherCasted.counters.getValues();
+    final long[] otherKeys = otherCasted.counters.getKeys();
+    final long[] otherValues = otherCasted.counters.getValues();
 
     for (int i = otherKeys.length; i-- > 0;) {
       this.update(otherKeys[i], otherValues[i]);
@@ -300,9 +308,9 @@ public class FrequentItems extends FrequencyEstimator {
   }
 
   @Override
-  public long[] getFrequentKeys(long threshold) {
+  public long[] getFrequentKeys(final long threshold) {
     int count = 0;
-    long[] keys = counters.ProtectedGetKey();
+    final long[] keys = counters.ProtectedGetKey();
 
     // first, count the number of candidate frequent keys
     for (int i = counters.getLength(); i-- > 0;) {
@@ -312,7 +320,7 @@ public class FrequentItems extends FrequencyEstimator {
     }
 
     // allocate an array to store the candidate frequent keys, and then compute them
-    long[] freqKeys = new long[count];
+    final long[] freqKeys = new long[count];
     count = 0;
     for (int i = counters.getLength(); i-- > 0;) {
       if (counters.isActive(i) && (getEstimateUpperBound(keys[i]) >= threshold)) {
@@ -359,8 +367,9 @@ public class FrequentItems extends FrequencyEstimator {
    * @return the number of bytes required to store this sketch as an array of bytes.
    */
   public int getStorageBytes() {
-    if (isEmpty())
+    if (isEmpty()) {
       return 20;
+    }
     return 48 + 16 * nnz();
   }
 
@@ -371,7 +380,7 @@ public class FrequentItems extends FrequencyEstimator {
    */
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append(
         String.format("%d,%d,%d,%d,%d,%d,", k, mergeError, offset, streamLength, K, initialSize));
     // maxK, samplesize are deterministic functions of k, so we don't need them in the serialization
@@ -385,21 +394,21 @@ public class FrequentItems extends FrequencyEstimator {
    * @param string String specifying a FrequentItems object
    * @return a FrequentItems object corresponding to the string
    */
-  public static FrequentItems StringToFrequentItems(String string) {
-    String[] tokens = string.split(",");
+  public static FrequentItems StringToFrequentItems(final String string) {
+    final String[] tokens = string.split(",");
     if (tokens.length < 6) {
       throw new IllegalArgumentException(
           "Tried to make FrequentItems out of string not long enough to specify relevant parameters.");
     }
 
-    int k = Integer.parseInt(tokens[0]);
-    long mergeError = Long.parseLong(tokens[1]);
-    long offset = Long.parseLong(tokens[2]);
-    long streamLength = Long.parseLong(tokens[3]);
-    int K = Integer.parseInt(tokens[4]);
-    int initialSize = Integer.parseInt(tokens[5]);
+    final int k = Integer.parseInt(tokens[0]);
+    final long mergeError = Long.parseLong(tokens[1]);
+    final long offset = Long.parseLong(tokens[2]);
+    final long streamLength = Long.parseLong(tokens[3]);
+    final int K = Integer.parseInt(tokens[4]);
+    final int initialSize = Integer.parseInt(tokens[5]);
 
-    FrequentItems sketch = new FrequentItems(k, K);
+    final FrequentItems sketch = new FrequentItems(k, K);
     sketch.mergeError = mergeError;
     sketch.offset = offset;
     sketch.streamLength = streamLength;
@@ -433,8 +442,8 @@ public class FrequentItems extends FrequencyEstimator {
    **/
   // @formatter:on
   public byte[] toByteArray() {
-    int preLongs, arrLongs;
-    boolean empty = isEmpty();
+    final int preLongs, arrLongs;
+    final boolean empty = isEmpty();
 
     if (empty) {
       preLongs = 1;
@@ -443,24 +452,26 @@ public class FrequentItems extends FrequencyEstimator {
       preLongs = 6;
       arrLongs = preLongs + 2 * nnz();
     }
-    byte[] outArr = new byte[arrLongs << 3];
-    NativeMemory mem = new NativeMemory(outArr);
+    final byte[] outArr = new byte[arrLongs << 3];
+    final NativeMemory mem = new NativeMemory(outArr);
 
     // build first prelong
     long pre0 = 0L;
     pre0 = insertPreLongs(preLongs, pre0);
     pre0 = insertSerVer(SER_VER, pre0);
     pre0 = insertFamilyID(10, pre0);
-    if (empty)
+    if (empty) {
       pre0 = insertEmptyFlag(1, pre0);
-    else
+    }
+    else {
       pre0 = insertEmptyFlag(0, pre0);
+    }
     pre0 = insertLowerK(this.k, pre0);
 
     if (empty) {
       mem.putLong(0, pre0);
     } else {
-      long[] preArr = new long[6];
+      final long[] preArr = new long[6];
       preArr[0] = pre0;
       preArr[1] = this.mergeError;
       preArr[2] = this.offset;
@@ -482,10 +493,14 @@ public class FrequentItems extends FrequencyEstimator {
     return outArr;
   }
 
-  public void putMemory(Memory dstMem) {
-    byte[] byteArr = toByteArray();
-    int arrLen = byteArr.length;
-    long memCap = dstMem.getCapacity();
+  /**
+   * blah
+   * @param dstMem blah
+   */
+  public void putMemory(final Memory dstMem) {
+    final byte[] byteArr = toByteArray();
+    final int arrLen = byteArr.length;
+    final long memCap = dstMem.getCapacity();
     if (memCap < arrLen) {
       throw new IllegalArgumentException(
           "Destination Memory not large enough: " + memCap + " < " + arrLen);
@@ -500,47 +515,48 @@ public class FrequentItems extends FrequencyEstimator {
    *        >See Memory</a>
    * @return a FrequentItems on the Java heap.
    */
-  static FrequentItems getInstance(Memory srcMem) {
-    long memCapBytes = srcMem.getCapacity();
+  static FrequentItems getInstance(final Memory srcMem) {
+    final long memCapBytes = srcMem.getCapacity();
     if (memCapBytes < 8) {
       throw new IllegalArgumentException("Memory too small: " + memCapBytes);
     }
 
-    long pre0 = srcMem.getLong(0);
-    int preambleLongs = extractPreLongs(pre0);
+    final long pre0 = srcMem.getLong(0);
+    final int preambleLongs = extractPreLongs(pre0);
 
     assert ((preambleLongs == 1) || (preambleLongs == 6));
-    int serVer = extractSerVer(pre0);
+    final int serVer = extractSerVer(pre0);
     assert (serVer == 1);
-    int familyID = extractFamilyID(pre0);
+    final int familyID = extractFamilyID(pre0);
     assert (familyID == 10);
-    int emptyFlag = extractEmptyFlag(pre0);
-    int k = extractLowerK(pre0);
+    final int emptyFlag = extractEmptyFlag(pre0);
+    final int k = extractLowerK(pre0);
 
-    if (emptyFlag == 1)
+    if (emptyFlag == 1) {
       return new FrequentItems(k);
+    }
 
     // Not empty, must have valid preamble
-    long[] remainderPreArr = new long[5];
+    final long[] remainderPreArr = new long[5];
     srcMem.getLongArray(8, remainderPreArr, 0, 5);
 
-    long mergeError = remainderPreArr[0];
-    long offset = remainderPreArr[1];
-    long streamLength = remainderPreArr[2];
-    long pre1 = remainderPreArr[3];
-    long pre2 = remainderPreArr[4];
+    final long mergeError = remainderPreArr[0];
+    final long offset = remainderPreArr[1];
+    final long streamLength = remainderPreArr[2];
+    final long pre1 = remainderPreArr[3];
+    final long pre2 = remainderPreArr[4];
 
-    int K = extractUpperK(pre1);
-    int initialSize = extractInitialSize(pre1);
-    int bufferLength = extractBufferLength(pre2);
+    final int K = extractUpperK(pre1);
+    final int initialSize = extractInitialSize(pre1);
+    final int bufferLength = extractBufferLength(pre2);
 
-    FrequentItems hfi = new FrequentItems(k, K);
+    final FrequentItems hfi = new FrequentItems(k, K);
     hfi.initialSize = initialSize;
     hfi.offset = offset;
     hfi.mergeError = mergeError;
 
-    long[] keyArray = new long[bufferLength];
-    long[] valueArray = new long[bufferLength];
+    final long[] keyArray = new long[bufferLength];
+    final long[] valueArray = new long[bufferLength];
 
     srcMem.getLongArray(48, keyArray, 0, bufferLength);
     srcMem.getLongArray(48 + 8 * bufferLength, valueArray, 0, bufferLength);

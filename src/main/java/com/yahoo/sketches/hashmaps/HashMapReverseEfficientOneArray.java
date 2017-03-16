@@ -18,10 +18,15 @@ public class HashMapReverseEfficientOneArray extends HashMap {
   long[] kvsArray;
   private int kvsLength;
 
-  public HashMapReverseEfficientOneArray(int capacity) {
-    if (capacity <= 0)
+  /**
+   * blah
+   * @param capacity blah
+   */
+  public HashMapReverseEfficientOneArray(final int capacity) {
+    if (capacity <= 0) {
       throw new IllegalArgumentException(
           "Received negative or zero value for as initial capacity.");
+    }
     this.capacity = capacity;
     // arraysLength is the smallest power of 2 greater than capacity/LOAD_FACTOR
     length = Integer.highestOneBit(2 * (int) (capacity / getLoadFactor()) - 1);
@@ -32,43 +37,47 @@ public class HashMapReverseEfficientOneArray extends HashMap {
   }
 
   @Override
-  public boolean isActive(int probe) {
+  public boolean isActive(final int probe) {
     return (kvsArray[probe * KVS_SIZE + STATE_OFFSET] > 0);
   }
 
   @Override
   public long[] getKeys() {
-    if (size == 0)
+    if (size == 0) {
       return null;
-    long[] retrunedKeys = new long[size];
+    }
+    final long[] retrunedKeys = new long[size];
     int j = 0;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < length; i++) {
       if (isActive(i)) {
         retrunedKeys[j] = kvsArray[i * KVS_SIZE + KEY_OFFSET];
         j++;
       }
+    }
     assert (j == size);
     return retrunedKeys;
   }
 
   @Override
   public long[] getValues() {
-    if (size == 0)
+    if (size == 0) {
       return null;
-    long[] retrunedValues = new long[size];
+    }
+    final long[] retrunedValues = new long[size];
     int j = 0;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < length; i++) {
       if (isActive(i)) {
         retrunedValues[j] = kvsArray[i * KVS_SIZE + VALUE_OFFSET];
         j++;
       }
+    }
     assert (j == size);
     return retrunedValues;
   }
 
 
   @Override
-  public long get(long key) {
+  public long get(final long key) {
     int probe = (int) hash(key) & arrayMask;
     int kvsProbe = probe * KVS_SIZE;
     while (kvsArray[kvsProbe + STATE_OFFSET] != 0 && kvsArray[kvsProbe + KEY_OFFSET] != key) {
@@ -79,13 +88,14 @@ public class HashMapReverseEfficientOneArray extends HashMap {
   }
 
   @Override
-  public void adjustAllValuesBy(long adjustAmount) {
-    for (int kvsProbe = VALUE_OFFSET; kvsProbe < kvsLength; kvsProbe += KVS_SIZE)
+  public void adjustAllValuesBy(final long adjustAmount) {
+    for (int kvsProbe = VALUE_OFFSET; kvsProbe < kvsLength; kvsProbe += KVS_SIZE) {
       kvsArray[kvsProbe] += adjustAmount;
+    }
   }
 
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
+  public void adjustOrPutValue(final long key, final long adjustAmount, final long putAmount) {
     int probe = (int) hash(key) & arrayMask;
     byte drift = 1;
     while (kvsArray[probe * KVS_SIZE + STATE_OFFSET] != 0
@@ -93,7 +103,7 @@ public class HashMapReverseEfficientOneArray extends HashMap {
       probe = (probe + 1) & arrayMask;
       drift++;
     }
-    int kvsProbe = probe * KVS_SIZE;
+    final int kvsProbe = probe * KVS_SIZE;
     if (kvsArray[probe * KVS_SIZE + STATE_OFFSET] == 0) {
       // adding the key to the table the value
       assert (size < capacity);
@@ -111,13 +121,14 @@ public class HashMapReverseEfficientOneArray extends HashMap {
 
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue) {
+  public void keepOnlyLargerThan(final long thresholdValue) {
     int firstProbe = length - 1;
-    while (kvsArray[firstProbe * KVS_SIZE + STATE_OFFSET] > 0)
+    while (kvsArray[firstProbe * KVS_SIZE + STATE_OFFSET] > 0) {
       firstProbe--;
+    }
 
     for (int probe = firstProbe; probe-- > 0;) {
-      int kvsProbe = probe * KVS_SIZE;
+      final int kvsProbe = probe * KVS_SIZE;
       if (kvsArray[kvsProbe + STATE_OFFSET] > 0
           && kvsArray[kvsProbe + VALUE_OFFSET] <= thresholdValue) {
         hashDelete(probe);
@@ -125,7 +136,7 @@ public class HashMapReverseEfficientOneArray extends HashMap {
       }
     }
     for (int probe = length; probe-- > firstProbe;) {
-      int kvsProbe = probe * KVS_SIZE;
+      final int kvsProbe = probe * KVS_SIZE;
       if (kvsArray[kvsProbe + STATE_OFFSET] > 0
           && kvsArray[kvsProbe + VALUE_OFFSET] <= thresholdValue) {
         hashDelete(probe);

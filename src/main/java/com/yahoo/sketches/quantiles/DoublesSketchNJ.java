@@ -15,8 +15,11 @@ public class DoublesSketchNJ {
   private double[] baseBuf_ = null;
   private double[][] levels_ = null;
 
-
-  public DoublesSketchNJ(int k) {
+  /**
+   * blah
+   * @param k blah
+   */
+  public DoublesSketchNJ(final int k) {
     k_ = k;
     n_ = 0;
     growthTrigger_ = 1;

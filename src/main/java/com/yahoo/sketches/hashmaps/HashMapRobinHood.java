@@ -11,25 +11,26 @@ package com.yahoo.sketches.hashmaps;
 public class HashMapRobinHood extends HashMap {
   int MAX_STATE_ALLOWED = 50;
 
-  public HashMapRobinHood(int capacity) {
+  public HashMapRobinHood(final int capacity) {
     super(capacity);
   }
 
   @Override
-  public boolean isActive(int probe) {
+  public boolean isActive(final int probe) {
     return (states[probe] > 0);
   }
 
   @Override
-  public long get(long key) {
+  public long get(final long key) {
     int probe = (int) hash(key) & arrayMask;
-    while (states[probe] >= 0 && keys[probe] != key)
+    while (states[probe] >= 0 && keys[probe] != key) {
       probe = (probe + 1) & arrayMask;
+    }
     return (keys[probe] == key && states[probe] > 0) ? values[probe] : 0;
   }
 
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
+  public void adjustOrPutValue(final long key, final long adjustAmount, final long putAmount) {
     int probe = (int) hash(key) & arrayMask;
     short state = 1;
     while (states[probe] >= state && keys[probe] != key) {
@@ -57,11 +58,12 @@ public class HashMapRobinHood extends HashMap {
     // and insert the item at the probe location
     assert (size < capacity);
     int rightProbe = (probe + 1) & arrayMask;
-    while (states[rightProbe] > 0)
+    while (states[rightProbe] > 0) {
       rightProbe = (rightProbe + 1) & arrayMask;
+    }
     // could be made more efficient with system array copying
     while (rightProbe != probe) {
-      int leftOfRightProbe = (rightProbe - 1) & arrayMask;
+      final int leftOfRightProbe = (rightProbe - 1) & arrayMask;
       keys[rightProbe] = keys[leftOfRightProbe];
       values[rightProbe] = values[leftOfRightProbe];
       states[rightProbe] = (short) (states[leftOfRightProbe] + 1);
@@ -74,12 +76,12 @@ public class HashMapRobinHood extends HashMap {
   }
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue) {
+  public void keepOnlyLargerThan(final long thresholdValue) {
     // first probe is the last vacant cell before an occupied one
     int firstProbe = 0;
-    while (states[firstProbe] > 0)
+    while (states[firstProbe] > 0) {
       firstProbe++;
-
+    }
     short deletes = 0;
     int newProbe;
     // loop around the array from first to the end
@@ -96,8 +98,9 @@ public class HashMapRobinHood extends HashMap {
             deletes = 0;
           } else {
             // we need to keep the item and mode it
-            if (deletes >= states[probe] - 1)
+            if (deletes >= states[probe] - 1) {
               deletes = (short) (states[probe] - 1);
+            }
             newProbe = (probe - deletes);
             keys[newProbe] = keys[probe];
             values[newProbe] = values[probe];
@@ -122,8 +125,9 @@ public class HashMapRobinHood extends HashMap {
             deletes = 0;
           } else {
             // we need to keep the item and mode it
-            if (deletes >= states[probe] - 1)
+            if (deletes >= states[probe] - 1) {
               deletes = (short) (states[probe] - 1);
+            }
             newProbe = (probe - deletes) & arrayMask;
             keys[newProbe] = keys[probe];
             values[newProbe] = values[probe];

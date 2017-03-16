@@ -16,21 +16,21 @@ public class HashMapReverseEfficient extends HashMap {
 
   /**
    * Constructs a hash table
-   * 
+   *
    * @param capacity the capacity of the hash map created
    */
-  public HashMapReverseEfficient(int capacity) {
+  public HashMapReverseEfficient(final int capacity) {
     super(capacity);
   }
 
   @Override
-  public boolean isActive(int probe) {
+  public boolean isActive(final int probe) {
     return (states[probe] > 0);
   }
 
   @Override
-  public long get(long key) {
-    int probe = hashProbe(key);
+  public long get(final long key) {
+    final int probe = hashProbe(key);
     if (states[probe] > 0) {
       assert (keys[probe] == key);
       return values[probe];
@@ -39,7 +39,7 @@ public class HashMapReverseEfficient extends HashMap {
   }
 
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
+  public void adjustOrPutValue(final long key, final long adjustAmount, final long putAmount) {
     int probe = (int) hash(key) & arrayMask;
     int drift = 1;
     while (states[probe] != 0 && keys[probe] != key) {
@@ -64,10 +64,11 @@ public class HashMapReverseEfficient extends HashMap {
   }
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue) {
+  public void keepOnlyLargerThan(final long thresholdValue) {
     int firstProbe = length - 1;
-    while (states[firstProbe] > 0)
+    while (states[firstProbe] > 0) {
       firstProbe--;
+    }
 
     for (int probe = firstProbe; probe-- > 0;) {
       if (states[probe] > 0 && values[probe] <= thresholdValue) {
@@ -83,10 +84,11 @@ public class HashMapReverseEfficient extends HashMap {
     }
   }
 
-  private int hashProbe(long key) {
+  private int hashProbe(final long key) {
     int probe = (int) hash(key) & arrayMask;
-    while (states[probe] > 0 && keys[probe] != key)
+    while (states[probe] > 0 && keys[probe] != key) {
       probe = (probe + 1) & arrayMask;
+    }
     return probe;
   }
 
@@ -118,11 +120,11 @@ public class HashMapReverseEfficient extends HashMap {
   /**
    * Turns the HashMapReverseEfficient object into a string listing properties of the table and all
    * the (key, value) pairs that the table contains.
-   * 
+   *
    * @return a string specifying the full contents of the hash map
    */
   public String hashMapReverseEfficientToString() {
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append(String.format("%d,%d,", size, capacity));
 
     for (int i = 0; i < keys.length; i++) {
@@ -136,24 +138,25 @@ public class HashMapReverseEfficient extends HashMap {
   /**
    * Turns a string specifying a HashMapReverseEfficient object into a HashMapReverseEfficient
    * object.
-   * 
+   *
    * @param string String specifying a HashMapReverseEfficient object
    * @return a HashMapReverseEfficient Object containing all (key, value) pairs in string
    */
-  public static HashMapReverseEfficient StringToHashMapReverseEfficient(String string) {
-    String[] tokens = string.split(",");
+  public static HashMapReverseEfficient StringToHashMapReverseEfficient(final String string) {
+    final String[] tokens = string.split(",");
     if (tokens.length < 2) {
       throw new IllegalArgumentException(
-          "Tried to make HashMapReviseEfficient out of string not long enough to specify length and capacity.");
+          "Tried to make HashMapReviseEfficient out of string not long enough to specify"
+          + " length and capacity.");
     }
 
-    int size = Integer.parseInt(tokens[0]);
-    int capacity = Integer.parseInt(tokens[1]);
-    HashMapReverseEfficient table = new HashMapReverseEfficient(capacity);
+    final int size = Integer.parseInt(tokens[0]);
+    final int capacity = Integer.parseInt(tokens[1]);
+    final HashMapReverseEfficient table = new HashMapReverseEfficient(capacity);
     int j = 2;
     for (int i = 0; i < size; i++) {
-      long key = Long.parseLong(tokens[j++]);
-      long value = Long.parseLong(tokens[j++]);
+      final long key = Long.parseLong(tokens[j++]);
+      final long value = Long.parseLong(tokens[j++]);
       table.adjustOrPutValue(key, value, value);
     }
     return table;
@@ -162,29 +165,30 @@ public class HashMapReverseEfficient extends HashMap {
   /**
    * Turns an array of strings specifying a HashMapReverseEfficient object into a
    * HashMapReverseEfficient object.
-   * 
+   *
    * @param tokens Array of strings specifying a HashMapReverseEfficient object
    * @param ignore specifies how many of the initial strings in tokens to ignore
    * @return a HashMapReverseEfficient object corresponding to the array of strings
    */
-  public static HashMapReverseEfficient StringArrayToHashMapReverseEfficient(String[] tokens,
-      int ignore) {
+  public static HashMapReverseEfficient StringArrayToHashMapReverseEfficient(final String[] tokens,
+      final int ignore) {
     if (ignore < 0) {
       throw new IllegalArgumentException(
           "ignore parameter is negative in StringArrayToHashMapReverseEfficient.");
     }
     if (tokens.length < 2) {
       throw new IllegalArgumentException(
-          "Tried to make HashMapReviseEfficient out of string not long enough to specify length and capacity.");
+          "Tried to make HashMapReviseEfficient out of string not long enough to specify"
+          + " length and capacity.");
     }
 
-    int size = Integer.parseInt(tokens[ignore]);
-    int capacity = Integer.parseInt(tokens[ignore + 1]);
-    HashMapReverseEfficient table = new HashMapReverseEfficient(capacity);
+    final int size = Integer.parseInt(tokens[ignore]);
+    final int capacity = Integer.parseInt(tokens[ignore + 1]);
+    final HashMapReverseEfficient table = new HashMapReverseEfficient(capacity);
     int j = 2 + ignore;
     for (int i = 0; i < size; i++) {
-      long key = Long.parseLong(tokens[j++]);
-      long value = Long.parseLong(tokens[j++]);
+      final long key = Long.parseLong(tokens[j++]);
+      final long value = Long.parseLong(tokens[j++]);
       table.adjustOrPutValue(key, value, value);
     }
     return table;

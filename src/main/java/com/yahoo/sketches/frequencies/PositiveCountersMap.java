@@ -5,20 +5,20 @@
 
 package com.yahoo.sketches.frequencies;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.ArrayList;
 
 /**
  * This is a utility class that implements (and abstracts) a set of positive counters. The mapping
  * is Long key -&gt; Long count. The default value of any key is zero and no negative counters are
  * allowed. Non-positive mappings are deleted.
- * 
- * It also support incrementing individual counters and decrementing all counters simultaneously.
+ *
+ * <p>It also support incrementing individual counters and decrementing all counters simultaneously.
  * This is a convenient and efficient modification intended to be used in FrequentDirection
  * sketching.
- * 
+ *
  * @author edo
  */
 public class PositiveCountersMap {
@@ -61,8 +61,8 @@ public class PositiveCountersMap {
    * @param key should not be null.
    * @return the exact count for that key.
    */
-  public long get(long key) {
-    Long value = counters.get(key);
+  public long get(final long key) {
+    final Long value = counters.get(key);
     return (value != null) ? value - offset : 0L;
   }
 
@@ -70,11 +70,13 @@ public class PositiveCountersMap {
    * @param key whose count needs to be set to a different value
    * @param value of new count for the key and cannot be negative.
    */
-  public void put(long key, long value) {
-    if (value < 0)
+  public void put(final long key, final long value) {
+    if (value < 0) {
       throw new IllegalArgumentException("Received negative value.");
-    if (value == 0)
+    }
+    if (value == 0) {
       counters.remove(key);
+    }
     counters.put(key, get(key) + value + offset);
   }
 
@@ -84,14 +86,17 @@ public class PositiveCountersMap {
    * @param delta the amount by which the value should be increased. The variable delta cannot be
    *        negative.
    */
-  public void increment(long key, long delta) {
-    if (delta < 0)
+  public void increment(final long key, final long delta) {
+    if (delta < 0) {
       throw new IllegalArgumentException("Received negative value for delta.");
-    if (delta == 0)
+    }
+    if (delta == 0) {
       return;
-    long value = get(key);
-    if (value == 0)
+    }
+    final long value = get(key);
+    if (value == 0) {
       nnz++;
+    }
     counters.put(key, value + delta + offset);
   }
 
@@ -99,7 +104,7 @@ public class PositiveCountersMap {
    * @param key whose count should be incremented by 1. If a counter does not exist for key it is
    *        created.
    */
-  public void increment(long key) {
+  public void increment(final long key) {
     increment(key, 1L);
   }
 
@@ -107,7 +112,7 @@ public class PositiveCountersMap {
    * @param other another PositiveCountersMap All counters of shared keys are summed up. Keys only
    *        in the other PositiveCountersMap receive new counts.
    */
-  public void increment(PositiveCountersMap other) {
+  public void increment(final PositiveCountersMap other) {
     for (Entry<Long, Long> entry : other.counters.entrySet()) {
       increment(entry.getKey(), entry.getValue());
     }
@@ -119,11 +124,13 @@ public class PositiveCountersMap {
    * @param delta the value by which all counts should be decremented. The value of delta cannot be
    *        negative.
    */
-  public void decerementAll(long delta) {
-    if (delta < 0)
+  public void decerementAll(final long delta) {
+    if (delta < 0) {
       throw new IllegalArgumentException("Received negative value for delta.");
-    if (delta == 0)
+    }
+    if (delta == 0) {
       return;
+    }
     offset += delta;
     removeNegativeCounters();
     nnz = counters.size();

@@ -17,7 +17,7 @@ import static com.yahoo.sketches.QuickSelect.select;
  * Abstract class for a hashmap data structure, which stores (key, value) pairs, and supports the
  * following non-standard operations: decrement all values by a given amount, and purge all (key,
  * value) pairs whose key is below a specified threshold.
- * 
+ *
  */
 public abstract class HashMap {
 
@@ -42,10 +42,11 @@ public abstract class HashMap {
    *        variable this.capacity is then set to the largest value that will not overload the hash
    *        table.
    */
-  public HashMap(int capacity) {
-    if (capacity <= 0)
+  public HashMap(final int capacity) {
+    if (capacity <= 0) {
       throw new IllegalArgumentException(
           "Received negative or zero value for as initial capacity.");
+    }
     length = Integer.highestOneBit(2 * (int) (capacity / LOAD_FACTOR) - 1);
     this.capacity = (int) (length * LOAD_FACTOR);
     arrayMask = length - 1;
@@ -57,22 +58,22 @@ public abstract class HashMap {
   /**
    * Increments the primitive value mapped to the key if the key is present in the map. Otherwise,
    * the key is inserted with the putAmount.
-   * 
+   *
    * @param key the key of the value to increment
    * @param adjustAmount the amount by which to increment the value
    * @param putAmount the value put into the map if the key is not initial present
    */
   abstract public void adjustOrPutValue(long key, long adjustAmount, long putAmount);
-  
- 
+
+
   /**
    * Increments the primitive value mapped to the key if the key is present in the map. Otherwise,
    * the key is inserted with the value.
-   * 
+   *
    * @param key the key of the value to increment
    * @param value the value increment by, or to put into the map if the key is not initial present
    */
-  public void adjust(long key, long value) {
+  public void adjust(final long key, final long value) {
     adjustOrPutValue(key, value, value);
   }
 
@@ -86,13 +87,14 @@ public abstract class HashMap {
   /**
    * @param adjustAmount value by which to shift all values.
    */
-  public void adjustAllValuesBy(long adjustAmount) {
-    for (int i = length; i-- > 0;)
+  public void adjustAllValuesBy(final long adjustAmount) {
+    for (int i = length; i-- > 0;) {
       values[i] += adjustAmount;
+    }
   }
 
   /**
-   * @param thresholdValue Only keys corresponding to values larger 
+   * @param thresholdValue Only keys corresponding to values larger
    * than thresholdValue are retained.
    */
   abstract public void keepOnlyLargerThan(long thresholdValue);
@@ -102,82 +104,106 @@ public abstract class HashMap {
    * @return true if the cell in the array contains an active key
    */
   abstract public boolean isActive(int probe);
-  
+
   @Override
   public String toString() {
       String s = "[";
-      long[] activeKeys = getKeys();
-      long[] activeValues = getValues();
+      final long[] activeKeys = getKeys();
+      final long[] activeValues = getValues();
       assert (activeKeys.length == activeValues.length);
-      for (int i=0; i < keys.length; i++){
-	  if (i > 0) s += ",";
-	  s += String.format("(%d,%d)", activeKeys[i], activeValues[i]);
+      for (int i = 0; i < keys.length; i++) {
+        if (i > 0) { s += ","; }
+        s += String.format("(%d,%d)", activeKeys[i], activeValues[i]);
       }
       s += "]";
-      return s;   
+      return s;
   }
-  
+
   /**
    * @return an array containing the active keys in the hash map.
    */
   public long[] getKeys() {
-    if (size == 0)
+    if (size == 0) {
       return null;
-    long[] returnedKeys = new long[size];
+    }
+    final long[] returnedKeys = new long[size];
     int j = 0;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < length; i++) {
       if (isActive(i)) {
         returnedKeys[j] = keys[i];
         j++;
       }
+    }
     assert (j == size);
     return returnedKeys;
   }
 
-  public long quickSelect(){
-  	return quickSelect(0.5, getSize());
+  /**
+   * blah
+   * @return blah
+   */
+  public long quickSelect() {
+    return quickSelect(0.5, getSize());
   }
-  
-  public long quickSelect(double ralativeRank){
-  	return quickSelect(ralativeRank, getSize());
+
+  /**
+   * blah
+   * @param ralativeRank blah
+   * @return blah
+   */
+  public long quickSelect(final double ralativeRank) {
+    return quickSelect(ralativeRank, getSize());
   }
-  
-  public long quickSelect(int sampleSize){
-  	return quickSelect(0.5, sampleSize);
+
+  /**
+   * blah
+   * @param sampleSize blah
+   * @return blah
+   */
+  public long quickSelect(final int sampleSize) {
+    return quickSelect(0.5, sampleSize);
   }
-  
-  public long quickSelect(double ralativeRank, int sampleSize){
-  	int numActive = getSize();
-  	if (sampleSize >= numActive) sampleSize = numActive;  
-  	long[] vals = new long[sampleSize];
-  	int i = 0, j = 0;
-  	while (i < sampleSize) {
+
+  /**
+   * blah
+   * @param ralativeRank blah
+   * @param sampleSize  blah
+   * @return blah
+   */
+  public long quickSelect(final double ralativeRank, int sampleSize) {
+    final int numActive = getSize();
+    if (sampleSize >= numActive) { sampleSize = numActive; }
+    final long[] vals = new long[sampleSize];
+    int i = 0, j = 0;
+    while (i < sampleSize) {
       if (isActive(j)) {
-      	vals[i] = values[j];
+        vals[i] = values[j];
         i++;
       }
       j++;
     }
-  	return select(vals,0,sampleSize-1,(int)(sampleSize*ralativeRank));
+    return select(vals,0,sampleSize - 1, (int)(sampleSize * ralativeRank));
   }
-  
+
   /**
    * @return an array containing the values corresponding. to the active keys in the hash
    */
   public long[] getValues() {
-    if (size == 0)
+    if (size == 0) {
       return null;
-    long[] returnedValues = new long[size];
+    }
+    final long[] returnedValues = new long[size];
     int j = 0;
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < length; i++) {
       if (isActive(i)) {
         returnedValues[j] = values[i];
         j++;
       }
+    }
     assert (j == size);
     return returnedValues;
   }
-  
+
   /**
    * @return the raw array of keys. Do NOT modify this array!
    */

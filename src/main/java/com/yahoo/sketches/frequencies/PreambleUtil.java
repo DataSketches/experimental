@@ -15,20 +15,20 @@ package com.yahoo.sketches.frequencies;
  * allows the possibility of the introduction of different serialization schemes with minimal impact
  * on the rest of the library.
  * </p>
- * 
+ *
  * <p>
  * MAP: Low significance bytes of this <i>long</i> data structure are on the right. However, the
  * multi-byte integers (<i>int</i> and <i>long</i>) are stored in native byte order. The <i>byte</i>
  * values are treated as unsigned.
  * </p>
- * 
+ *
  * <p>
  * An empty FrequentItems only requires 8 bytes. All others require 40 bytes of preamble.
  * </p>
- * 
+ *
  * <pre>
  * Long || Start Byte Adr:
- * Adr: 
+ * Adr:
  *      ||    7     |    6   |    5   |    4   |    3   |    2   |    1   |     0          |
  *  0   |||--------k---------------------------|--flag--| FamID  | SerVer | Preamble_Longs |
  *      ||    15    |   14   |   13   |   12   |   11   |   10   |    9   |     8          |
@@ -43,9 +43,9 @@ package com.yahoo.sketches.frequencies;
  *  5   ||------------(unused)-----------------|--------bufferlength-----------------------|
  *      ||    55    |   54   |   53   |   52   |   51   |   50   |   49   |   48           |
  *  6   ||----------start of keys buffer, followed by values buffer------------------------|
- * 
+ *
  * </pre>
- * 
+ *
  * @author Justin Thaler
  */
 // @formatter:on
@@ -70,93 +70,93 @@ final class PreambleUtil {
   static final int SER_VER = 1;
 
   static int extractPreLongs(final long pre0) {
-    long mask = 0XFFL;
+    final long mask = 0XFFL;
     return (int) (pre0 & mask);
   }
 
   static int extractSerVer(final long pre0) {
-    int shift = SER_VER_BYTE << 3;
-    long mask = 0XFFL;
+    final int shift = SER_VER_BYTE << 3;
+    final long mask = 0XFFL;
     return (int) ((pre0 >>> shift) & mask);
   }
 
   static int extractFamilyID(final long pre0) {
-    int shift = FAMILY_BYTE << 3;
-    long mask = 0XFFL;
+    final int shift = FAMILY_BYTE << 3;
+    final long mask = 0XFFL;
     return (int) ((pre0 >>> shift) & mask);
   }
 
   static int extractEmptyFlag(final long pre0) {
-    int shift = FLAG_START << 3;
-    long mask = 0XFFL;
+    final int shift = FLAG_START << 3;
+    final long mask = 0XFFL;
     return (int) ((pre0 >>> shift) & mask);
   }
 
 
   static int extractLowerK(final long pre1) {
-    int shift = LOWER_K_START << 3;
-    long mask = 0XFFFFFFFFL;
+    final int shift = LOWER_K_START << 3;
+    final long mask = 0XFFFFFFFFL;
     return (int) ((pre1 >>> shift) & mask);
   }
 
   static int extractUpperK(final long pre1) {
-    long mask = 0XFFFFFFFFL;
+    final long mask = 0XFFFFFFFFL;
     return (int) (pre1 & mask);
   }
 
   static int extractBufferLength(final long pre2) {
-    long mask = 0XFFFFFFFFL;
+    final long mask = 0XFFFFFFFFL;
     return (int) (pre2 & mask);
   }
 
   static int extractInitialSize(final long pre1) {
-    long mask = 0XFFFFFFFFL;
-    int shift = (INITIALSIZE_START - UPPER_K_START) << 3;
+    final long mask = 0XFFFFFFFFL;
+    final int shift = (INITIALSIZE_START - UPPER_K_START) << 3;
     return (int) ((pre1 >>> shift) & mask);
   }
 
   static long insertPreLongs(final int preLongs, final long pre0) {
-    long mask = 0XFFL;
+    final long mask = 0XFFL;
     return (preLongs & mask) | (~mask & pre0);
   }
 
   static long insertSerVer(final int serVer, final long pre0) {
-    int shift = SER_VER_BYTE << 3;
-    long mask = 0XFFL;
+    final int shift = SER_VER_BYTE << 3;
+    final long mask = 0XFFL;
     return ((serVer & mask) << shift) | (~(mask << shift) & pre0);
   }
 
   static long insertFamilyID(final int familyID, final long pre0) {
-    int shift = FAMILY_BYTE << 3;
-    long mask = 0XFFL;
+    final int shift = FAMILY_BYTE << 3;
+    final long mask = 0XFFL;
     return ((familyID & mask) << shift) | (~(mask << shift) & pre0);
   }
 
   static long insertEmptyFlag(final int flag, final long pre0) {
-    int shift = FLAG_START << 3;
-    long mask = 0XFFL;
+    final int shift = FLAG_START << 3;
+    final long mask = 0XFFL;
     return ((flag & mask) << shift) | (~(mask << shift) & pre0);
   }
 
   static long insertLowerK(final int k, final long pre0) {
-    int shift = LOWER_K_START << 3;
-    long mask = 0XFFFFFFFFL;
+    final int shift = LOWER_K_START << 3;
+    final long mask = 0XFFFFFFFFL;
     return ((k & mask) << shift) | (~(mask << shift) & pre0);
   }
 
   static long insertUpperK(final int K, final long pre1) {
-    long mask = 0XFFFFFFFFL;
+    final long mask = 0XFFFFFFFFL;
     return (K & mask) | (~mask & pre1);
   }
 
   static long insertInitialSize(final int initialSize, final long pre1) {
-    long mask = 0XFFFFFFFFL;
-    int shift = (INITIALSIZE_START - UPPER_K_START) << 3;
+    final long mask = 0XFFFFFFFFL;
+    final int shift = (INITIALSIZE_START - UPPER_K_START) << 3;
     return ((initialSize & mask) << shift) | (~(mask << shift) & pre1);
   }
 
   static long insertBufferLength(final int bufferLength, final long pre2) {
-    long mask = 0XFFFFFFFFL;
+    final long mask = 0XFFFFFFFFL;
     return (bufferLength & mask) | (~mask & pre2);
   }
 

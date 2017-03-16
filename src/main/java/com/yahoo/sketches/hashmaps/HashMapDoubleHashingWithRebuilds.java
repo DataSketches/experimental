@@ -7,7 +7,7 @@ package com.yahoo.sketches.hashmaps;
 
 /**
  * Classic Kunth Open Address Double Hash
- * 
+ *
  * @author Edo Liberty
  */
 public class HashMapDoubleHashingWithRebuilds extends HashMap {
@@ -16,26 +16,26 @@ public class HashMapDoubleHashingWithRebuilds extends HashMap {
   static final int STRIDE_MASK = (1 << STRIDE_HASH_BITS) - 1;
   int logLength;
 
-  public HashMapDoubleHashingWithRebuilds(int capacity) {
+  public HashMapDoubleHashingWithRebuilds(final int capacity) {
     super(capacity);
     logLength = Integer.numberOfTrailingZeros(length);
   }
 
   @Override
-  public boolean isActive(int probe) {
+  public boolean isActive(final int probe) {
     return (states[probe] > 0);
   }
 
   @Override
-  public long get(long key) {
-    int probe = hashProbe(key);
+  public long get(final long key) {
+    final int probe = hashProbe(key);
     return (states[probe] > 0) ? values[probe] : 0;
   }
 
   @Override
-  public void adjustOrPutValue(long key, long adjustAmount, long putAmount) {
+  public void adjustOrPutValue(final long key, final long adjustAmount, final long putAmount) {
     // if (value < 0) throw new IllegalArgumentException("adjust received negative value.");
-    int probe = hashProbe(key);
+    final int probe = hashProbe(key);
     if (states[probe] == 0) {
       keys[probe] = key;
       values[probe] = putAmount;
@@ -51,24 +51,27 @@ public class HashMapDoubleHashingWithRebuilds extends HashMap {
    * @param key to search for in the array
    * @return returns the location of the key in the array or the first possible place to insert it.
    */
-  private int hashProbe(long key) {
-    long hash = hash(key);
+  private int hashProbe(final long key) {
+    final long hash = hash(key);
     // make odd and independent of the probe:
-    int stride = (2 * (int) ((hash >> logLength) & STRIDE_MASK)) + 1;
+    final int stride = (2 * (int) ((hash >> logLength) & STRIDE_MASK)) + 1;
     int probe = (int) (hash & arrayMask);
     // search for duplicate or zero
-    while (keys[probe] != key && states[probe] != 0)
+    while (keys[probe] != key && states[probe] != 0) {
       probe = (probe + stride) & arrayMask;
+    }
     return probe;
   }
 
   @Override
-  public void keepOnlyLargerThan(long thresholdValue) {
-    HashMapDoubleHashingWithRebuilds rebuiltHashMap =
+  public void keepOnlyLargerThan(final long thresholdValue) {
+    final HashMapDoubleHashingWithRebuilds rebuiltHashMap =
         new HashMapDoubleHashingWithRebuilds(capacity);
-    for (int i = 0; i < length; i++)
-      if (states[i] > 0 && values[i] > thresholdValue)
+    for (int i = 0; i < length; i++) {
+      if (states[i] > 0 && values[i] > thresholdValue) {
         rebuiltHashMap.adjustOrPutValue(keys[i], values[i], values[i]);
+      }
+    }
     System.arraycopy(rebuiltHashMap.keys, 0, keys, 0, length);
     System.arraycopy(rebuiltHashMap.values, 0, values, 0, length);
     System.arraycopy(rebuiltHashMap.states, 0, states, 0, length);

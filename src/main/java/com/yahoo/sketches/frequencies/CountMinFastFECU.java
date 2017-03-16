@@ -6,6 +6,7 @@
 package com.yahoo.sketches.frequencies;
 
 import com.yahoo.sketches.hash.MurmurHash3;
+
 import gnu.trove.iterator.TLongIterator;
 import gnu.trove.set.hash.TLongHashSet;
 
@@ -15,20 +16,21 @@ import gnu.trove.set.hash.TLongHashSet;
  * queries, i.e., queries of the form "what is the frequency of key i"? It can also answer other
  * queries as well (range queries, inner product queries, heavy hitters, quantiles, etc.), though it
  * incurs significant overheads for some of these other queries.
- * 
- * In general, the Count-Min algorithm can process deletion of items as well as insertions, since it
+ *
+ * <p>In general, the Count-Min algorithm can process deletion of items as well as insertions, since it
  * is a linear sketch. However, using Count-Min to return frequent items in the presence of
  * deletions requires significant overhead. This class uses CountMin to answer both point queries
  * and track frequent items; however, its method of tracking frequent items only works in
  * insertion-only streams. Thus, this class throws an exception if an update with a negative
  * frequency is processed.
- * 
- * This implementation also supports the Conservative Update rule proposed by Estan and Varghese (
- * "New Directions in Traffic Measurement and Accounting: Focusing on the Elephants, Ignoring the Mice"
- * ), which can provide more accurate answers than the update rule in the basic Count-Min sketch.
- * 
- * This implementation only works for insertions.
- * 
+ *
+ * <p>This implementation also supports the Conservative Update rule proposed by Estan and Varghese
+ * ("New Directions in Traffic Measurement and Accounting: Focusing on the Elephants,
+ * Ignoring the Mice"), which can provide more accurate answers than the update rule in the
+ * basic Count-Min sketch.
+ *
+ * <p>This implementation only works for insertions.
+ *
  * @author Justin8712
  */
 
@@ -71,13 +73,13 @@ public class CountMinFastFECU {
    * guarantee of the sketch is that the answer returned to any individual point query will, with
    * probability at least 1-delta, be accurate to error plus or minus eps*F, where F is the sum of
    * all the increments the sketch has processed.
-   * 
+   *
    * @param eps Estimates are guaranteed to have error eps*n with probability at least 1-delta,
    *        where n is sum of item frequencies
    * @param delta Estimates are guaranteed to have error eps*n with probability at least 1-delta,
    *        where n is sum of item frequencies
    */
-  public CountMinFastFECU(double eps, double delta) {
+  public CountMinFastFECU(final double eps, final double delta) {
     if (eps <= 0 || delta <= 0) {
       throw new IllegalArgumentException("Received negative or zero value for eps or delta.");
     }
@@ -88,7 +90,7 @@ public class CountMinFastFECU {
 
     // set this.length to be the smallest power of two larger than 2/eps,
     // and set this.logLength and this.arrayMask accordingly
-    int columns = (int) (2 * Math.ceil(1 / eps));
+    final int columns = (int) (2 * Math.ceil(1 / eps));
     this.length = columns * this.hashes;
     this.length = Integer.highestOneBit(2 * (this.length - 1));
     this.logLength = Integer.numberOfTrailingZeros(this.length);
@@ -120,7 +122,7 @@ public class CountMinFastFECU {
    *        update function specified by Cormode and Muthukrishnan
    */
 
-  public void update(long key) {
+  public void update(final long key) {
     update(key, 1);
   }
 
@@ -129,7 +131,7 @@ public class CountMinFastFECU {
    *        conservative_update function that increments each counter to the smallest value still
    *        guaranteed to not underestimate any item's frequency.
    */
-  public void conservative_update(long key) {
+  public void conservative_update(final long key) {
     update(key, 1);
   }
 
@@ -139,13 +141,14 @@ public class CountMinFastFECU {
    *        long). Increment CANNOT be negative, because of the way we are tracking frequent items.
    */
 
-  public void update(long key, long increment) {
-    if (increment <= 0)
+  public void update(final long key, final long increment) {
+    if (increment <= 0) {
       throw new IllegalArgumentException("Received negative or zero value for increment.");
+    }
 
     // add increment update_sum
     this.update_sum += increment;
-    long hash = hash(key);
+    final long hash = hash(key);
 
     // We will use double hashing to determine the cells that key hashes to.
     // Determine probe (i.e., the first cell this key is hashed to)
@@ -153,7 +156,7 @@ public class CountMinFastFECU {
     // The first logLength bits of hash are used to determine probe,
     // so the stride will be computed using the higher-order bits of hash.
     int probe = (int) (hash & arrayMask);
-    int stride = ((int) ((hash >> logLength) & STRIDE_MASK) << 1) + 1;
+    final int stride = ((int) ((hash >> logLength) & STRIDE_MASK) << 1) + 1;
 
     // min_count will store the smallest counter value encountered for this key
     long min_count = Long.MAX_VALUE;
@@ -189,7 +192,7 @@ public class CountMinFastFECU {
    * @param key to be hashed
    * @return an index into the hash table
    */
-  protected long hash(long key) {
+  protected long hash(final long key) {
     keyArr[0] = key;
     return MurmurHash3.hash(keyArr, 0)[0];
   }
@@ -200,11 +203,11 @@ public class CountMinFastFECU {
    * containing only the frequent keys, and throwing away the old table.
    */
   public void purge() {
-    TLongHashSet newset = new TLongHashSet(this.freq_limit);
-    TLongIterator it = this.freq_keys.iterator();
-    long threshold = (long) (eps * this.update_sum);
+    final TLongHashSet newset = new TLongHashSet(this.freq_limit);
+    final TLongIterator it = this.freq_keys.iterator();
+    final long threshold = (long) (eps * this.update_sum);
     for (int i = this.freq_keys.size(); i-- > 0;) {
-      long key = it.next();
+      final long key = it.next();
       if (getEstimate(key) >= threshold) {
         newset.add(key);
       }
@@ -219,18 +222,18 @@ public class CountMinFastFECU {
    *         1-delta 1) get(key) &gt;= real count 2) get(key) &lt;= real count + getMaxError()
    */
 
-  public long getEstimate(long key) {
+  public long getEstimate(final long key) {
     keyArr[0] = key;
     long min_count = Long.MAX_VALUE;
 
-    long hash = hash(key);
+    final long hash = hash(key);
     // We will use double hashing to determine the cells that key hashes to.
     // Determine probe (i.e., the first cell this key is hashed to)
     // and then make the stride odd and independent of the probe.
     // The first logLength bits of hash are used to determine probe,
     // so the stride will be computed using the higher-order bits of hash.
     int probe = (int) (hash & arrayMask);
-    int stride = ((int) ((hash >> logLength) & STRIDE_MASK) << 1) + 1;
+    final int stride = ((int) ((hash >> logLength) & STRIDE_MASK) << 1) + 1;
 
     for (int i = 0; i < this.hashes; i++) {
       if (counts[probe] < min_count) {
@@ -246,7 +249,7 @@ public class CountMinFastFECU {
    * @return an upper bound on the count for the key (upper bound holds deterministically)
    */
 
-  public long getEstimateUpperBound(long key) {
+  public long getEstimateUpperBound(final long key) {
     return getEstimate(key);
   }
 
@@ -256,7 +259,7 @@ public class CountMinFastFECU {
    *         1-delta)
    */
 
-  public long getEstimateLowerBound(long key) {
+  public long getEstimateLowerBound(final long key) {
     return getEstimate(key) - getMaxError();
   }
 
@@ -287,7 +290,7 @@ public class CountMinFastFECU {
    *         changed.
    */
 
-  public CountMinFastFECU merge(CountMinFastFECU other) {
+  public CountMinFastFECU merge(final CountMinFastFECU other) {
 
     if (this.hashes != other.hashes || this.length != other.length) {
       throw new IllegalArgumentException(
@@ -302,18 +305,18 @@ public class CountMinFastFECU {
     this.update_sum += other.update_sum;
 
     // compute the set of items considered frequent in the new (merged) sketch
-    TLongHashSet newset = new TLongHashSet(this.freq_limit);
+    final TLongHashSet newset = new TLongHashSet(this.freq_limit);
     TLongIterator it = this.freq_keys.iterator();
-    long threshold = (long) (eps * this.update_sum);
+    final long threshold = (long) (eps * this.update_sum);
     for (int i = this.freq_keys.size(); i-- > 0;) {
-      long key = it.next();
+      final long key = it.next();
       if (getEstimate(key) >= threshold) {
         newset.add(key);
       }
     }
     it = other.freq_keys.iterator();
     for (int i = other.freq_keys.size(); i-- > 0;) {
-      long key = it.next();
+      final long key = it.next();
       if (getEstimate(key) >= threshold) {
         newset.add(key);
       }
@@ -332,19 +335,19 @@ public class CountMinFastFECU {
   public long[] getFrequentKeys() {
     TLongIterator it = this.freq_keys.iterator();
     int count = 0;
-    long threshold = (long) (eps * this.update_sum);
+    final long threshold = (long) (eps * this.update_sum);
     for (int i = this.freq_keys.size(); i-- > 0;) {
-      long key = it.next();
+      final long key = it.next();
       if (getEstimate(key) >= threshold) {
         count++;
       }
     }
 
-    long[] keys = new long[count];
+    final long[] keys = new long[count];
     int j = 0;
     it = this.freq_keys.iterator();
     for (int i = this.freq_keys.size(); i-- > 0;) {
-      long key = it.next();
+      final long key = it.next();
       if (getEstimate(key) >= threshold) {
         keys[j] = key;
         j++;

@@ -5,24 +5,32 @@
 
 package com.yahoo.sketches.frequencies;
 
-import com.yahoo.sketches.hashmaps.*;
+import com.yahoo.sketches.hashmaps.HashMap;
+import com.yahoo.sketches.hashmaps.HashMapDoubleHashingWithRebuilds;
+import com.yahoo.sketches.hashmaps.HashMapLinearProbingWithRebuilds;
+import com.yahoo.sketches.hashmaps.HashMapReverseEfficient;
+import com.yahoo.sketches.hashmaps.HashMapRobinHood;
+import com.yahoo.sketches.hashmaps.HashMapTrove;
+import com.yahoo.sketches.hashmaps.HashMapTroveRebuilds;
+import com.yahoo.sketches.hashmaps.HashMapWithEfficientDeletes;
+import com.yahoo.sketches.hashmaps.HashMapWithImplicitDeletes;
 
 /**
  * Implements frequent items sketch on the Java heap.
- * 
- * The frequent-items sketch is useful for keeping approximate counters for keys (map from key
+ *
+ * <p>The frequent-items sketch is useful for keeping approximate counters for keys (map from key
  * (long) to value (long)). The sketch is initialized with a value k. The sketch will keep roughly k
  * counters when it is full size. More specifically, when k is a power of 2, a HashMap will be
  * created with 2*k cells, and the number of counters will typically oscillate between roughly .75*k
  * and 1.5*k. The space usage of the sketch is therefore proportional to k when it reaches full
  * size.
- * 
- * When the sketch is updated with a key and increment, the corresponding counter is incremented or,
+ *
+ * <p>When the sketch is updated with a key and increment, the corresponding counter is incremented or,
  * if there is no counter for that key, a new counter is created. If the sketch reaches its maximal
  * allowed size, it decrements all of the counters (by an approximately computed median), and
  * removes any non-positive counters.
- * 
- * The logic of the frequent-items sketch is such that the stored counts and real counts are never
+ *
+ * <p>The logic of the frequent-items sketch is such that the stored counts and real counts are never
  * too different. More specifically, for any key KEY, the sketch can return an estimate of the true
  * frequency of KEY, along with upper and lower bounds on the frequency (that hold
  * deterministically). For our implementation, it is guaranteed that, with high probability over the
@@ -30,17 +38,17 @@ import com.yahoo.sketches.hashmaps.*;
  * most (4/3)*(n/k), where n denotes the stream length (i.e, sum of all the item frequencies), and
  * similarly for the lower bound and the estimate. In practice, the difference is usually much
  * smaller.
- * 
- * Background: This code implements a variant of what is commonly known as the "Misra-Gries
+ *
+ * <p>Background: This code implements a variant of what is commonly known as the "Misra-Gries
  * algorithm" or "Frequent Items". Variants of it were discovered and rediscovered and redesigned
  * several times over the years. a) "Finding repeated elements", Misra, Gries, 1982 b)
  * "Frequency estimation of internet packet streams with limited space" Demaine, Lopez-Ortiz, Munro,
  * 2002 c) "A simple algorithm for finding frequent elements in streams and bags" Karp, Shenker,
  * Papadimitriou, 2003 d) "Efficient Computation of Frequent and Top-k Elements in Data Streams"
  * Metwally, Agrawal, Abbadi, 2006
- * 
- * Uses HashMapReverseEfficient
- * 
+ *
+ * <p>Uses HashMapReverseEfficient
+ *
  * @author Justin Thaler
  */
 public class FrequentItemsAbstractHash extends FrequencyEstimator {
@@ -52,11 +60,11 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
    */
   static final int MIN_FREQUENT_ITEMS_SIZE = 4; // This is somewhat arbitrary
   static final String DEFAULT_HASHMAP_TYPE = "ReverseEfficient";
-  
+
   /**
    * This is a constant large enough that computing the median of SAMPLE_SIZE
    * randomly selected entries from a list of numbers and outputting
-   * the empirical median will give a constant-factor approximation to the 
+   * the empirical median will give a constant-factor approximation to the
    * true median with high probability
    */
   static final int SAMPLE_SIZE = 256;
@@ -115,42 +123,46 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
    */
   private String hashMapType;
 
-  
+
   @SuppressWarnings("unused")
   private int numPurges;
-  
+
   // **CONSTRUCTOR**********************************************************
   /**
    * @param k Determines the accuracy of the estimates returned by the sketch.
    * @param initialCapacity determines the initial size of the sketch.
-   * @param hashMapType is a string specifying the hashmap type. The possible values are 
-   *        {Trove, TroveRebuilds, ProbingWithRebuilds, DoubleHashingWithRebuilds, ImplicitDeletes, EfficientDeletes, RobinHood, ReverseEfficient}
-   *  
-   *        The guarantee of the sketch is that with high probability, any returned estimate will
-   *        have error at most (4/3)*(n/k), where n is the true sum of frequencies in the stream. In
-   *        practice, the error is typically much smaller. The space usage of the sketch is
-   *        proportional to k. If fewer than ~k different keys are inserted then the counts will be
-   *        exact. More precisely, if k is a power of 2,then when the sketch reaches full size, the
-   *        data structure's HashMap will contain 2*k cells. Assuming that the LOAD_FACTOR of the
-   *        HashMap is set to 0.75, the number of cells of the hash table that are actually filled
-   *        should oscillate between roughly .75*k and 1.5 * k.
+   * @param hashMapType is a string specifying the hashmap type. The possible values are
+   * {Trove, TroveRebuilds, ProbingWithRebuilds, DoubleHashingWithRebuilds, ImplicitDeletes,
+   * EfficientDeletes, RobinHood, ReverseEfficient}.
+   *
+   * <p>The guarantee of the sketch is that with high probability, any returned estimate will
+   * have error at most (4/3)*(n/k), where n is the true sum of frequencies in the stream. In
+   * practice, the error is typically much smaller. The space usage of the sketch is
+   * proportional to k. If fewer than ~k different keys are inserted then the counts will be
+   * exact. More precisely, if k is a power of 2,then when the sketch reaches full size, the
+   * data structure's HashMap will contain 2*k cells. Assuming that the LOAD_FACTOR of the
+   * HashMap is set to 0.75, the number of cells of the hash table that are actually filled
+   * should oscillate between roughly .75*k and 1.5 * k.</p>
    */
-  public FrequentItemsAbstractHash(int k, int initialCapacity, String hashMapType) {
+  public FrequentItemsAbstractHash(final int k, final int initialCapacity, final String hashMapType) {
 
-    if (k <= 0) throw new IllegalArgumentException("Received negative or zero value for k.");
-    
-    //set initial size of counters data structure so it can exactly store a stream with 
+    if (k <= 0) {
+      throw new IllegalArgumentException("Received negative or zero value for k.");
+    }
+
+    //set initial size of counters data structure so it can exactly store a stream with
     //initialCapacity distinct elements
 
     this.K = initialCapacity;
     this.hashMapType = hashMapType;
-    
+
     counters = hashMapFactory(hashMapType, this.K);
-    if (counters == null){
-    	throw new IllegalArgumentException("hashMapType must by from "
-    			+ "{Trove, TroveRebuilds, ProbingWithRebuilds, DoubleHashingWithRebuilds, ImplicitDeletes, EfficientDeletes, RobinHood, ReverseEfficient}");
+    if (counters == null) {
+     throw new IllegalArgumentException("hashMapType must by from "
+         + "{Trove, TroveRebuilds, ProbingWithRebuilds, DoubleHashingWithRebuilds, ImplicitDeletes, "
+         + "EfficientDeletes, RobinHood, ReverseEfficient}");
     }
-    
+
     this.k = k;
     this.initialSize = initialCapacity;
     numPurges = 0;
@@ -158,34 +170,37 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
     // by a HashMap with the appropriate number of cells (specifically,
     // 2*k cells if k is a power of 2) and a load that does not exceed
     // the designated load factor
-    int maxHashMapLength = Integer.highestOneBit(4 * k - 1);
+    final int maxHashMapLength = Integer.highestOneBit(4 * k - 1);
     this.maxK = (int) (maxHashMapLength * counters.LOAD_FACTOR);
 
     this.offset = 0;
 
-    if (this.maxK < SAMPLE_SIZE) 
+    if (this.maxK < SAMPLE_SIZE) {
       this.sampleSize = this.maxK;
-    else
+    }
+    else {
       this.sampleSize = SAMPLE_SIZE;
-  }
-  
-  public FrequentItemsAbstractHash(int k, int initialCapacity, int sampleSize, String hashMapType) {
-  	this(k, initialCapacity, hashMapType);
-  	this.sampleSize = sampleSize;
+    }
   }
 
-  public FrequentItemsAbstractHash(int k) {
+  public FrequentItemsAbstractHash(final int k, final int initialCapacity, final int sampleSize,
+      final String hashMapType) {
+    this(k, initialCapacity, hashMapType);
+    this.sampleSize = sampleSize;
+  }
+
+  public FrequentItemsAbstractHash(final int k) {
       this(k, MIN_FREQUENT_ITEMS_SIZE, DEFAULT_HASHMAP_TYPE);
     }
 
-  public FrequentItemsAbstractHash(int k, int initialCapacity) {
+  public FrequentItemsAbstractHash(final int k, final int initialCapacity) {
       this(k, initialCapacity, DEFAULT_HASHMAP_TYPE);
     }
-  
-  public FrequentItemsAbstractHash(int k, String hashMapType) {
+
+  public FrequentItemsAbstractHash(final int k, final String hashMapType) {
       this(k, MIN_FREQUENT_ITEMS_SIZE, hashMapType);
     }
-  
+
   /**
    * @return the number of positive counters in the sketch.
    */
@@ -194,31 +209,32 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
   }
 
   @Override
-  public long getEstimate(long key) {
+  public long getEstimate(final long key) {
     // the logic below returns the count of associated counter if key is tracked.
     // If the key is not tracked and fewer than maxK counters are in use, 0 is returned.
     // Otherwise, the minimum counter value is returned.
-    if (counters.get(key) > 0)
+    if (counters.get(key) > 0) {
       return counters.get(key) + offset;
-    else
+    }
+    else {
       return 0;
+    }
   }
 
   @Override
-  public long getEstimateUpperBound(long key) {
-    long estimate = getEstimate(key);
-    if (estimate > 0)
+  public long getEstimateUpperBound(final long key) {
+    final long estimate = getEstimate(key);
+    if (estimate > 0) {
       return estimate + mergeError;
-
+    }
     return mergeError + offset;
-
   }
 
   @Override
-  public long getEstimateLowerBound(long key) {
-    long estimate = getEstimate(key);
-    
-    long returnVal = estimate - offset - mergeError;
+  public long getEstimateLowerBound(final long key) {
+    final long estimate = getEstimate(key);
+
+    final long returnVal = estimate - offset - mergeError;
     return (returnVal > 0) ? returnVal : 0;
   }
 
@@ -228,26 +244,26 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
   }
 
   @Override
-  public void update(long key) {
+  public void update(final long key) {
     update(key, 1);
   }
 
   @Override
-  public void update(long key, long increment) {
+  public void update(final long key, final long increment) {
     this.streamLength += increment;
     counters.adjust(key, increment);
-    int size = this.nnz();
+    final int size = this.nnz();
 
     // if the data structure needs to be grown
     if ((size >= this.K) && (this.K < this.maxK)) {
       // grow the size of the data structure
-      int newSize = Math.max(Math.min(this.maxK, 2 * this.K), 1);
+      final int newSize = Math.max(Math.min(this.maxK, 2 * this.K), 1);
       this.K = newSize;
-      HashMap newTable = hashMapFactory(hashMapType, newSize);
-      long[] keys = this.counters.getKeys();
-      long[] values = this.counters.getValues();
-      
-      assert(keys.length == size);
+      final HashMap newTable = hashMapFactory(hashMapType, newSize);
+      final long[] keys = this.counters.getKeys();
+      final long[] values = this.counters.getValues();
+
+      assert (keys.length == size);
       for (int i = 0; i < size; i++) {
         newTable.adjust(keys[i], values[i]);
       }
@@ -267,24 +283,26 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
    * longer positive, and increments offset accordingly.
    */
   private void purge() {
-	  long median = counters.quickSelect(0.5,sampleSize);
+    final long median = counters.quickSelect(0.5,sampleSize);
     counters.adjustAllValuesBy(-1 * median);
     counters.keepOnlyLargerThan(0);
     this.offset += median;
     numPurges++;
   }
-  
+
   @Override
-  public FrequencyEstimator merge(FrequencyEstimator other) {
-    if (!(other instanceof FrequentItemsAbstractHash))
-      throw new IllegalArgumentException("FrequentItemsAbstractHash can only merge with other FrequentItems");
-    FrequentItemsAbstractHash otherCasted = (FrequentItemsAbstractHash) other;
+  public FrequencyEstimator merge(final FrequencyEstimator other) {
+    if (!(other instanceof FrequentItemsAbstractHash)) {
+      throw new IllegalArgumentException(
+          "FrequentItemsAbstractHash can only merge with other FrequentItems");
+    }
+    final FrequentItemsAbstractHash otherCasted = (FrequentItemsAbstractHash) other;
 
     this.streamLength += otherCasted.streamLength;
     this.mergeError += otherCasted.getMaxError();
 
-    long[] otherKeys = otherCasted.counters.getKeys();
-    long[] otherValues = otherCasted.counters.getValues();
+    final long[] otherKeys = otherCasted.counters.getKeys();
+    final long[] otherValues = otherCasted.counters.getValues();
 
     for (int i = otherKeys.length; i-- > 0;) {
       this.update(otherKeys[i], otherValues[i]);
@@ -293,9 +311,9 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
   }
 
   @Override
-  public long[] getFrequentKeys(long threshold) {
+  public long[] getFrequentKeys(final long threshold) {
     int count = 0;
-    long[] keys = counters.ProtectedGetKey();
+    final long[] keys = counters.ProtectedGetKey();
 
     // first, count the number of candidate frequent keys
     for (int i = counters.getLength(); i-- > 0;) {
@@ -305,7 +323,7 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
     }
 
     // allocate an array to store the candidate frequent keys, and then compute them
-    long[] freqKeys = new long[count];
+    final long[] freqKeys = new long[count];
     count = 0;
     for (int i = counters.getLength(); i-- > 0;) {
       if (counters.isActive(i) && (getEstimateUpperBound(keys[i]) >= threshold)) {
@@ -348,23 +366,24 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
 
   /**
    * Returns the number of bytes required to store this sketch as an array of bytes.
-   * 
+   *
    * @return the number of bytes required to store this sketch as an array of bytes.
    */
   public int getStorageBytes() {
-    if (isEmpty())
+    if (isEmpty()) {
       return 20;
+    }
     return 48 + 16 * nnz();
   }
 
   /**
    * Returns summary information about this sketch.
-   * 
+   *
    * @return a string specifying the FrequentItems object
    */
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder();
     sb.append(
         String.format("%d,%d,%d,%d,%d,%d,", k, mergeError, offset, streamLength, K, initialSize));
     // maxK, samplesize are deterministic functions of k, so we don't need them in the serialization
@@ -372,8 +391,8 @@ public class FrequentItemsAbstractHash extends FrequencyEstimator {
     return sb.toString();
   }
 
-    
-  static private HashMap hashMapFactory(String hashMapType, int capacity) {
+
+  static private HashMap hashMapFactory(final String hashMapType, final int capacity) {
       switch (hashMapType) {
         case "Trove":
           return new HashMapTrove(capacity);
